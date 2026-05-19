@@ -25,7 +25,7 @@
     "@changesets/cli": "2.31.0",
     "@tsconfig/node22": "22.0.5",
     "@types/node": "latest",
-    "lefthook": "2.1.7",
+    "lefthook": "2.1.6",
     "tsdown": "0.22.0",
     "typescript": "6.0.3",
     "vitest": "4.1.6"

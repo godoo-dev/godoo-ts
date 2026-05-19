@@ -19,7 +19,7 @@ the `godoo-hq` spine once all six adoption outcomes are verified.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Repo & Toolchain Bootstrap** - Public monorepo, pnpm/tsup/vitest/changesets/CI, umbrella-aware CLAUDE.md
+- [ ] **Phase 1: Repo & Toolchain Bootstrap** - Public monorepo, pnpm/tsdown/vitest/changesets/CI, umbrella-aware CLAUDE.md
 - [ ] **Phase 2: Core-3 Adoption & Rename** - Adopt and rename client, testcontainers, introspection under `@godoo/`
 - [ ] **Phase 3: Publishing & Source-Repo Shedding** - Publish core-3 to npm, shed non-core packages, retire `odoo-toolbox`
 - [ ] **Phase 4: Terminal Report-Back** - File the single adoption report to the `godoo-hq` spine
@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Success Criteria** (what must be TRUE):
   1. The `godoo-dev/godoo-ts` repository exists on GitHub and the local repo pushes to it
   2. A pnpm-workspace monorepo scaffold is in place — workspace manifest, root tsconfig, shared lint/format config
-  3. `pnpm install`, a tsup build, and `vitest` all run green locally, and GitHub Actions CI passes on push
+  3. `pnpm install`, a tsdown build, and `vitest` all run green locally, and GitHub Actions CI passes on push
   4. `changesets` is configured and a release pipeline is wired
   5. A fresh clone of `godoo-ts` picks up umbrella context because `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md`
 **Plans**: TBD

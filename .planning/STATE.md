@@ -60,7 +60,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - Public GitHub repo under `godoo-dev`, LGPL-3.0 — core-3 are FOSS libraries on the public `@godoo/` npm scope
-- Modernize toolchain — pnpm workspaces + tsup builds, replacing the inherited npm-workspaces/tsc setup in one pass
+- Modernize toolchain — pnpm workspaces + tsdown builds, replacing the inherited npm-workspaces/tsc setup in one pass
 - Client-first adoption with deferred integration tests — `@godoo/client` integration tests skipped until `@godoo/testcontainers` lands, then re-enabled
 
 ### Pending Todos

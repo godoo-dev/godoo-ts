@@ -27,7 +27,7 @@ single canonical TS home, with **no period of dual-maintenance** between the two
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
 - [ ] Public `godoo-ts` repo created under the `godoo-dev` org and wired to its remote
-- [ ] pnpm-workspace monorepo scaffold in place — tsup builds, vitest, changesets, GitHub Actions CI
+- [ ] pnpm-workspace monorepo scaffold in place — tsdown builds, vitest, changesets, GitHub Actions CI
 - [ ] `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md` so the repo stays umbrella-aware
 - [ ] `@godoo/client` adopted and renamed from `@marcfargas/odoo-client` (integration tests temporarily deferred)
 - [ ] `@godoo/testcontainers` adopted and renamed from `@marcfargas/odoo-testcontainers`; deferred `@godoo/client` integration tests re-enabled and passing
@@ -77,7 +77,7 @@ single canonical TS home, with **no period of dual-maintenance** between the two
 
 ## Constraints
 
-- **Tech stack**: TypeScript (strict, no `any`); pnpm workspaces; tsup builds; vitest test runner — chosen to modernize the inherited npm-workspace/tsc toolchain in one pass during adoption
+- **Tech stack**: TypeScript (strict, no `any`); pnpm workspaces; tsdown builds; vitest test runner — chosen to modernize the inherited npm-workspace/tsc toolchain in one pass during adoption
 - **License**: LGPL-3.0 — carried from `odoo-toolbox`; drives the public repo decision
 - **Process**: `godoo-adoption` branch protocol — no dual-maintenance; code is removed from `odoo-toolbox` as godoo-ts confirms each package stable
 - **Dependency**: the `@godoo/client` rename must lead — every other package imports from it, so renaming any package before the client would force two passes of import-path updates
@@ -92,7 +92,7 @@ single canonical TS home, with **no period of dual-maintenance** between the two
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Public GitHub repo, LGPL-3.0 | Core-3 are FOSS libraries published to the public `@godoo/` npm scope; EU/FOSS-first stance | — Pending |
-| Modernize toolchain — pnpm workspaces + tsup builds | Cleaner monorepo than the inherited npm-workspaces/per-package-tsc setup; one-time migration folded into the adoption | — Pending |
+| Modernize toolchain — pnpm workspaces + tsdown builds | Cleaner monorepo than the inherited npm-workspaces/per-package-tsc setup; one-time migration folded into the adoption. tsdown replaces tsup (Phase 1 research: tsup is no longer actively maintained) | — Pending |
 | Client-first adoption with deferred integration tests | Avoids renaming the coupled pair simultaneously; client integration tests are skipped until `@godoo/testcontainers` lands, then re-enabled | — Pending |
 | Deprecate `odoo-state-manager` cleanly (no shim) | `godoo-stateman` supersedes it; the single internal consumer migrates on its own timeline | — Pending |
 | `odoo-mcp` deprecated; salvage deferred | What to salvage into a future Atlas MCP build is that charter's decision, not godoo-ts's | — Pending |

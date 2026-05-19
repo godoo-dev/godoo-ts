@@ -11,7 +11,7 @@ build/test/release toolchain**, wired into the godoo umbrella — an empty, gree
 vessel that Phase 2 pours the adopted core-3 packages into.
 
 In scope: pnpm-workspace scaffold, root tsconfig + shared config, Biome
-lint/format, lefthook hooks, tsup build config, vitest, changesets, GitHub
+lint/format, lefthook hooks, tsdown build config, vitest, changesets, GitHub
 Actions CI, GitHub repo creation, and verifying the `CLAUDE.md` umbrella import.
 
 Out of scope: adopting/renaming the actual `@godoo/*` packages (Phase 2),
@@ -28,14 +28,19 @@ Satisfies requirements BOOT-01, BOOT-02, BOOT-03, BOOT-04.
 ### Green-toolchain proof (BOOT-03)
 - **D-01:** Prove the toolchain green with **one throwaway example package**
   (e.g. `packages/_example`) containing a real `index.ts` and a trivial
-  passing vitest test. It must genuinely exercise `pnpm install`, the tsup
+  passing vitest test. It must genuinely exercise `pnpm install`, the tsdown
   build, vitest, and `tsconfig` `extends`. Phase 2 deletes it once the real
   core-3 packages land. Do **not** scaffold empty skeletons of the three real
   packages — that would lock package-manifest shape before Phase 2 knows the
   adopted manifests.
-- **D-02:** The **shared tsup config emits ESM-only output + `.d.ts`**
+- **D-02:** The **shared tsdown config emits ESM-only output + `.d.ts`**
   declarations (no CommonJS). This is the default for every package; the
   exports map targets ESM consumers (Node 22+/modern bundlers).
+  **Revised 2026-05-19 (plan-phase):** build tool changed from `tsup` to
+  `tsdown`. Phase 1 research found `tsup` is no longer actively maintained;
+  `tsdown` is its documented ESM-first successor (Rolldown-based, Node
+  ≥22.18.0 — aligns with the D-05 Node 22+24 matrix). User-approved override
+  of the original discuss-phase decision.
 
 ### Lint / format toolchain
 - **D-03:** Use **Biome** as the single lint+format tool (one `biome.json`),
@@ -51,7 +56,7 @@ Satisfies requirements BOOT-01, BOOT-02, BOOT-03, BOOT-04.
   EOL in April 2026.
 - **D-06:** CI runs on **Ubuntu only** (no Windows/macOS matrix). Local Windows
   development on marcwin provides de-facto Windows coverage.
-- **D-07:** Phase 1 CI jobs: **Biome check, typecheck, tsup build, unit tests
+- **D-07:** Phase 1 CI jobs: **Biome check, typecheck, tsdown build, unit tests
   (vitest)** — all green against the example package. The **Docker/Odoo
   integration-test job is deferred to Phase 2** (CORE-03), where it lands
   alongside the integration code it tests. No no-op placeholder job in Phase 1.
@@ -107,7 +112,7 @@ Satisfies requirements BOOT-01, BOOT-02, BOOT-03, BOOT-04.
   `vitest.packaging.config.mts`, `docker-compose.test.yml`) — the source
   repo's current toolchain (npm workspaces, ESLint+Prettier, husky, per-package
   `tsc`) that godoo-ts modernizes. Useful for understanding what the adopted
-  packages currently expect; godoo-ts deliberately diverges (pnpm, tsup, Biome,
+  packages currently expect; godoo-ts deliberately diverges (pnpm, tsdown, Biome,
   lefthook).
 
 </canonical_refs>
@@ -125,7 +130,7 @@ Satisfies requirements BOOT-01, BOOT-02, BOOT-03, BOOT-04.
   (`@../godoo-hq/UMBRELLA_CLAUDE.md`) — preserve it.
 - The source repo `odoo-toolbox` establishes the *prior* patterns being
   deliberately replaced: npm workspaces → pnpm workspaces; per-package `tsc`
-  → shared tsup; ESLint+Prettier → Biome; husky+lint-staged → lefthook.
+  → shared tsdown; ESLint+Prettier → Biome; husky+lint-staged → lefthook.
 
 ### Integration Points
 - New origin remote: `godoo-dev/godoo-ts` on GitHub (created during execution).
@@ -139,10 +144,10 @@ Satisfies requirements BOOT-01, BOOT-02, BOOT-03, BOOT-04.
 ## Specific Ideas
 
 - Toolchain target shape: pnpm workspaces · root tsconfig + per-package
-  `extends` · shared tsup config (ESM-only) · Biome (`biome.json`) · lefthook
+  `extends` · shared tsdown config (ESM-only) · Biome (`biome.json`) · lefthook
   · vitest · changesets · GitHub Actions.
 - The example package is explicitly **disposable** — its only job is to make
-  `pnpm install` + tsup build + vitest demonstrably green in Phase 1; Phase 2
+  `pnpm install` + tsdown build + vitest demonstrably green in Phase 1; Phase 2
   removes it.
 
 </specifics>

@@ -23,7 +23,7 @@ single canonical TS home, with **no period of dual-maintenance** between the two
 
 ### Constraints
 
-- **Tech stack**: TypeScript (strict, no `any`); pnpm workspaces; tsup builds; vitest test runner — chosen to modernize the inherited npm-workspace/tsc toolchain in one pass during adoption
+- **Tech stack**: TypeScript (strict, no `any`); pnpm workspaces; tsdown builds; vitest test runner — chosen to modernize the inherited npm-workspace/tsc toolchain in one pass during adoption
 - **License**: LGPL-3.0 — carried from `odoo-toolbox`; drives the public repo decision
 - **Process**: `godoo-adoption` branch protocol — no dual-maintenance; code is removed from `odoo-toolbox` as godoo-ts confirms each package stable
 - **Dependency**: the `@godoo/client` rename must lead — every other package imports from it, so renaming any package before the client would force two passes of import-path updates

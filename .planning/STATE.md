@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-19T10:45:58.704Z"
-last_activity: 2026-05-19 -- Phase 1 planning complete
+last_updated: "2026-05-19T10:57:25.497Z"
+last_activity: 2026-05-19
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-18)
 
 **Core value:** The core-3 libraries are cleanly adopted from `odoo-toolbox`, renamed under `@godoo/`, and published to a single canonical TS home — with no period of dual-maintenance.
-**Current focus:** Phase 1 — Repo & Toolchain Bootstrap
+**Current focus:** Phase 01 — repo-toolchain-bootstrap
 
 ## Current Position
 
-Phase: 1 of 4 (Repo & Toolchain Bootstrap)
-Plan: 0 of TBD in current phase
+Phase: 01 (repo-toolchain-bootstrap) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-05-19 -- Phase 1 planning complete
+Last activity: 2026-05-19
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-repo-toolchain-bootstrap P01 | 5 | 2 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -62,6 +63,9 @@ Recent decisions affecting current work:
 - Public GitHub repo under `godoo-dev`, LGPL-3.0 — core-3 are FOSS libraries on the public `@godoo/` npm scope
 - Modernize toolchain — pnpm workspaces + tsdown builds, replacing the inherited npm-workspaces/tsc setup in one pass
 - Client-first adoption with deferred integration tests — `@godoo/client` integration tests skipped until `@godoo/testcontainers` lands, then re-enabled
+- [Phase ?]: Biome 2.4.15 schema: organizeImports moved to assist.actions.source; files.ignore renamed to files.includes with negation; VCS integration enabled
+- [Phase ?]: tsdown 0.22.0 ESM output uses .mjs/.d.mts extensions — exports map must reference these, not .js/.d.ts
+- [Phase ?]: pnpm 11 requires allowBuilds approval in pnpm-workspace.yaml for packages with postinstall scripts (e.g. lefthook)
 
 ### Pending Todos
 
@@ -86,6 +90,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-19T09:49:20.730Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-repo-toolchain-bootstrap/01-CONTEXT.md
+Last session: 2026-05-19T10:57:25.485Z
+Stopped at: Completed 01-01-PLAN.md — root scaffold + GitHub repo
+Resume file: None

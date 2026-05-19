@@ -9,10 +9,10 @@ Requirements for the godoo-ts adoption milestone. Each maps to a roadmap phase.
 
 ### Repo & Toolchain Bootstrap
 
-- [ ] **BOOT-01**: Public `godoo-ts` repository created under the `godoo-dev` GitHub org, with the local repo wired to its remote
-- [ ] **BOOT-02**: pnpm-workspace monorepo scaffold in place — workspace manifest, root `tsconfig`, shared lint/format config
+- [x] **BOOT-01**: Public `godoo-ts` repository created under the `godoo-dev` GitHub org, with the local repo wired to its remote
+- [x] **BOOT-02**: pnpm-workspace monorepo scaffold in place — workspace manifest, root `tsconfig`, shared lint/format config
 - [ ] **BOOT-03**: Build, test, and release pipelines configured and green — tsdown builds, vitest (unit/integration/packaging), changesets, GitHub Actions CI
-- [ ] **BOOT-04**: `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md` so a fresh clone is umbrella-aware
+- [x] **BOOT-04**: `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md` so a fresh clone is umbrella-aware
 
 ### Core-3 Adoption & Rename
 
@@ -64,10 +64,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BOOT-01 | Phase 1 | Pending |
-| BOOT-02 | Phase 1 | Pending |
+| BOOT-01 | Phase 1 | Complete |
+| BOOT-02 | Phase 1 | Complete |
 | BOOT-03 | Phase 1 | Pending |
-| BOOT-04 | Phase 1 | Pending |
+| BOOT-04 | Phase 1 | Complete |
 | CORE-01 | Phase 2 | Pending |
 | CORE-02 | Phase 2 | Pending |
 | CORE-03 | Phase 2 | Pending |

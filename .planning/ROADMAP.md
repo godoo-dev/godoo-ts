@@ -41,11 +41,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `changesets` is configured and a release pipeline is wired
   5. A fresh clone of `godoo-ts` picks up umbrella context because `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md`
 
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Create GitHub repo, wire remote, and commit root monorepo scaffold (BOOT-01, BOOT-02, BOOT-04)
+- [x] 01-01-PLAN.md — Create GitHub repo, wire remote, and commit root monorepo scaffold (BOOT-01, BOOT-02, BOOT-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Repo & Toolchain Bootstrap | 0/3 | Ready to execute | - |
+| 1. Repo & Toolchain Bootstrap | 1/3 | In Progress|  |
 | 2. Core-3 Adoption & Rename | 0/TBD | Not started | - |
 | 3. Publishing & Source-Repo Shedding | 0/TBD | Not started | - |
 | 4. Terminal Report-Back | 0/TBD | Not started | - |

@@ -142,3 +142,10 @@ None — no external service configuration required. The branch ruleset is activ
 
 *Phase: 01-repo-toolchain-bootstrap*
 *Completed: 2026-05-19*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/01-repo-toolchain-bootstrap/01-03-SUMMARY.md`
+- FOUND: commit `21f5ac7` (Task 1 — CI workflow + changeset config)
+- FOUND: commit `95b5fe9` (Task 1 auto-fix — lefthook downgrade)
+- VERIFIED: `gh api repos/godoo-dev/godoo-ts/rulesets` returns `require-ci-on-main` (enforcement: active, rules: required_status_checks + non_fast_forward)

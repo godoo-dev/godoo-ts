@@ -1,4 +1,4 @@
-# Phase 1: Repo & Toolchain Bootstrap - Research
+﻿# Phase 1: Repo & Toolchain Bootstrap - Research
 
 **Researched:** 2026-05-19
 **Domain:** TypeScript pnpm-workspace library monorepo toolchain (tsdown, Biome, lefthook, vitest, changesets, GitHub Actions)
@@ -664,22 +664,22 @@ with `moduleResolution: "nodenext"` — TypeScript resolves `.ts` files when you
 | A3 | `pnpm/action-setup@v6` is the correct current version (v6.0.8) | Architecture Patterns Pattern 7 | If v7 released, v6 still works; minimal risk |
 | A4 | Biome 2.4.15 schema URL is `https://biomejs.dev/schemas/2.4.15/schema.json` | Architecture Patterns Pattern 4 | Use `pnpm biome init` to generate correct URL automatically — don't hardcode |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should the root `package.json` use `"packageManager": "pnpm@11.1.3"` or just `"pnpm@11"`?**
    - What we know: `packageManager` field supports both exact and range versions via corepack
    - What's unclear: Whether `pnpm/action-setup@v6` respects the `packageManager` field or requires explicit `version:` input
-   - Recommendation: Set both — `"packageManager": "pnpm@11.1.3"` in root `package.json` AND `version: 11` in the action; they don't conflict
+   - RESOLVED: Set both — `"packageManager": "pnpm@11.1.3"` in root `package.json` AND `version: 11` in the action; they don't conflict
 
 2. **tsdown 0.22.0 is pre-1.0 — is it stable enough for Phase 1?**
    - What we know: `engines.node: "^22.18.0 || >=24.0.0"` matches the CI matrix; published 2026-05-07; rolldown.dev org; used by vue/core maintainers
    - What's unclear: Whether pre-1.0 minor bumps introduce breaking changes
-   - Recommendation: Pin exact version in `package.json` (`"tsdown": "0.22.0"`). Accept the pre-1.0 risk — it's the only actively maintained ESM-first library bundler in this ecosystem, and tsup is explicitly inactive.
+   - RESOLVED: Pin exact version in `package.json` (`"tsdown": "0.22.0"`). Accept the pre-1.0 risk — it's the only actively maintained ESM-first library bundler in this ecosystem, and tsup is explicitly inactive.
 
 3. **How should the `develop` branch be set up in the new repo?**
    - What we know: D-09 says default branch = `main`, working branch = `develop`; `gh repo create` sets `main` as default
    - What's unclear: Whether to push `develop` immediately after creating the repo or defer until first commit
-   - Recommendation: After initial scaffold commit on `main`, immediately create and push `develop` from `main`. All subsequent Phase 1 work goes on `develop`.
+   - RESOLVED: After initial scaffold commit on `main`, immediately create and push `develop` from `main`. All subsequent Phase 1 work goes on `develop`.
 
 ## Environment Availability
 

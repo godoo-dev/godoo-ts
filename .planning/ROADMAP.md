@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Repo & Toolchain Bootstrap | 3/3 | Complete   | 2026-05-19 |
+| 1. Repo & Toolchain Bootstrap | 3/3 | Complete    | 2026-05-19 |
 | 2. Core-3 Adoption & Rename | 0/TBD | Not started | - |
 | 3. Publishing & Source-Repo Shedding | 0/TBD | Not started | - |
 | 4. Terminal Report-Back | 0/TBD | Not started | - |

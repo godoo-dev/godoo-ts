@@ -20,15 +20,14 @@ single canonical TS home, with **no period of dual-maintenance** between the two
 
 <!-- Shipped and confirmed valuable. -->
 
-(None yet — ship to validate)
+- [x] Public `godoo-ts` repo created under the `godoo-dev` org and wired to its remote — Validated in Phase 1: Repo & Toolchain Bootstrap
+- [x] pnpm-workspace monorepo scaffold in place — pnpm/tsdown/vitest/changesets/GitHub Actions CI all green — Validated in Phase 1: Repo & Toolchain Bootstrap
+- [x] `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md` so the repo stays umbrella-aware — Validated in Phase 1: Repo & Toolchain Bootstrap
 
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-- [ ] Public `godoo-ts` repo created under the `godoo-dev` org and wired to its remote
-- [ ] pnpm-workspace monorepo scaffold in place — tsdown builds, vitest, changesets, GitHub Actions CI
-- [ ] `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md` so the repo stays umbrella-aware
 - [ ] `@godoo/client` adopted and renamed from `@marcfargas/odoo-client` (integration tests temporarily deferred)
 - [ ] `@godoo/testcontainers` adopted and renamed from `@marcfargas/odoo-testcontainers`; deferred `@godoo/client` integration tests re-enabled and passing
 - [ ] `@godoo/introspection` adopted and renamed from `@marcfargas/odoo-introspection`
@@ -115,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-18 after initialization*
+*Last updated: 2026-05-19 — Phase 1 (Repo & Toolchain Bootstrap) complete*

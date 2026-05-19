@@ -37,7 +37,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `pnpm install`, a tsdown build, and `vitest` all run green locally, and GitHub Actions CI passes on push
   4. `changesets` is configured and a release pipeline is wired
   5. A fresh clone of `godoo-ts` picks up umbrella context because `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md`
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — Create GitHub repo, wire remote, and commit root monorepo scaffold (BOOT-01, BOOT-02, BOOT-04)
+- [ ] 01-02-PLAN.md — Create packages/_example throwaway proof package; green tsdown build + vitest (BOOT-02, BOOT-03 partial)
+- [ ] 01-03-PLAN.md — Commit CI workflow, push to trigger first run, wire changesets, apply main branch ruleset (BOOT-03)
 
 ### Phase 2: Core-3 Adoption & Rename
 **Goal**: The three core Odoo libraries are adopted from `odoo-toolbox`, renamed under the `@godoo/` scope, and fully validated — including the client's integration tests against real Odoo containers.
@@ -81,7 +85,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Repo & Toolchain Bootstrap | 0/TBD | Not started | - |
+| 1. Repo & Toolchain Bootstrap | 0/3 | Ready to execute | - |
 | 2. Core-3 Adoption & Rename | 0/TBD | Not started | - |
 | 3. Publishing & Source-Repo Shedding | 0/TBD | Not started | - |
 | 4. Terminal Report-Back | 0/TBD | Not started | - |

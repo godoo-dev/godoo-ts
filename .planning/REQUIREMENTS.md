@@ -11,7 +11,7 @@ Requirements for the godoo-ts adoption milestone. Each maps to a roadmap phase.
 
 - [x] **BOOT-01**: Public `godoo-ts` repository created under the `godoo-dev` GitHub org, with the local repo wired to its remote
 - [x] **BOOT-02**: pnpm-workspace monorepo scaffold in place — workspace manifest, root `tsconfig`, shared lint/format config
-- [ ] **BOOT-03**: Build, test, and release pipelines configured and green — tsdown builds, vitest (unit/integration/packaging), changesets, GitHub Actions CI
+- [x] **BOOT-03**: Build, test, and release pipelines configured and green — tsdown builds, vitest (unit/integration/packaging), changesets, GitHub Actions CI
 - [x] **BOOT-04**: `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md` so a fresh clone is umbrella-aware
 
 ### Core-3 Adoption & Rename
@@ -66,7 +66,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | BOOT-01 | Phase 1 | Complete |
 | BOOT-02 | Phase 1 | Complete |
-| BOOT-03 | Phase 1 | Pending |
+| BOOT-03 | Phase 1 | Complete |
 | BOOT-04 | Phase 1 | Complete |
 | CORE-01 | Phase 2 | Pending |
 | CORE-02 | Phase 2 | Pending |

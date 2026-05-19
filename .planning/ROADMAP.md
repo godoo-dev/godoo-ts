@@ -20,7 +20,7 @@ the `godoo-hq` spine once all six adoption outcomes are verified.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Repo & Toolchain Bootstrap** - Public monorepo, pnpm/tsdown/vitest/changesets/CI, umbrella-aware CLAUDE.md
+- [x] **Phase 1: Repo & Toolchain Bootstrap** - Public monorepo, pnpm/tsdown/vitest/changesets/CI, umbrella-aware CLAUDE.md (completed 2026-05-19)
 - [ ] **Phase 2: Core-3 Adoption & Rename** - Adopt and rename client, testcontainers, introspection under `@godoo/`
 - [ ] **Phase 3: Publishing & Source-Repo Shedding** - Publish core-3 to npm, shed non-core packages, retire `odoo-toolbox`
 - [ ] **Phase 4: Terminal Report-Back** - File the single adoption report to the `godoo-hq` spine
@@ -41,7 +41,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `changesets` is configured and a release pipeline is wired
   5. A fresh clone of `godoo-ts` picks up umbrella context because `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md`
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 **Wave 1**
 
@@ -53,7 +53,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-03-PLAN.md — Commit CI workflow, push to trigger first run, wire changesets, apply main branch ruleset (BOOT-03)
+- [x] 01-03-PLAN.md — Commit CI workflow, push to trigger first run, wire changesets, apply main branch ruleset (BOOT-03)
 
 ### Phase 2: Core-3 Adoption & Rename
 
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Repo & Toolchain Bootstrap | 2/3 | In Progress|  |
+| 1. Repo & Toolchain Bootstrap | 3/3 | Complete   | 2026-05-19 |
 | 2. Core-3 Adoption & Rename | 0/TBD | Not started | - |
 | 3. Publishing & Source-Repo Shedding | 0/TBD | Not started | - |
 | 4. Terminal Report-Back | 0/TBD | Not started | - |

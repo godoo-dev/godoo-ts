@@ -773,19 +773,19 @@ Required tools/dependencies for Phase 2 execution and CI:
 | A5 | The integration test files' env-var contract (`process.env.ODOO_URL` etc.) is identical across all 10 client integration test files | Integration-Test Reactivation Option A | If wrong: a stray test reads e.g. `ODOO_HOST` and Option A misses it. Mitigation: Plan 02-03 greps `process.env\.` across all integration test files before writing globalSetup; if surprises found, expand the env injection. [VERIFIED via grep — `ODOO_URL`, `ODOO_DB_NAME`, `ODOO_DB_USER`, `ODOO_DB_PASSWORD` cover client; `ODOO_DB`, `ODOO_USER`, `ODOO_PASSWORD` are alternative names used by examples.integration.test.ts. Both sets need injection.] |
 | A6 | `peerDependencies: { "@godoo/client": "workspace:*" }` resolves correctly under pnpm 11 for workspace-internal consumption | Toolchain Conversion Delta — testcontainers | If wrong: pnpm install fails or testcontainers can't find @godoo/client at test time. Mitigation: Plan 02-02 verification gate `pnpm --filter @godoo/testcontainers list @godoo/client` returns `link:../client`. [CITED — standard pnpm pattern, documented at pnpm.io] |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should adopted CHANGELOG.md files be preserved or deleted?**
+1. **RESOLVED: Should adopted CHANGELOG.md files be preserved or deleted?** — Delete inherited CHANGELOG.md in each adoption commit. Implemented in Plans 02-01 / 02-02 / 02-04 Task 1 (whitelist-copy excludes `CHANGELOG.md`; acceptance criteria assert `packages/<pkg>/CHANGELOG.md does NOT exist`).
    - What we know: D-02 says "version baseline is Phase 3's call"; CHANGELOG.md contains old `@marcfargas/odoo-*` references that would cause CORE-05 grep to find false-positive matches.
    - What's unclear: whether marc wants the changelog history preserved for archaeology or wiped clean (changesets regenerates from PR commits anyway).
    - Recommendation: **delete inherited CHANGELOG.md in the adoption commit**; the source-side tagged baseline (`pre-adoption-baseline`) and Phase 3's deprecation README cover archaeology. Verify with marc in discuss-phase if uncertain. Filed as Open Question rather than locked because CONTEXT.md doesn't address it.
 
-2. **What does the strict-TS `Domain` type look like, exactly?**
+2. **RESOLVED: What does the strict-TS `Domain` type look like, exactly?** — Pragmatic shape: `type Domain = Array<DomainLeaf | DomainOperator>` where `DomainLeaf = [string, string, unknown]` and `DomainOperator = "&" | "|" | "!"`. Implemented in Plan 02-01 Task 2 action block (defines `Domain` in `@godoo/client`, re-imported by Plans 02-02 + 02-04 strict-TS pass).
    - What we know: Odoo domains are arrays of `[field, operator, value]` tuples plus `'&'` / `'\|'` / `'!'` logical operators.
    - What's unclear: whether to make this fully type-safe (operator-literal union, etc.) or pragmatically `Array<DomainLeaf \| DomainOperator>` with `DomainLeaf = [string, string, unknown]`.
    - Recommendation: pragmatic shape with `unknown` for the value position; full type-safety can come in a later quality-of-life plan. The phase requirement is "passes strict TS", not "domain values are statically validated".
 
-3. **Should the introspection package's `examples.integration.test.ts` be enabled in Phase 2 or skipped?**
+3. **RESOLVED: Should the introspection package's `examples.integration.test.ts` be enabled in Phase 2 or skipped?** — Skip with explanatory TODO comment; defer to a follow-up phase. Implemented in Plan 02-04 Task 2 action (wraps top-level describe in `describe.skip(...)` with `// TODO: enable introspection integration tests in a follow-up phase` comment).
    - What we know: it's the only integration test for introspection; no Phase-2 requirement (CORE-04 says "tests pass" but the integration test was previously skipped at the workspace level).
    - What's unclear: whether marc wants it covered by the new integration CI or deferred.
    - Recommendation: **skip in Plan 02-04 with TODO**; running it requires extending the integration job to also run introspection tests, which slightly broadens 02-04 scope. Defer to a follow-up phase if needed. Confirm in discuss-phase.

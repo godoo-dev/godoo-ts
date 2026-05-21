@@ -16,7 +16,7 @@ Requirements for the godoo-ts adoption milestone. Each maps to a roadmap phase.
 
 ### Core-3 Adoption & Rename
 
-- [ ] **CORE-01**: `@godoo/client` adopted from `odoo-toolbox` and renamed from `@marcfargas/odoo-client`, with unit tests passing (integration tests temporarily skipped)
+- [x] **CORE-01**: `@godoo/client` adopted from `odoo-toolbox` and renamed from `@marcfargas/odoo-client`, with unit tests passing (integration tests temporarily skipped)
 - [x] **CORE-02**: `@godoo/testcontainers` adopted from `odoo-toolbox` and renamed from `@marcfargas/odoo-testcontainers`, with its tests passing
 - [x] **CORE-03**: `@godoo/client` integration tests re-enabled against the adopted `@godoo/testcontainers` and passing against real Odoo containers
 - [x] **CORE-04**: `@godoo/introspection` adopted from `odoo-toolbox` and renamed from `@marcfargas/odoo-introspection`, with its tests passing
@@ -68,7 +68,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BOOT-02 | Phase 1 | Complete |
 | BOOT-03 | Phase 1 | Complete |
 | BOOT-04 | Phase 1 | Complete |
-| CORE-01 | Phase 2 | Pending |
+| CORE-01 | Phase 2 | Complete |
 | CORE-02 | Phase 2 | Complete |
 | CORE-03 | Phase 2 | Complete |
 | CORE-04 | Phase 2 | Complete |

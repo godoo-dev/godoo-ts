@@ -69,17 +69,17 @@ Plans:
   4. `@godoo/introspection` is adopted and renamed from `@marcfargas/odoo-introspection`, with its tests passing
   5. No `@marcfargas/odoo-*` import paths remain — all cross-package imports resolve to the `@godoo/*` scope
 
-**Plans:** 4 plans
+**Plans:** 2/4 plans executed
 
 Plans:
 
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Adopt @godoo/client (rename from @marcfargas/odoo-client) + delete packages/_example + strict-TS pass + skip 10 integration tests with TODO(CORE-03) (CORE-01, CORE-05)
+- [x] 02-01-PLAN.md — Adopt @godoo/client (rename from @marcfargas/odoo-client) + delete packages/_example + strict-TS pass + skip 10 integration tests with TODO(CORE-03) (CORE-01, CORE-05)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-02-PLAN.md — Adopt @godoo/testcontainers (rename from @marcfargas/odoo-testcontainers) + workspace:* cross-package dep to @godoo/client (CORE-02, CORE-05)
+- [x] 02-02-PLAN.md — Adopt @godoo/testcontainers (rename from @marcfargas/odoo-testcontainers) + workspace:* cross-package dep to @godoo/client (CORE-02, CORE-05)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -125,6 +125,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Repo & Toolchain Bootstrap | 3/3 | Complete    | 2026-05-19 |
-| 2. Core-3 Adoption & Rename | 0/4 | Not started | - |
+| 2. Core-3 Adoption & Rename | 2/4 | In Progress|  |
 | 3. Publishing & Source-Repo Shedding | 0/TBD | Not started | - |
 | 4. Terminal Report-Back | 0/TBD | Not started | - |

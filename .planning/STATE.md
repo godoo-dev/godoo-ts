@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-20T23:17:24.262Z"
-last_activity: 2026-05-20 -- Phase 02 planning complete
+last_updated: "2026-05-21T08:45:00.000Z"
+last_activity: 2026-05-21 -- Phase 02-02 complete; @godoo/testcontainers adopted on develop@c9a2225
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 7
-  completed_plans: 3
-  percent: 25
+  completed_plans: 6
+  percent: 32
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-18)
 ## Current Position
 
 Phase: 2
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-05-20 -- Phase 02 planning complete
+Plan: 02-02 complete — Wave 3 (02-03 client integration reactivation) next
+Status: Executing
+Last activity: 2026-05-21 -- Phase 02-02 complete; @godoo/testcontainers adopted on develop@c9a2225
 
-Progress: [██████████] 100%
+Progress: [█████████░] 86% (6/7 plans complete)
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@ Progress: [██████████] 100%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 3 | - | - |
+| 02 | 2 (of 4) | ~135 min | ~67 min |
 
 **Recent Trend:**
 
@@ -52,6 +53,8 @@ Progress: [██████████] 100%
 
 *Updated after each plan completion*
 | Phase 01-repo-toolchain-bootstrap P01 | 5 | 2 tasks | 19 files |
+| Phase 02-core-3-adoption-rename P01 | 75 | 4 tasks | 75 files |
+| Phase 02-core-3-adoption-rename P02 | 60 | 4 tasks | 29 files |
 
 ## Accumulated Context
 
@@ -66,6 +69,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Biome 2.4.15 schema: organizeImports moved to assist.actions.source; files.ignore renamed to files.includes with negation; VCS integration enabled
 - [Phase ?]: tsdown 0.22.0 ESM output uses .mjs/.d.mts extensions — exports map must reference these, not .js/.d.ts
 - [Phase ?]: pnpm 11 requires allowBuilds approval in pnpm-workspace.yaml for packages with postinstall scripts (e.g. lefthook)
+- [Phase 02-02]: Cross-package workspace deps use `workspace:*` in BOTH dependencies and peerDependencies; changesets resolves peer to concrete range at Phase-3 publish
+- [Phase 02-02]: rolldown-plugin-dts isolatedDeclarations is stricter than `tsc --noEmit` — object-literal lambdas need an explicit interface binding (OdooPresetsApi pattern)
+- [Phase 02-02]: cpu-features/protobufjs/ssh2 allowBuilds set to false (transitive deps of dockerode/testcontainers; JS-only fallback sufficient for unit tests; Phase 02-03 may revisit for real Docker integration)
 
 ### Pending Todos
 
@@ -90,6 +96,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-20T22:06:48.424Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-core-3-adoption-rename/02-CONTEXT.md
+Last session: 2026-05-21T08:45:00.000Z
+Stopped at: Completed Phase 02-02-PLAN.md; Wave 2 (testcontainers) adopted
+Resume file: .planning/phases/02-core-3-adoption-rename/02-03-PLAN.md

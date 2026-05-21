@@ -29,6 +29,7 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "test": "vitest run",
+    "test:integration": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {

@@ -16,8 +16,7 @@ import { clockIn, clockOut, getStatus, listAttendances } from '../src/services/a
 import { OdooValidationError } from '../src/types/errors.js';
 import { cleanupInstalledModules, installModuleForTest } from './helpers/odoo-instance.js';
 
-// TODO(CORE-03): re-enable after @godoo/testcontainers lands (Phase 02-03)
-describe.skip('Attendance service integration', () => {
+describe('Attendance service integration', () => {
   let client: OdooClient;
   let moduleManager: ModuleManager;
   let employeeId: number;

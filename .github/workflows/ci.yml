@@ -3,7 +3,9 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - develop
 
 jobs:
   ci:
@@ -23,3 +25,21 @@ jobs:
       - run: pnpm tsc --noEmit
       - run: pnpm build
       - run: pnpm test
+
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test:integration
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: 'false'

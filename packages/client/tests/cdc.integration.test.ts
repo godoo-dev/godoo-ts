@@ -24,8 +24,7 @@ const odooDb = process.env.ODOO_DB_NAME || 'odoo';
 const odooUser = process.env.ODOO_DB_USER || 'admin';
 const odooPassword = process.env.ODOO_DB_PASSWORD || 'admin';
 
-// TODO(CORE-03): re-enable after @godoo/testcontainers lands (Phase 02-03)
-describe.skip('CdcService integration', () => {
+describe('CdcService integration', () => {
   let client: OdooClient;
   let cdc: CdcService;
   const cleanup: Array<{ model: string; id: number }> = [];

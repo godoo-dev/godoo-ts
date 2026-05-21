@@ -29,8 +29,7 @@ import {
 } from '../src/services/accounting/functions.js';
 import { cleanupInstalledModules, installModuleForTest } from './helpers/odoo-instance.js';
 
-// TODO(CORE-03): re-enable after @godoo/testcontainers lands (Phase 02-03)
-describe.skip('Accounting service integration', () => {
+describe('Accounting service integration', () => {
   const odooUrl = process.env.ODOO_URL || 'http://localhost:8069';
   const odooDb = process.env.ODOO_DB_NAME || 'odoo';
   const odooUser = process.env.ODOO_DB_USER || 'admin';

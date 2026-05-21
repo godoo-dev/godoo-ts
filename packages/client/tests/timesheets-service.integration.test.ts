@@ -17,8 +17,7 @@ import {
 import { OdooValidationError } from '../src/types/errors.js';
 import { cleanupInstalledModules, installModuleForTest } from './helpers/odoo-instance.js';
 
-// TODO(CORE-03): re-enable after @godoo/testcontainers lands (Phase 02-03)
-describe.skip('Timesheets service integration', () => {
+describe('Timesheets service integration', () => {
   let client: OdooClient;
   let moduleManager: ModuleManager;
   let employeeId: number;

@@ -13,8 +13,7 @@ import { OdooClient } from '../src/client/odoo-client.js';
 import { postInternalNote, postOpenMessage } from '../src/services/mail/index.js';
 import { OdooValidationError } from '../src/types/errors.js';
 
-// TODO(CORE-03): re-enable after @godoo/testcontainers lands (Phase 02-03)
-describe.skip('Mail helpers integration', () => {
+describe('Mail helpers integration', () => {
   const odooUrl = process.env.ODOO_URL || 'http://localhost:8069';
   const odooDb = process.env.ODOO_DB_NAME || 'odoo';
   const odooUser = process.env.ODOO_DB_USER || 'admin';

@@ -6,8 +6,7 @@ import { ModuleManager, OdooClient } from '../src/index.js';
  *
  * Tests the new `client.properties.*` service accessors for safe property updates.
  */
-// TODO(CORE-03): re-enable after @godoo/testcontainers lands (Phase 02-03)
-describe.skip('Properties Service Integration', () => {
+describe('Properties Service Integration', () => {
   const odooUrl = process.env.ODOO_URL || 'http://localhost:8069';
   const odooDb = process.env.ODOO_DB_NAME || 'odoo';
   const odooUser = process.env.ODOO_DB_USER || 'admin';

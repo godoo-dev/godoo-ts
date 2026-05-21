@@ -5,8 +5,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { OdooClient } from '../src/index.js';
 
-// TODO(CORE-03): re-enable after @godoo/testcontainers lands (Phase 02-03)
-describe.skip('odoo-client examples', () => {
+describe('odoo-client examples', () => {
   let client: OdooClient;
 
   beforeAll(async () => {

@@ -5,8 +5,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ModuleManager, OdooClient } from '../src/index.js';
 
-// TODO(CORE-03): re-enable after @godoo/testcontainers lands (Phase 02-03)
-describe.skip('ModuleManager integration tests', () => {
+describe('ModuleManager integration tests', () => {
   let client: OdooClient;
   let moduleManager: ModuleManager;
 

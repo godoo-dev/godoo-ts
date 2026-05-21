@@ -1,0 +1,47 @@
+{
+  "name": "@godoo/client",
+  "version": "0.6.0",
+  "description": "Lightweight TypeScript client for Odoo RPC operations",
+  "type": "module",
+  "license": "LGPL-3.0",
+  "author": "Marc Fargas <marc@marcfargas.com>",
+  "keywords": [
+    "odoo",
+    "rpc",
+    "client",
+    "typescript"
+  ],
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.mts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "debug": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/godoo-dev/godoo-ts.git",
+    "directory": "packages/client"
+  },
+  "homepage": "https://github.com/godoo-dev/godoo-ts/tree/main/packages/client",
+  "publishConfig": {
+    "access": "public"
+  }
+}

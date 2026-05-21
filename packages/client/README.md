@@ -142,12 +142,12 @@ For comprehensive, tested examples of Odoo patterns — CRUD, search, domains, f
 
 ## Related Packages
 
-- [@marcfargas/odoo-introspection](../odoo-introspection) — Schema introspection and code generation
-- [@marcfargas/odoo-state-manager](../odoo-state-manager) — State management and drift detection
+- [@godoo/introspection](../introspection) — Schema introspection and code generation
+- [@godoo/testcontainers](../testcontainers) — Docker/Odoo test harness
 
 ## Bugs & Support
 
-[GitHub Issues](https://github.com/marcfargas/odoo-toolbox/issues)
+[GitHub Issues](https://github.com/godoo-dev/godoo-ts/issues)
 
 ## License
 

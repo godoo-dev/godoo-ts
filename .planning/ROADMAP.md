@@ -21,7 +21,7 @@ the `godoo-hq` spine once all six adoption outcomes are verified.
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Repo & Toolchain Bootstrap** - Public monorepo, pnpm/tsdown/vitest/changesets/CI, umbrella-aware CLAUDE.md (completed 2026-05-19)
-- [ ] **Phase 2: Core-3 Adoption & Rename** - Adopt and rename client, testcontainers, introspection under `@godoo/`
+- [x] **Phase 2: Core-3 Adoption & Rename** - Adopt and rename client, testcontainers, introspection under `@godoo/` (completed 2026-05-21)
 - [ ] **Phase 3: Publishing & Source-Repo Shedding** - Publish core-3 to npm, shed non-core packages, retire `odoo-toolbox`
 - [ ] **Phase 4: Terminal Report-Back** - File the single adoption report to the `godoo-hq` spine
 
@@ -69,7 +69,7 @@ Plans:
   4. `@godoo/introspection` is adopted and renamed from `@marcfargas/odoo-introspection`, with its tests passing
   5. No `@marcfargas/odoo-*` import paths remain — all cross-package imports resolve to the `@godoo/*` scope
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 
@@ -87,7 +87,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 02-04-PLAN.md — Adopt @godoo/introspection (rename from @marcfargas/odoo-introspection) + workspace:* dep + .mjs bin with shebang for POSIX executability (CORE-04, CORE-05)
+- [x] 02-04-PLAN.md — Adopt @godoo/introspection (rename from @marcfargas/odoo-introspection) + workspace:* dep + .mjs bin with shebang for POSIX executability (CORE-04, CORE-05)
 
 ### Phase 3: Publishing & Source-Repo Shedding
 
@@ -125,6 +125,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Repo & Toolchain Bootstrap | 3/3 | Complete    | 2026-05-19 |
-| 2. Core-3 Adoption & Rename | 3/4 | In Progress|  |
+| 2. Core-3 Adoption & Rename | 4/4 | Complete   | 2026-05-21 |
 | 3. Publishing & Source-Repo Shedding | 0/TBD | Not started | - |
 | 4. Terminal Report-Back | 0/TBD | Not started | - |

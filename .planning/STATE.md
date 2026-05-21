@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-21T10:54:24.307Z"
-last_activity: 2026-05-21 -- Phase 02-02 complete; @godoo/testcontainers adopted on develop@c9a2225
+last_updated: "2026-05-21T11:12:36.233Z"
+last_activity: 2026-05-21 -- Phase 02 complete; @godoo/introspection adopted on develop@6f87dce; CORE-04 + CORE-05 satisfied
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 6
-  percent: 25
+  completed_plans: 7
+  percent: 50
 ---
 
 # Project State
@@ -24,12 +24,12 @@ See: .planning/PROJECT.md (updated 2026-05-18)
 
 ## Current Position
 
-Phase: 2
-Plan: 02-02 complete — Wave 3 (02-03 client integration reactivation) next
-Status: Executing
-Last activity: 2026-05-21 -- Phase 02-02 complete; @godoo/testcontainers adopted on develop@c9a2225
+Phase: 2 — COMPLETE
+Plan: 02-04 complete — Phase 2 closed; Phase 3 (Publishing & Source-Repo Shedding) next
+Status: Phase 2 complete; ready for Phase 3
+Last activity: 2026-05-21 -- Phase 02 complete; @godoo/introspection adopted on develop@6f87dce; CORE-04 + CORE-05 satisfied
 
-Progress: [█████████░] 86%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█████████░] 86%
 | Phase 02-core-3-adoption-rename P01 | 75 | 4 tasks | 75 files |
 | Phase 02-core-3-adoption-rename P02 | 60 | 4 tasks | 29 files |
 | Phase 02 P03 | 45 | 6 tasks | 19 files |
+| Phase 02 P04 | 45 | - tasks | - files |
 
 ## Accumulated Context
 
@@ -76,6 +77,9 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 02-03]: vitest 'projects: [packages/*]' overrides root test.exclude per-project — every package with integration tests needs a defensive per-package vitest.config.ts exclude (precedent: testcontainers 02-02; now applied to client 02-03)
 - [Phase ?]: [Phase 02-03]: GitHub branch ruleset 'require-ci-on-main' now requires 4 status checks (ci 22, ci 24, integration 22, integration 24) — adding container-backed integration tests to a future package requires adding its CI job name to the ruleset, or merges to main will not gate on it
 - [Phase ?]: [Phase 02-03]: vitest globalSetup is the single source of container lifecycle for client integration tests; the 7 process.env.ODOO_* names (ODOO_URL/ODOO_DB_NAME/ODOO_DB_USER/ODOO_DB_PASSWORD plus the 3 examples-only aliases) are injected once and read by every test — no per-test container setup, no docker-compose, no services: block (D-05)
+- [Phase ?]: [Phase 02-04]: tsdown 0.22.0 preserves source-file shebangs AND grants execute permission to the emitted .mjs bin file (Assumption A1 confirmed empirically) — no config-side workaround needed for POSIX-executable CLI bins
+- [Phase ?]: [Phase 02-04]: Codegen template-string strict-TS pattern — when emitting TypeScript that references Domain (or any cross-package type), prepend an 'import type { Domain } from @godoo/client;' line to the template so generated user code stays standalone-valid
+- [Phase ?]: [Phase 02-04]: Two-entry tsdown config established for packages with a bin entry — { entry: ['./src/index.ts', './src/cli/cli.ts'], format: 'esm', dts: true } emits dist/index.mjs + dist/cli/cli.mjs with paired .d.mts; bin entry references the .mjs file (NOT .js — Phase-1 landmine #1)
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-21T10:54:24.300Z
-Stopped at: Completed Phase 02-03-PLAN.md; Wave 3 (client integration tests reactivated against @godoo/testcontainers) at b553137
-Resume file: .planning/phases/02-core-3-adoption-rename/02-04-PLAN.md
+Last session: 2026-05-21T11:12:20.497Z
+Stopped at: Completed Phase 02-04-PLAN.md; Phase 2 closed — @godoo/introspection adopted at 6f87dce; CORE-04 + CORE-05 satisfied; ready for Phase 3 (Publishing & Source-Repo Shedding)
+Resume file: None

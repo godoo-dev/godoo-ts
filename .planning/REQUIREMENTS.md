@@ -19,8 +19,8 @@ Requirements for the godoo-ts adoption milestone. Each maps to a roadmap phase.
 - [ ] **CORE-01**: `@godoo/client` adopted from `odoo-toolbox` and renamed from `@marcfargas/odoo-client`, with unit tests passing (integration tests temporarily skipped)
 - [x] **CORE-02**: `@godoo/testcontainers` adopted from `odoo-toolbox` and renamed from `@marcfargas/odoo-testcontainers`, with its tests passing
 - [x] **CORE-03**: `@godoo/client` integration tests re-enabled against the adopted `@godoo/testcontainers` and passing against real Odoo containers
-- [ ] **CORE-04**: `@godoo/introspection` adopted from `odoo-toolbox` and renamed from `@marcfargas/odoo-introspection`, with its tests passing
-- [ ] **CORE-05**: All cross-package import paths updated from the `@marcfargas/odoo-*` scope to `@godoo/*`
+- [x] **CORE-04**: `@godoo/introspection` adopted from `odoo-toolbox` and renamed from `@marcfargas/odoo-introspection`, with its tests passing
+- [x] **CORE-05**: All cross-package import paths updated from the `@marcfargas/odoo-*` scope to `@godoo/*`
 
 ### Publishing
 
@@ -71,8 +71,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CORE-01 | Phase 2 | Pending |
 | CORE-02 | Phase 2 | Complete |
 | CORE-03 | Phase 2 | Complete |
-| CORE-04 | Phase 2 | Pending |
-| CORE-05 | Phase 2 | Pending |
+| CORE-04 | Phase 2 | Complete |
+| CORE-05 | Phase 2 | Complete |
 | PUB-01 | Phase 3 | Pending |
 | PUB-02 | Phase 3 | Pending |
 | SHED-01 | Phase 3 | Pending |

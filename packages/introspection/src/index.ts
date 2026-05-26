@@ -1,5 +1,5 @@
 /**
- * @godoo/introspection
+ * @godoo-dev/introspection
  *
  * TypeScript introspection and code generation for Odoo models.
  *
@@ -10,8 +10,8 @@
  *
  * Usage:
  * ```typescript
- * import { OdooClient } from '@godoo/client';
- * import { Introspector } from '@godoo/introspection';
+ * import { OdooClient } from '@godoo-dev/client';
+ * import { Introspector } from '@godoo-dev/introspection';
  *
  * const client = new OdooClient({ ... });
  * await client.authenticate();

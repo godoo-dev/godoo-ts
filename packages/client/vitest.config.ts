@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
 /**
- * Per-package vitest config for `@godoo/client` UNIT tests.
+ * Per-package vitest config for `@godoo-dev/client` UNIT tests.
  *
  * Mirrors the pattern Wave 2 introduced in `packages/testcontainers/vitest.config.ts`:
  * the root `vitest.config.ts` has `projects: ['packages/*']` which treats per-package

@@ -42,7 +42,7 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@godoo/testcontainers':
+      '@godoo-dev/testcontainers':
         specifier: workspace:*
         version: link:../testcontainers
       '@types/debug':
@@ -51,7 +51,7 @@ importers:
 
   packages/introspection:
     dependencies:
-      '@godoo/client':
+      '@godoo-dev/client':
         specifier: workspace:*
         version: link:../client
       debug:
@@ -67,7 +67,7 @@ importers:
 
   packages/testcontainers:
     dependencies:
-      '@godoo/client':
+      '@godoo-dev/client':
         specifier: workspace:*
         version: link:../client
       '@testcontainers/postgresql':

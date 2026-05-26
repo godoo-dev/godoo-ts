@@ -1,4 +1,4 @@
-# @godoo/client
+# @godoo-dev/client
 
 Lightweight TypeScript client for Odoo RPC operations.
 
@@ -14,7 +14,7 @@ Lightweight TypeScript client for Odoo RPC operations.
 ## Installation
 
 ```bash
-pnpm add @godoo/client
+pnpm add @godoo-dev/client
 ```
 
 **Prerequisites**: Node.js ≥ 24, a running Odoo v17 instance.
@@ -22,7 +22,7 @@ pnpm add @godoo/client
 ## Quick Start
 
 ```typescript
-import { createClient } from '@godoo/client';
+import { createClient } from '@godoo-dev/client';
 
 // Reads ODOO_URL, ODOO_DB, ODOO_USER, ODOO_PASSWORD from environment
 const client = await createClient();
@@ -89,7 +89,7 @@ const info = await client.modules.getModuleInfo('sale');
 For custom configurations, use `OdooClient` directly:
 
 ```typescript
-import { OdooClient } from '@godoo/client';
+import { OdooClient } from '@godoo-dev/client';
 
 const client = new OdooClient({
   url: 'http://localhost:8069',
@@ -107,7 +107,7 @@ await client.authenticate();
 For deployments where Odoo sits behind an OAuth-fronted proxy (e.g. [`odoo-api-proxy`](https://github.com/marcfargas/odoo-api-proxy)), use `OAuthProxyClient` instead of `OdooClient`. Same CRUD surface, bearer-token auth instead of `common.login`:
 
 ```typescript
-import { OAuthProxyClient } from '@godoo/client';
+import { OAuthProxyClient } from '@godoo-dev/client';
 
 const client = new OAuthProxyClient({
   proxyBaseUrl: 'https://proxy.example.com',
@@ -125,7 +125,7 @@ The `getAccessToken` callback owns caching and refresh — the client never cach
 Both `OdooClient` and `OAuthProxyClient` implement the shared `OdooCrudClient` interface, so application code can program against the abstraction and swap transports with only a constructor change:
 
 ```typescript
-import type { OdooCrudClient } from '@godoo/client';
+import type { OdooCrudClient } from '@godoo-dev/client';
 
 async function syncPartners(client: OdooCrudClient) {
   return client.searchRead('res.partner', [], { fields: ['name', 'email'] });
@@ -142,8 +142,8 @@ For comprehensive, tested examples of Odoo patterns — CRUD, search, domains, f
 
 ## Related Packages
 
-- [@godoo/introspection](../introspection) — Schema introspection and code generation
-- [@godoo/testcontainers](../testcontainers) — Docker/Odoo test harness
+- [@godoo-dev/introspection](../introspection) — Schema introspection and code generation
+- [@godoo-dev/testcontainers](../testcontainers) — Docker/Odoo test harness
 
 ## Bugs & Support
 

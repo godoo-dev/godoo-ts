@@ -9,7 +9,7 @@
  * @see https://github.com/odoo/odoo/blob/17.0/odoo/addons/base/models/ir_model_fields.py
  */
 
-import type { Domain, OdooClient } from '@godoo/client';
+import type { Domain, OdooClient } from '@godoo-dev/client';
 import { IntrospectionCache } from './cache.js';
 import type { IntrospectionOptions, ModelMetadata, OdooField, OdooModel } from './types.js';
 

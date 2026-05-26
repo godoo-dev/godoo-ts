@@ -1,4 +1,4 @@
-# @godoo/introspection
+# @godoo-dev/introspection
 
 TypeScript introspection and code generation for Odoo models.
 
@@ -13,7 +13,7 @@ TypeScript introspection and code generation for Odoo models.
 ## Installation
 
 ```bash
-pnpm add @godoo/introspection @godoo/client
+pnpm add @godoo-dev/introspection @godoo-dev/client
 ```
 
 **Prerequisites**: Node.js ≥ 22, a running Odoo v17 instance.
@@ -23,8 +23,8 @@ pnpm add @godoo/introspection @godoo/client
 ### Programmatic Usage
 
 ```typescript
-import { createClient } from '@godoo/client';
-import { Introspector } from '@godoo/introspection';
+import { createClient } from '@godoo-dev/client';
+import { Introspector } from '@godoo-dev/introspection';
 
 // Reads ODOO_URL, ODOO_DB, ODOO_USER, ODOO_PASSWORD from env
 const client = await createClient();
@@ -139,7 +139,7 @@ introspector.clearModelCache('res.partner');
 Generate TypeScript interfaces from Odoo schemas.
 
 ```typescript
-import { CodeGenerator } from '@godoo/introspection';
+import { CodeGenerator } from '@godoo-dev/introspection';
 
 const generator = new CodeGenerator(client);
 
@@ -225,8 +225,8 @@ DEBUG=odoo-introspection:introspection,odoo-introspection:codegen pnpm test
 
 ## Related Packages
 
-- [@godoo/client](../client) — RPC client
-- [@godoo/testcontainers](../testcontainers) — Docker/Odoo test harness
+- [@godoo-dev/client](../client) — RPC client
+- [@godoo-dev/testcontainers](../testcontainers) — Docker/Odoo test harness
 
 ## Bugs & Support
 

@@ -3,8 +3,8 @@ export * from './client';
 // RPC transport
 export * from './rpc';
 // Canonical Odoo search-domain and positional-RPC-arg types — re-exported
-// at the package root so downstream `@godoo/*` packages can do
-// `import type { Domain, DomainClause, RpcArg } from '@godoo/client'`.
+// at the package root so downstream `@godoo-dev/*` packages can do
+// `import type { Domain, DomainClause, RpcArg } from '@godoo-dev/client'`.
 export type { Domain, DomainClause, RpcArg } from './rpc/types';
 // Safety guards
 export * from './safety';

@@ -8,7 +8,7 @@
  *   client.modules.isModuleInstalled(..) // ← module management
  *
  * Standalone functions are also exported for advanced composition:
- *   import { postInternalNote } from '@godoo/client';
+ *   import { postInternalNote } from '@godoo-dev/client';
  *   await postInternalNote(client, model, id, body);
  *
  * Adding a new service:

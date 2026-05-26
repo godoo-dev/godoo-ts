@@ -1,5 +1,5 @@
 {
-  "name": "@godoo/introspection",
+  "name": "@godoo-dev/introspection",
   "version": "0.2.1",
   "description": "TypeScript introspection and code generation for Odoo models",
   "type": "module",
@@ -34,7 +34,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@godoo/client": "workspace:*",
+    "@godoo-dev/client": "workspace:*",
     "debug": "^4.4.3"
   },
   "devDependencies": {

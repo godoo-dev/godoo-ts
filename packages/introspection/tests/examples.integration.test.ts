@@ -2,7 +2,7 @@
  * Integration tests for odoo-introspection examples
  */
 
-import { ModuleManager, OdooClient } from '@godoo/client';
+import { ModuleManager, OdooClient } from '@godoo-dev/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Introspector } from '../src/index.js';
 

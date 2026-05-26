@@ -25,7 +25,7 @@
  * ## Usage
  *
  * ```typescript
- * import { OAuthProxyClient } from '@godoo/client';
+ * import { OAuthProxyClient } from '@godoo-dev/client';
  *
  * const client = new OAuthProxyClient({
  *   proxyBaseUrl: 'https://proxy.example.com',

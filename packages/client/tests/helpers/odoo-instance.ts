@@ -5,7 +5,7 @@
  * Plan 02-01 shipped a placeholder version of this file that threw on call so
  * the 10 `*.integration.test.ts` files would resolve at module-load time while
  * skip-wrapped. Plan 02-03 replaces the placeholders with the real
- * `ModuleManager`-driven implementations now that `@godoo/testcontainers` is
+ * `ModuleManager`-driven implementations now that `@godoo-dev/testcontainers` is
  * in place and the integration tests actually run.
  *
  * Signatures stay compatible with the call sites in accounting-service,

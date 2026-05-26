@@ -1,4 +1,4 @@
-import type { OdooClient } from '@godoo/client';
+import type { OdooClient } from '@godoo-dev/client';
 import { describe, expect, it, vi } from 'vitest';
 import { Introspector } from '../src/introspection/introspect.js';
 import type { OdooField } from '../src/introspection/types.js';

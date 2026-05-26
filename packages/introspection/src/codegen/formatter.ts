@@ -8,7 +8,7 @@
  * - Generating index file with all exports
  */
 
-import type { Domain } from '@godoo/client';
+import type { Domain } from '@godoo-dev/client';
 import type { ModelMetadata } from '../introspection/types.js';
 import { generateFieldJSDoc, getFieldTypeExpression } from './type-mappers.js';
 
@@ -195,7 +195,7 @@ export function generateCompleteFile(allMetadata: ModelMetadata[]): string {
  * @returns TypeScript code defining helper types
  */
 export function generateHelperTypes(): string {
-  return `import type { Domain } from '@godoo/client';
+  return `import type { Domain } from '@godoo-dev/client';
 
 /**
  * Options for search operations.

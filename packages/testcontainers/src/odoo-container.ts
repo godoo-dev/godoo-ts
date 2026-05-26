@@ -5,7 +5,7 @@
  * custom addons, and proper cleanup.
  */
 
-import { ModuleManager, OdooClient } from '@godoo/client';
+import { ModuleManager, OdooClient } from '@godoo-dev/client';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import Dockerode from 'dockerode';
 import { GenericContainer, Network, type StartedTestContainer, Wait } from 'testcontainers';

@@ -2,7 +2,7 @@
  * Type definitions for test-harness provisioners.
  */
 
-import type { Domain } from '@godoo/client';
+import type { Domain } from '@godoo-dev/client';
 
 /**
  * Top-level declarative configuration for a test Odoo instance.
@@ -110,7 +110,7 @@ export interface ProvisionedRefs {
  * and prevents type mismatches when odoo-testcontainers pins an older release
  * (different installed path → different nominal type despite same API shape).
  *
- * The full OdooClient from @godoo/client satisfies this interface.
+ * The full OdooClient from @godoo-dev/client satisfies this interface.
  */
 export interface ProvisionerClient {
   create(

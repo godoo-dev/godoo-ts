@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
 /**
- * Per-package vitest config for `@godoo/client` integration tests
+ * Per-package vitest config for `@godoo-dev/client` integration tests
  * (Plan 02-03 / CORE-03).
  *
  * Discovery scope is narrowed to `tests/**\/*.integration.test.ts` so this
@@ -12,13 +12,13 @@ import { defineConfig } from 'vitest/config';
  *
  * Container lifecycle is handled exclusively by `./tests/integration-setup.ts`
  * via vitest's `globalSetup` hook (Phase-2 D-05: container orchestration is
- * entirely owned by `@godoo/testcontainers`; no docker-compose, no CI
+ * entirely owned by `@godoo-dev/testcontainers`; no docker-compose, no CI
  * `services:` block).
  *
  * - `testTimeout` / `hookTimeout: 600_000` — first cold Odoo init can run 3
  *   minutes; subsequent snapshot-cached starts are faster but the budget stays
  *   high so a slow CI runner doesn't flake. Matches the source-repo convention
- *   carried over by `@godoo/testcontainers`'s own vitest.config.ts.
+ *   carried over by `@godoo-dev/testcontainers`'s own vitest.config.ts.
  * - `pool: 'forks'` + `fileParallelism: false` + `sequence.concurrent: false`
  *   — every integration test file talks to the SAME Odoo container (created
  *   once in setup, torn down once in teardown). Running them in parallel would

@@ -8,7 +8,7 @@
  * 4. File output (writing generated.ts)
  */
 
-import type { OdooClient } from '@godoo/client';
+import type { OdooClient } from '@godoo-dev/client';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Introspector } from '../introspection/index.js';

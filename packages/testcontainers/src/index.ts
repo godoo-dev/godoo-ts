@@ -1,5 +1,5 @@
 /**
- * @godoo/testcontainers
+ * @godoo-dev/testcontainers
  *
  * Testcontainers module for Odoo development in Node.js.
  *
@@ -12,7 +12,7 @@
  *
  * @example
  * ```typescript
- * import { startOdoo, OdooPresets } from '@godoo/testcontainers';
+ * import { startOdoo, OdooPresets } from '@godoo-dev/testcontainers';
  *
  * // Simple usage with presets
  * const odoo = await OdooPresets.hr(); // HR + Attendance pre-installed

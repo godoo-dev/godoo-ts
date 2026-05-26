@@ -47,7 +47,7 @@ export class TestHarness {
   /**
    * Authenticated Odoo client — typed as ProvisionerClient (the minimal
    * interface we require). Cast to the full OdooClient from your own import
-   * of @godoo/client if you need service accessors (client.mail, etc.).
+   * of @godoo-dev/client if you need service accessors (client.mail, etc.).
    */
   readonly client: ProvisionerClient;
 

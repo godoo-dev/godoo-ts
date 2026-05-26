@@ -1,5 +1,5 @@
 {
-  "name": "@godoo/testcontainers",
+  "name": "@godoo-dev/testcontainers",
   "version": "0.1.5",
   "description": "Testcontainers module for Odoo development",
   "type": "module",
@@ -33,14 +33,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@godoo/client": "workspace:*",
+    "@godoo-dev/client": "workspace:*",
     "@testcontainers/postgresql": "^10.13.2",
     "debug": "^4.3.4",
     "dockerode": "^4.0.0",
     "testcontainers": "^10.13.2"
   },
   "peerDependencies": {
-    "@godoo/client": "workspace:*"
+    "@godoo-dev/client": "workspace:*"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",

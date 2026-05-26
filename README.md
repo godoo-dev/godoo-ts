@@ -1,3 +1,3 @@
 # godoo-ts
 
-TypeScript monorepo for @godoo/* Odoo client libraries. LGPL-3.0.
+TypeScript monorepo for @godoo-dev/* Odoo client libraries. LGPL-3.0.

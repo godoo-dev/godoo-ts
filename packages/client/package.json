@@ -1,5 +1,5 @@
 {
-  "name": "@godoo/client",
+  "name": "@godoo-dev/client",
   "version": "0.6.0",
   "description": "Lightweight TypeScript client for Odoo RPC operations",
   "type": "module",
@@ -34,7 +34,7 @@
     "debug": "^4.4.3"
   },
   "devDependencies": {
-    "@godoo/testcontainers": "workspace:*",
+    "@godoo-dev/testcontainers": "workspace:*",
     "@types/debug": "^4.1.12"
   },
   "repository": {

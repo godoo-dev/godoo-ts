@@ -24,7 +24,7 @@
  *     --modules sale,project
  */
 
-import { OdooClient } from '@godoo/client';
+import { OdooClient } from '@godoo-dev/client';
 import * as path from 'path';
 import { CodeGenerator } from '../codegen/generator.js';
 

@@ -1,4 +1,4 @@
-# @godoo/testcontainers
+# @godoo-dev/testcontainers
 
 A custom Testcontainers module for Odoo development in Node.js.
 
@@ -15,14 +15,14 @@ A custom Testcontainers module for Odoo development in Node.js.
 ## Installation
 
 ```bash
-pnpm add -D @godoo/testcontainers
+pnpm add -D @godoo-dev/testcontainers
 ```
 
 ## Quick Start
 
 ```typescript
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { OdooPresets } from '@godoo/testcontainers';
+import { OdooPresets } from '@godoo-dev/testcontainers';
 
 describe('My Odoo Integration', () => {
   let odoo;
@@ -50,7 +50,7 @@ describe('My Odoo Integration', () => {
 ### Basic Usage
 
 ```typescript
-import { startOdoo } from '@godoo/testcontainers';
+import { startOdoo } from '@godoo-dev/testcontainers';
 
 const odoo = await startOdoo({
   modules: ['hr_attendance', 'project', 'sale'],
@@ -141,7 +141,7 @@ await odoo.moduleManager.installModule('base_technical_user');
 Pre-configured setups for common development scenarios:
 
 ```typescript
-import { OdooPresets } from '@godoo/testcontainers';
+import { OdooPresets } from '@godoo-dev/testcontainers';
 
 // HR & Attendance
 const odoo = await OdooPresets.hr();

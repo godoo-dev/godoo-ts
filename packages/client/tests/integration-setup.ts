@@ -1,7 +1,7 @@
 /**
- * Vitest globalSetup for `@godoo/client` integration tests (Plan 02-03).
+ * Vitest globalSetup for `@godoo-dev/client` integration tests (Plan 02-03).
  *
- * Starts a single Odoo + Postgres container pair via `@godoo/testcontainers`
+ * Starts a single Odoo + Postgres container pair via `@godoo-dev/testcontainers`
  * before any `*.integration.test.ts` file runs and tears it down afterwards.
  * Test files read connection info from `process.env.ODOO_*` — this module is
  * the single source of truth for those values; do NOT mutate them elsewhere.
@@ -16,7 +16,7 @@
  *   - ODOO_USER         — examples.integration.test.ts only
  *   - ODOO_PASSWORD     — examples.integration.test.ts only
  *
- * Container orchestration is entirely owned by `@godoo/testcontainers` (Phase-2
+ * Container orchestration is entirely owned by `@godoo-dev/testcontainers` (Phase-2
  * D-05): no `services:` block in CI, no docker-compose.test.yml. The vitest
  * `pool: 'forks'` + `fileParallelism: false` config in
  * `packages/client/vitest.integration.config.ts` ensures all integration files
@@ -30,7 +30,7 @@
  * session transcript.
  */
 
-import { type StartedOdooContainer, startOdoo } from '@godoo/testcontainers';
+import { type StartedOdooContainer, startOdoo } from '@godoo-dev/testcontainers';
 
 let odoo: StartedOdooContainer | undefined;
 

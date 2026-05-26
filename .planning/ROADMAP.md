@@ -20,8 +20,8 @@ the `godoo-hq` spine once all six adoption outcomes are verified.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Repo & Toolchain Bootstrap** - Public monorepo, pnpm/tsdown/vitest/changesets/CI, umbrella-aware CLAUDE.md
-- [ ] **Phase 2: Core-3 Adoption & Rename** - Adopt and rename client, testcontainers, introspection under `@godoo/`
+- [x] **Phase 1: Repo & Toolchain Bootstrap** - Public monorepo, pnpm/tsdown/vitest/changesets/CI, umbrella-aware CLAUDE.md (completed 2026-05-19)
+- [x] **Phase 2: Core-3 Adoption & Rename** - Adopt and rename client, testcontainers, introspection under `@godoo/` (completed 2026-05-21)
 - [ ] **Phase 3: Publishing & Source-Repo Shedding** - Publish core-3 to npm, shed non-core packages, retire `odoo-toolbox`
 - [ ] **Phase 4: Terminal Report-Back** - File the single adoption report to the `godoo-hq` spine
 
@@ -41,19 +41,19 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `changesets` is configured and a release pipeline is wired
   5. A fresh clone of `godoo-ts` picks up umbrella context because `CLAUDE.md` `@`-imports `../godoo-hq/UMBRELLA_CLAUDE.md`
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Create GitHub repo, wire remote, and commit root monorepo scaffold (BOOT-01, BOOT-02, BOOT-04)
+- [x] 01-01-PLAN.md — Create GitHub repo, wire remote, and commit root monorepo scaffold (BOOT-01, BOOT-02, BOOT-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Create packages/_example throwaway proof package; green tsdown build + vitest (BOOT-02, BOOT-03 partial)
+- [x] 01-02-PLAN.md — Create packages/_example throwaway proof package; green tsdown build + vitest (BOOT-02, BOOT-03 partial)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-03-PLAN.md — Commit CI workflow, push to trigger first run, wire changesets, apply main branch ruleset (BOOT-03)
+- [x] 01-03-PLAN.md — Commit CI workflow, push to trigger first run, wire changesets, apply main branch ruleset (BOOT-03)
 
 ### Phase 2: Core-3 Adoption & Rename
 
@@ -69,7 +69,25 @@ Plans:
   4. `@godoo/introspection` is adopted and renamed from `@marcfargas/odoo-introspection`, with its tests passing
   5. No `@marcfargas/odoo-*` import paths remain — all cross-package imports resolve to the `@godoo/*` scope
 
-**Plans**: TBD
+**Plans:** 4/4 plans complete
+
+Plans:
+
+**Wave 1**
+
+- [x] 02-01-PLAN.md — Adopt @godoo/client (rename from @marcfargas/odoo-client) + delete packages/_example + strict-TS pass + skip 10 integration tests with TODO(CORE-03) (CORE-01, CORE-05)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 02-02-PLAN.md — Adopt @godoo/testcontainers (rename from @marcfargas/odoo-testcontainers) + workspace:* cross-package dep to @godoo/client (CORE-02, CORE-05)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [x] 02-03-PLAN.md — Re-enable client integration tests against @godoo/testcontainers + new `integration` CI job (Node 22+24) + update require-ci-on-main ruleset to require new checks (CORE-03)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [x] 02-04-PLAN.md — Adopt @godoo/introspection (rename from @marcfargas/odoo-introspection) + workspace:* dep + .mjs bin with shebang for POSIX executability (CORE-04, CORE-05)
 
 ### Phase 3: Publishing & Source-Repo Shedding
 
@@ -84,7 +102,30 @@ Plans:
   3. `odoo-skills` is confirmed ejected, and `odoo-cli`, `odoo-mcp`, and `odoo-state-manager` are deprecated per the godoo-adoption protocol (`odoo-mcp` code left in place; `odoo-state-manager` deprecated cleanly in favour of `godoo-stateman`)
   4. `odoo-toolbox` is retired — a deprecation `README.md` pointing to the new package homes is merged to `main`
 
-**Plans**: TBD
+**Plans:** 6 plans
+
+Plans:
+
+**Wave 1**
+
+- [ ] 03-01-PLAN.md — Publish three @godoo/* stub packages at 0.0.0 + add NPM_TOKEN_BREAKGLASS repo secret (PUB-01)
+
+**Wave 2** *(blocked on Wave 1: stubs must exist on npm before trusted publisher config)*
+
+- [ ] 03-02-PLAN.md — Configure npm OIDC trusted publishers for @godoo/client, @godoo/introspection, @godoo/testcontainers (PUB-01)
+
+**Wave 3** *(blocked on Wave 2: trusted publishers must be configured before release workflow can be exercised)*
+
+- [ ] 03-03-PLAN.md — Create release.yml workflow (OIDC, Node 24, changesets/action) + seed three rename changeset files on develop (PUB-01, PUB-02)
+
+**Wave 4** *(blocked on Wave 3: release.yml + changesets must be on develop before PR to main)*
+
+- [ ] 03-04-PLAN.md — Merge develop to main, merge Version Packages PR, confirm @godoo/* live on npm at D-01 versions (PUB-02)
+
+**Wave 5** *(both plans blocked on Wave 4: @godoo/* must be live before deprecation redirects are valid and before source packages are shed)*
+
+- [ ] 03-05-PLAN.md — Write and run deprecation script for all seven @marcfargas/odoo-* packages (SHED-01, SHED-02, SHED-03, SHED-04)
+- [ ] 03-06-PLAN.md — Execute two-PR source-side shed on odoo-toolbox (PR1 + PR2), rename master→main, GitHub-archive (SHED-05)
 
 ### Phase 4: Terminal Report-Back
 
@@ -106,7 +147,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Repo & Toolchain Bootstrap | 0/3 | Ready to execute | - |
-| 2. Core-3 Adoption & Rename | 0/TBD | Not started | - |
-| 3. Publishing & Source-Repo Shedding | 0/TBD | Not started | - |
+| 1. Repo & Toolchain Bootstrap | 3/3 | Complete    | 2026-05-19 |
+| 2. Core-3 Adoption & Rename | 4/4 | Complete   | 2026-05-21 |
+| 3. Publishing & Source-Repo Shedding | 0/6 | Not started | - |
 | 4. Terminal Report-Back | 0/TBD | Not started | - |

@@ -13,12 +13,12 @@ cloned godoo-ts is immediately umbrella-aware:
 
 godoo-ts is the TypeScript library monorepo of the godoo / Odoo Atlas initiative. It
 adopts the three core Odoo client libraries from the broader `odoo-toolbox` repo —
-renaming them under the `@godoo/` npm scope — and becomes their single canonical home,
+renaming them under the `@godoo-dev/` npm scope — and becomes their single canonical home,
 published as the TypeScript surface of the Odoo Atlas core-3 library parity scope. It
 is for TypeScript developers managing real Odoo ERP instances as code.
 
-**Core Value:** The core-3 libraries — `@godoo/client`, `@godoo/introspection`, `@godoo/testcontainers`
-— are cleanly adopted from `odoo-toolbox`, renamed under `@godoo/`, and published to a
+**Core Value:** The core-3 libraries — `@godoo-dev/client`, `@godoo-dev/introspection`, `@godoo-dev/testcontainers`
+— are cleanly adopted from `odoo-toolbox`, renamed under `@godoo-dev/`, and published to a
 single canonical TS home, with **no period of dual-maintenance** between the two repos.
 
 ### Constraints
@@ -26,8 +26,8 @@ single canonical TS home, with **no period of dual-maintenance** between the two
 - **Tech stack**: TypeScript (strict, no `any`); pnpm workspaces; tsdown builds; vitest test runner — chosen to modernize the inherited npm-workspace/tsc toolchain in one pass during adoption
 - **License**: LGPL-3.0 — carried from `odoo-toolbox`; drives the public repo decision
 - **Process**: `godoo-adoption` branch protocol — no dual-maintenance; code is removed from `odoo-toolbox` as godoo-ts confirms each package stable
-- **Dependency**: the `@godoo/client` rename must lead — every other package imports from it, so renaming any package before the client would force two passes of import-path updates
-- **Coupling**: `@godoo/client`'s integration test suite spins up real Odoo containers via `@godoo/testcontainers`; the client cannot be fully validated until `testcontainers` is adopted
+- **Dependency**: the `@godoo-dev/client` rename must lead — every other package imports from it, so renaming any package before the client would force two passes of import-path updates
+- **Coupling**: `@godoo-dev/client`'s integration test suite spins up real Odoo containers via `@godoo-dev/testcontainers`; the client cannot be fully validated until `testcontainers` is adopted
 - **Reporting**: a single terminal report-back is appended to `godoo-hq/dev-log.md` — only when all six success outcomes are met; no periodic status updates
 - **Umbrella wiring**: the generated `CLAUDE.md` must `@`-import `../godoo-hq/UMBRELLA_CLAUDE.md`
 <!-- GSD:project-end -->

@@ -1,0 +1,12 @@
+packages:
+  - 'packages/*'
+allowBuilds:
+  # cpu-features, protobufjs, ssh2 are transitive deps of dockerode/testcontainers.
+  # Their native postinstall scripts are intentionally skipped — the JS-only
+  # fallback paths are sufficient for typecheck/build/unit tests. Real container
+  # integration tests (Phase 02-03+) run on CI with Docker available and may
+  # require re-evaluating these (Phase-1 D-09 / RESEARCH §allowBuilds).
+  cpu-features: false
+  lefthook: true
+  protobufjs: false
+  ssh2: false

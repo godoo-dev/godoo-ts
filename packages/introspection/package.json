@@ -1,0 +1,53 @@
+{
+  "name": "@godoo-dev/introspection",
+  "version": "0.2.1",
+  "description": "TypeScript introspection and code generation for Odoo models",
+  "type": "module",
+  "license": "LGPL-3.0",
+  "author": "Marc Fargas <marc@marcfargas.com>",
+  "keywords": [
+    "odoo",
+    "introspection",
+    "code-generation",
+    "typescript",
+    "schema"
+  ],
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.mts"
+    }
+  },
+  "bin": {
+    "odoo-introspect": "./dist/cli/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@godoo-dev/client": "workspace:*",
+    "debug": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/node": "^22.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/godoo-dev/godoo-ts.git",
+    "directory": "packages/introspection"
+  },
+  "homepage": "https://github.com/godoo-dev/godoo-ts/tree/main/packages/introspection",
+  "publishConfig": {
+    "access": "public"
+  }
+}

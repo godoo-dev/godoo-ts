@@ -102,7 +102,30 @@ Plans:
   3. `odoo-skills` is confirmed ejected, and `odoo-cli`, `odoo-mcp`, and `odoo-state-manager` are deprecated per the godoo-adoption protocol (`odoo-mcp` code left in place; `odoo-state-manager` deprecated cleanly in favour of `godoo-stateman`)
   4. `odoo-toolbox` is retired — a deprecation `README.md` pointing to the new package homes is merged to `main`
 
-**Plans**: TBD
+**Plans:** 6 plans
+
+Plans:
+
+**Wave 1**
+
+- [ ] 03-01-PLAN.md — Publish three @godoo/* stub packages at 0.0.0 + add NPM_TOKEN_BREAKGLASS repo secret (PUB-01)
+
+**Wave 2** *(blocked on Wave 1: stubs must exist on npm before trusted publisher config)*
+
+- [ ] 03-02-PLAN.md — Configure npm OIDC trusted publishers for @godoo/client, @godoo/introspection, @godoo/testcontainers (PUB-01)
+
+**Wave 3** *(blocked on Wave 2: trusted publishers must be configured before release workflow can be exercised)*
+
+- [ ] 03-03-PLAN.md — Create release.yml workflow (OIDC, Node 24, changesets/action) + seed three rename changeset files on develop (PUB-01, PUB-02)
+
+**Wave 4** *(blocked on Wave 3: release.yml + changesets must be on develop before PR to main)*
+
+- [ ] 03-04-PLAN.md — Merge develop to main, merge Version Packages PR, confirm @godoo/* live on npm at D-01 versions (PUB-02)
+
+**Wave 5** *(both plans blocked on Wave 4: @godoo/* must be live before deprecation redirects are valid and before source packages are shed)*
+
+- [ ] 03-05-PLAN.md — Write and run deprecation script for all seven @marcfargas/odoo-* packages (SHED-01, SHED-02, SHED-03, SHED-04)
+- [ ] 03-06-PLAN.md — Execute two-PR source-side shed on odoo-toolbox (PR1 + PR2), rename master→main, GitHub-archive (SHED-05)
 
 ### Phase 4: Terminal Report-Back
 
@@ -126,5 +149,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Repo & Toolchain Bootstrap | 3/3 | Complete    | 2026-05-19 |
 | 2. Core-3 Adoption & Rename | 4/4 | Complete   | 2026-05-21 |
-| 3. Publishing & Source-Repo Shedding | 0/TBD | Not started | - |
+| 3. Publishing & Source-Repo Shedding | 0/6 | Not started | - |
 | 4. Terminal Report-Back | 0/TBD | Not started | - |

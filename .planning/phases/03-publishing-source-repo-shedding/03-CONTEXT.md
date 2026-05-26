@@ -65,24 +65,27 @@ SHED-04, SHED-05.
 <decisions>
 ## Implementation Decisions
 
-> **Deviation 2026-05-26 (mid-execution):** npm scope changed @godoo → @godoo-dev (the @godoo org is not free on npmjs). D-03 break-glass token DROPPED — OIDC trusted-publishing only, no npm tokens. All @godoo-dev/* stubs already published at 0.0.0.
+> **Deviation 2026-05-26 (mid-execution):** (1) npm scope changed @godoo → @godoo-dev (the @godoo org is not free on npmjs). (2) D-03 break-glass token DROPPED — OIDC trusted-publishing only, no npm tokens. All @godoo-dev/* stubs published at 0.0.0. (3) **D-01 revised — first publish is inherited+patch, not inherited-unchanged** (see D-01 below): a `patch`-level changeset always bumps, so the rename publish landed at 0.6.1 / 0.2.2 / 0.1.6. Maintainer accepted this (rename counts as a release). All three are now LIVE on npm at those versions with SLSA provenance.
 
 ### Version baseline for first publish
 
-- **D-01:** **Carry inherited versions unchanged.** First publishes
-  under the `@godoo-dev/` scope land at `@godoo-dev/client@0.6.0`,
-  `@godoo-dev/introspection@0.2.1`, `@godoo-dev/testcontainers@0.1.5` — the
-  versions already in each package's `package.json`. Rationale: the
-  rename is a pure scope-identifier change with no API change, so
-  semver doctrine does not justify a bump or a reset; the inherited
-  versions preserve the real maturity spread (mature client /
-  usable introspection / usable testcontainers) as a useful signal to
-  new adopters; since the npm scope is part of the package name,
-  `@marcfargas/odoo-client@^0.6.0` will never resolve to `@godoo-dev/client`
-  regardless of number, so there is zero downstream-resolution risk.
-  Each first publish seeds its CHANGELOG.md with a single
-  "renamed from `@marcfargas/odoo-<pkg>`" entry at the inherited
-  version.
+- **D-01 (REVISED 2026-05-26):** **First `@godoo-dev/*` publish landed at
+  inherited+patch: `@godoo-dev/client@0.6.1`,
+  `@godoo-dev/introspection@0.2.2`, `@godoo-dev/testcontainers@0.1.6`.**
+  The original decision was to carry the inherited versions
+  (0.6.0 / 0.2.1 / 0.1.5) **unchanged**, but a `patch`-level changeset
+  (the mechanism chosen in Plan 03-03 to record the rename in CHANGELOG)
+  *always* applies the bump — `changeset version` turns 0.6.0 into 0.6.1.
+  Rather than re-author the changesets to force a no-op bump, the
+  maintainer accepted the +1 patch: the scope rename is semantically a
+  release, so a patch bump is defensible. The maturity spread is
+  preserved (0.6.x / 0.2.x / 0.1.x) and there is still zero
+  downstream-resolution risk (scope is part of the package name, so
+  `@marcfargas/odoo-client@^0.6.0` never resolves to `@godoo-dev/client`).
+  Each first publish's CHANGELOG.md carries the
+  "renamed from `@marcfargas/odoo-<pkg>`" entry at its inherited+patch
+  version. (Original intent — exact inherited versions — recorded here
+  for history; superseded by this revision.)
 
 ### Publish auth + release flow
 

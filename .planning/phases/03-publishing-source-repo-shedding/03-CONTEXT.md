@@ -6,27 +6,27 @@
 <domain>
 ## Phase Boundary
 
-Phase 3 takes the three already-adopted `@godoo/*` core packages live on
+Phase 3 takes the three already-adopted `@godoo-dev/*` core packages live on
 the public npm scope, deprecates every retiring `@marcfargas/odoo-*`
 package on the registry, and retires the source repo `odoo-toolbox` to
 an archived deprecation README. This is the **publishing + source-side
 shed** half of the `godoo-adoption` protocol — Phase 2 was the
 destination-side adoption; Phase 3 closes the loop so the codebase ends
-up in exactly one repo with the `@godoo/` scope as its only canonical
+up in exactly one repo with the `@godoo-dev/` scope as its only canonical
 home.
 
 In scope:
-- Create the public `@godoo` npm org (free tier; public packages only).
+- Create the public `@godoo-dev` npm org (free tier; public packages only).
 - Bootstrap each of the three core packages on npm via a minimal `0.0.0`
   stub publish from the laptop, so npm trusted publishing can be
   configured against an existing package.
-- Configure npm OIDC trusted publishing for `@godoo/client`,
-  `@godoo/introspection`, `@godoo/testcontainers` against the
+- Configure npm OIDC trusted publishing for `@godoo-dev/client`,
+  `@godoo-dev/introspection`, `@godoo-dev/testcontainers` against the
   `godoo-dev/godoo-ts` GitHub Actions workflow.
 - Wire `changesets/action` (or equivalent) into the release workflow so
   the next merge to `main` publishes the real first releases at the
-  inherited versions (`@godoo/client@0.6.0`,
-  `@godoo/introspection@0.2.1`, `@godoo/testcontainers@0.1.5`) with
+  inherited versions (`@godoo-dev/client@0.6.0`,
+  `@godoo-dev/introspection@0.2.1`, `@godoo-dev/testcontainers@0.1.5`) with
   automatic SLSA provenance attestations.
 - Seed a single rename-changeset per package so the first real publish
   has a meaningful CHANGELOG.md entry.
@@ -50,7 +50,7 @@ Out of scope:
 - The terminal report-back entry to `godoo-hq/dev-log.md` — that is
   Phase 4 (RPT-01).
 - Any API change, codegen change, or feature evolution to the three
-  `@godoo/*` packages — Phase 3 is publish + rename CHANGELOG only.
+  `@godoo-dev/*` packages — Phase 3 is publish + rename CHANGELOG only.
 - A compatibility shim between `@marcfargas/odoo-state-manager` and
   `godoo-stateman` — explicit `Out of Scope` per PROJECT.md; the
   internal BGBL consumer migrates on its own timeline.
@@ -65,18 +65,20 @@ SHED-04, SHED-05.
 <decisions>
 ## Implementation Decisions
 
+> **Deviation 2026-05-26 (mid-execution):** npm scope changed @godoo → @godoo-dev (the @godoo org is not free on npmjs). D-03 break-glass token DROPPED — OIDC trusted-publishing only, no npm tokens. All @godoo-dev/* stubs already published at 0.0.0.
+
 ### Version baseline for first publish
 
 - **D-01:** **Carry inherited versions unchanged.** First publishes
-  under the `@godoo/` scope land at `@godoo/client@0.6.0`,
-  `@godoo/introspection@0.2.1`, `@godoo/testcontainers@0.1.5` — the
+  under the `@godoo-dev/` scope land at `@godoo-dev/client@0.6.0`,
+  `@godoo-dev/introspection@0.2.1`, `@godoo-dev/testcontainers@0.1.5` — the
   versions already in each package's `package.json`. Rationale: the
   rename is a pure scope-identifier change with no API change, so
   semver doctrine does not justify a bump or a reset; the inherited
   versions preserve the real maturity spread (mature client /
   usable introspection / usable testcontainers) as a useful signal to
   new adopters; since the npm scope is part of the package name,
-  `@marcfargas/odoo-client@^0.6.0` will never resolve to `@godoo/client`
+  `@marcfargas/odoo-client@^0.6.0` will never resolve to `@godoo-dev/client`
   regardless of number, so there is zero downstream-resolution risk.
   Each first publish seeds its CHANGELOG.md with a single
   "renamed from `@marcfargas/odoo-<pkg>`" entry at the inherited
@@ -85,7 +87,8 @@ SHED-04, SHED-05.
 ### Publish auth + release flow
 
 - **D-02:** **Stub-bootstrap + OIDC trusted publishing for ongoing
-  releases.** Create the `@godoo` npm org (free tier, public-only).
+  releases.** Create the `@godoo-dev` npm org (free tier, public-only;
+  note: the `@godoo` org was not free on npmjs).
   Publish a minimal `0.0.0` stub for each of the three packages from
   the laptop (`pnpm publish` with 2FA OTP) — each stub contains a
   trimmed `package.json` (name, version `0.0.0`, README pointer,
@@ -102,13 +105,14 @@ SHED-04, SHED-05.
   Trusted publishers must be configured explicitly choosing the
   "allow npm publish" action (npm defaults changed on 2026-05-20).
 
-- **D-03:** **Granular `@godoo/*`-scoped classic NPM_TOKEN kept as a
+- **[SUPERSEDED 2026-05-26 — DROPPED]** The maintainer disallows npm tokens; release auth is GitHub OIDC trusted-publishing only. No break-glass token, no repo secret.
+  **D-03:** ~~**Granular `@godoo-dev/*`-scoped classic NPM_TOKEN kept as a
   documented break-glass.** Add the token as a repo secret
   (e.g. `NPM_TOKEN_BREAKGLASS`) with a one-paragraph README note
   pointing to the active scoped-OIDC bug (`npm/cli#8976` —
   scoped-package E404 via `changesets/action`). The release workflow
   uses OIDC by default; the token is only swapped in if OIDC fails for
-  a known-upstream reason. Rotate annually or on incident.
+  a known-upstream reason. Rotate annually or on incident.~~
 
 ### Deprecation mechanics (@marcfargas/* wind-down)
 
@@ -119,11 +123,11 @@ SHED-04, SHED-05.
   shipping noise on a repo whose code is leaving. Per-package message
   templates:
   - `@marcfargas/odoo-client`:
-    `"Renamed to @godoo/client. Install that package instead — see https://github.com/godoo-dev/godoo-ts."`
+    `"Renamed to @godoo-dev/client. Install that package instead — see https://github.com/godoo-dev/godoo-ts."`
   - `@marcfargas/odoo-introspection`:
-    `"Renamed to @godoo/introspection. Install that package instead — see https://github.com/godoo-dev/godoo-ts."`
+    `"Renamed to @godoo-dev/introspection. Install that package instead — see https://github.com/godoo-dev/godoo-ts."`
   - `@marcfargas/odoo-testcontainers`:
-    `"Renamed to @godoo/testcontainers. Install that package instead — see https://github.com/godoo-dev/godoo-ts."`
+    `"Renamed to @godoo-dev/testcontainers. Install that package instead — see https://github.com/godoo-dev/godoo-ts."`
   - `@marcfargas/odoo-state-manager`:
     `"Superseded by godoo-stateman (Python). No JS shim — see https://github.com/godoo-dev for the godoo initiative."`
   - `@marcfargas/odoo-cli`:
@@ -156,8 +160,8 @@ SHED-04, SHED-05.
   `targets/odoo-cli/`. PR2 **preserves `targets/odoo-mcp/`** as the
   canonical salvage source for a future Atlas MCP charter. PR2
   replaces the root `README.md` with a deprecation README that:
-  - Names the new homes on npm: `@godoo/client`, `@godoo/introspection`,
-    `@godoo/testcontainers`.
+  - Names the new homes on npm: `@godoo-dev/client`, `@godoo-dev/introspection`,
+    `@godoo-dev/testcontainers`.
   - Links to `godoo-dev/godoo-ts` on GitHub for ongoing development.
   - Notes `godoo-stateman` as the successor to `odoo-state-manager`
     (no shim, on its own timeline).
@@ -218,7 +222,7 @@ SHED-04, SHED-05.
   discretion whether to remove before archiving (clean) or just let
   the archive freeze the configuration in place.
 - **Order of operations within Phase 3.** The recommended sequence is
-  (1) create `@godoo` org → (2) stub-bootstrap 3 packages → (3)
+  (1) create `@godoo-dev` org → (2) stub-bootstrap 3 packages → (3)
   configure trusted publishers → (4) wire release workflow + seed
   rename-changesets on `develop` → (5) merge to `main` to trigger the
   first real publish at D-01 versions → (6) deprecate the seven
@@ -252,7 +256,7 @@ SHED-04, SHED-05.
 - `.planning/phases/02-core-3-adoption-rename/02-CONTEXT.md` — D-01
   (transfer strategy + `pre-adoption-baseline` tag), the
   `workspace:*` cross-package deps that changesets will resolve to
-  concrete versions at this phase's publish, the
+  concrete versions at this phase's publish (under the `@godoo-dev/` scope), the
   `dist/index.mjs`/`dist/cli/cli.mjs` exports map shape that publish
   must respect
 - `.planning/phases/02-core-3-adoption-rename/02-VERIFICATION.md` —
@@ -266,7 +270,7 @@ SHED-04, SHED-05.
   `no-copies` rules apply to the retirement README's framing
 - `../godoo-hq/.planning/notes/godoo-adoption-protocol.md` — the
   protocol's **destination-side step 5** (publish under new scope) is
-  what D-01..D-03 implement; **source-side steps 2–3** (remove each
+  what D-01..D-02 implement (D-03 dropped); **source-side steps 2–3** (remove each
   package as adopted, then write deprecation README and merge
   `godoo-adoption` to `main`) are what D-05..D-06 implement
 - `../godoo-hq/.planning/notes/report-back-mechanism.md` — defines
@@ -345,16 +349,16 @@ SHED-04, SHED-05.
 
 - **`workspace:*` cross-package deps** (Phase 2 D-08) are resolved by
   changesets to concrete version ranges at publish time —
-  `@godoo/testcontainers` depends on `@godoo/client@workspace:*` and
-  `@godoo/introspection` depends on `@godoo/client@workspace:*`. At
+  `@godoo-dev/testcontainers` depends on `@godoo-dev/client@workspace:*` and
+  `@godoo-dev/introspection` depends on `@godoo-dev/client@workspace:*`. At
   publish, these become caret-or-tilde-pinned to the matching
-  `@godoo/client` version published in the same release.
+  `@godoo-dev/client` version published in the same release.
 - **ESM-only output** — `tsdown` emits `dist/index.mjs` +
   `dist/index.d.mts`; the exports map already references the `.mjs`
   paths. Publish includes only the `dist/` directory + `package.json`
   + LICENSE + README via npm's default include logic; planner should
   add an explicit `files` field if not already present.
-- **Bin entry handling for `@godoo/introspection`** —
+- **Bin entry handling for `@godoo-dev/introspection`** —
   `"bin": { "odoo-introspect": "./dist/cli/cli.mjs" }`; the `.mjs`
   file already carries a shebang and execute permission
   (Phase 2 D-11). No special publish handling needed.
@@ -390,7 +394,7 @@ SHED-04, SHED-05.
 - **One rename-changeset per package** for the first real publish.
   Three changeset markdown files, each with a `patch`-level bump
   (versions stay at the inherited numbers; changesets respects the
-  current package.json version as baseline) and a `## @godoo/<pkg>`
+  current package.json version as baseline) and a `## @godoo-dev/<pkg>`
   heading with the rename note.
 - **Deprecation messages exactly as in D-04** — no improvisation in
   wording when the messages reach the registry; copy-paste from this
@@ -413,9 +417,9 @@ SHED-04, SHED-05.
   source is preserved in the archived `odoo-toolbox` per D-06.
 - **Compatibility shim between `@marcfargas/odoo-state-manager` and
   `godoo-stateman`** — explicit Out-of-Scope per PROJECT.md.
-- **CommonJS dual build for any `@godoo/*` package** — Phase-1
+- **CommonJS dual build for any `@godoo-dev/*` package** — Phase-1
   deferred; revisit only when a real CJS-only consumer surfaces.
-- **Re-publishing the three `@godoo/*` packages with their inherited
+- **Re-publishing the three `@godoo-dev/*` packages with their inherited
   CHANGELOG histories** carried forward from the `@marcfargas/odoo-*`
   CHANGELOG.md files — explicit choice in D-01 is to **seed fresh**
   CHANGELOG.md on the new scope at the inherited version. The

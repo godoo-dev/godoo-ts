@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-26T13:00:26.282Z"
-last_activity: 2026-05-26 -- Phase 03 planning complete
+last_updated: "2026-05-26T13:02:28.384Z"
+last_activity: 2026-05-26 -- Phase 03 execution started
 progress:
   total_phases: 4
   completed_phases: 2
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-18)
 
 **Core value:** The core-3 libraries are cleanly adopted from `odoo-toolbox`, renamed under `@godoo/`, and published to a single canonical TS home — with no period of dual-maintenance.
-**Current focus:** Phase 2 — core 3 adoption & rename
+**Current focus:** Phase 03 — Publishing & Source-Repo Shedding
 
 ## Current Position
 
-Phase: 02 — COMPLETE
-Plan: 02-04 complete — Phase 2 closed; Phase 3 (Publishing & Source-Repo Shedding) next
-Status: Ready to execute
-Last activity: 2026-05-26 -- Phase 03 planning complete
+Phase: 03 (Publishing & Source-Repo Shedding) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 03
+Last activity: 2026-05-26 -- Phase 03 execution started
 
 Progress: [██████████] 100%
 

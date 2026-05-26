@@ -11,9 +11,9 @@
 
 ### Locked Decisions
 
-- **D-01:** Carry inherited versions unchanged. First publishes land at `@godoo/client@0.6.0`, `@godoo/introspection@0.2.1`, `@godoo/testcontainers@0.1.5`. Each first publish seeds CHANGELOG.md with a single "renamed from @marcfargas/odoo-<pkg>" entry at the inherited version.
+- **D-01:** Carry inherited versions unchanged. First publishes land at `@godoo-dev/client@0.6.0`, `@godoo-dev/introspection@0.2.1`, `@godoo-dev/testcontainers@0.1.5`. Each first publish seeds CHANGELOG.md with a single "renamed from @marcfargas/odoo-<pkg>" entry at the inherited version.
 - **D-02:** Stub-bootstrap + OIDC trusted publishing for ongoing releases. Create the `@godoo` npm org (free tier, public-only). Publish a minimal `0.0.0` stub for each of the three packages from the laptop (`pnpm publish` with 2FA OTP). After all three stubs are live, configure per-package npm trusted publishers on npmjs.com binding each to the `godoo-dev/godoo-ts` repo + the release workflow + a chosen GitHub environment. Real first releases driven by `changesets/action` (or equivalent) in a GitHub Actions workflow with `id-token: write`, npm CLI pinned to `>=11.5.1`, and `--provenance` enabled.
-- **D-03:** Granular `@godoo/*`-scoped classic NPM_TOKEN kept as a documented break-glass (`NPM_TOKEN_BREAKGLASS`). Release workflow uses OIDC by default; token only swapped in if OIDC fails for a known-upstream reason (npm/cli#8976). Rotate annually or on incident.
+- **D-03:** Granular `@godoo-dev/*`-scoped classic NPM_TOKEN kept as a documented break-glass (`NPM_TOKEN_BREAKGLASS`). Release workflow uses OIDC by default; token only swapped in if OIDC fails for a known-upstream reason (npm/cli#8976). Rotate annually or on incident.
 - **D-04:** Registry-side `npm deprecate '<pkg>@*' "<msg>"` only, no final release, applied to all seven retiring packages in one scripted pass. Per-package messages exactly as specified in CONTEXT.md.
 - **D-05:** Two-PR shed on `odoo-toolbox`, both on a single `godoo-adoption` branch. PR1 removes core packages; one commit per package for bisectability. PR2 winds down non-adopted leftovers and writes retirement README.
 - **D-06:** PR2 contents — non-core wind-down + retirement README + branch rename. PR2 preserves `targets/odoo-mcp/`. After PR2 merges, rename `master` → `main`, then GitHub-archive the repo.
@@ -33,8 +33,8 @@
 - Terminal report-back to `godoo-hq/dev-log.md` — Phase 4 (RPT-01)
 - Salvaging code from `targets/odoo-mcp/` into an Atlas MCP build
 - Compatibility shim between `@marcfargas/odoo-state-manager` and `godoo-stateman`
-- CommonJS dual build for any `@godoo/*` package
-- Re-publishing three `@godoo/*` packages with inherited CHANGELOG histories
+- CommonJS dual build for any `@godoo-dev/*` package
+- Re-publishing three `@godoo-dev/*` packages with inherited CHANGELOG histories
 - `marcfargas/odoo-toolbox` GitHub Sponsors / npm-funding redirect
 - Removing existing OIDC trusted publishers for `@marcfargas/*` before archiving (planner's call)
 </user_constraints>
@@ -44,8 +44,8 @@
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| PUB-01 | The public `@godoo/` npm scope is configured and ready to receive package publishes | `godoo` npm org already exists (Marc is owner); stub-bootstrap + trusted publisher config wires the scope |
-| PUB-02 | `@godoo/client`, `@godoo/introspection`, and `@godoo/testcontainers` published to the public `@godoo/` npm scope | changesets/action release workflow with OIDC; see npm/cli#8976 status and workaround |
+| PUB-01 | The public `@godoo-dev/` npm scope is configured and ready to receive package publishes | `godoo` npm org already exists (Marc is owner); stub-bootstrap + trusted publisher config wires the scope |
+| PUB-02 | `@godoo-dev/client`, `@godoo-dev/introspection`, and `@godoo-dev/testcontainers` published to the public `@godoo-dev/` npm scope | changesets/action release workflow with OIDC; see npm/cli#8976 status and workaround |
 | SHED-01 | `odoo-skills` confirmed ejected — not carried into `godoo-ts` | `@marcfargas/odoo-skills@0.5.3` verified live on npm; deprecated via scripted pass; removed in PR2 |
 | SHED-02 | `odoo-cli` deprecated | `@marcfargas/odoo-cli@0.3.3` verified live; deprecated via scripted pass; removed in PR2 |
 | SHED-03 | `odoo-mcp` deprecated — code left in place for future Atlas MCP charter | `@marcfargas/odoo-mcp@0.1.4` verified live; deprecated; `targets/odoo-mcp/` preserved in archived tree |
@@ -57,13 +57,13 @@
 
 ## Summary
 
-Phase 3 is a **publishing and retirement operation**, not a code change. The three `@godoo/*` packages are already at their publish-ready state (green Phase 2). The phase has two parallel tracks: (1) the npm publish track — stub packages, OIDC trusted publisher config, release workflow, seeded changesets, first real publish — and (2) the source-repo retirement track — two PRs on `odoo-toolbox`, deprecation messages on seven `@marcfargas/*` packages, branch rename, GitHub archive.
+Phase 3 is a **publishing and retirement operation**, not a code change. The three `@godoo-dev/*` packages are already at their publish-ready state (green Phase 2). The phase has two parallel tracks: (1) the npm publish track — stub packages, OIDC trusted publisher config, release workflow, seeded changesets, first real publish — and (2) the source-repo retirement track — two PRs on `odoo-toolbox`, deprecation messages on seven `@marcfargas/*` packages, branch rename, GitHub archive.
 
 The primary technical risk is **npm/cli#8976** (scoped-package E404 via `changesets/action` + OIDC). As of the research date this issue is **open** with no merged fix (last update February 2026). The root cause is Node 22 shipping with npm v10, which lacks OIDC support; the solution is to pin Node 24 in the release workflow (which ships npm v11+). Because the `godoo-ts` CI already uses Node 22+24, the release workflow must explicitly use Node 24 only — not the existing test matrix — and install npm `>=11.5.1` (ideally pinning the `packageManager` field in the workspace root's `package.json`). With this setup, `changesets/action` + OIDC should work without the break-glass token, though D-03 calls for keeping the break-glass token.
 
 A secondary risk is the **May 20, 2026 npm trusted-publisher default change**: new trusted-publisher configurations must now explicitly select "npm publish" as the allowed action (previously defaulted to allow-all). This is purely a UI/CLI config step — no workflow code change — but the planner must ensure the task for "configure trusted publishers" calls this out explicitly.
 
-The `@godoo` npm org already exists and Marc is the owner. The three `@godoo/*` packages are not yet on the registry. The seven `@marcfargas/*` packages are all confirmed live at their expected latest versions.
+The `@godoo` npm org already exists and Marc is the owner. The three `@godoo-dev/*` packages are not yet on the registry. The seven `@marcfargas/*` packages are all confirmed live at their expected latest versions.
 
 **Primary recommendation:** Use `changesets/action@v1` with Node 24 + `NPM_CONFIG_PROVENANCE: true` + `id-token: write`. Seed the break-glass token but do not use it unless OIDC fails. The `pnpm release` script already exists in root `package.json` (`"release": "changeset publish"`).
 
@@ -159,9 +159,9 @@ develop branch                     main branch
    changeset publish                               changesets/action detects
          │                                         merged changesets + publishes
          │
-         ├─► @godoo/client          ──► npm registry (OIDC)
-         ├─► @godoo/introspection   ──► npm registry (OIDC)
-         └─► @godoo/testcontainers  ──► npm registry (OIDC)
+         ├─► @godoo-dev/client          ──► npm registry (OIDC)
+         ├─► @godoo-dev/introspection   ──► npm registry (OIDC)
+         └─► @godoo-dev/testcontainers  ──► npm registry (OIDC)
                                               │
                                               ▼
                                     SLSA provenance attestation
@@ -174,16 +174,16 @@ develop branch                     main branch
 local laptop
      │
      ├─► create packages/client-stub-0.0.0/  (ephemeral, not in workspace)
-     ├─► pnpm publish (2FA OTP)  ──► @godoo/client@0.0.0 on npm
+     ├─► pnpm publish (2FA OTP)  ──► @godoo-dev/client@0.0.0 on npm
      ├─► create packages/introspection-stub-0.0.0/
-     ├─► pnpm publish (2FA OTP)  ──► @godoo/introspection@0.0.0 on npm
+     ├─► pnpm publish (2FA OTP)  ──► @godoo-dev/introspection@0.0.0 on npm
      ├─► create packages/testcontainers-stub-0.0.0/
-     └─► pnpm publish (2FA OTP)  ──► @godoo/testcontainers@0.0.0 on npm
+     └─► pnpm publish (2FA OTP)  ──► @godoo-dev/testcontainers@0.0.0 on npm
               │
               ▼
-     npm trust github @godoo/client  --repo godoo-dev/godoo-ts  --file release.yml  --allow-publish
-     npm trust github @godoo/introspection  (same)
-     npm trust github @godoo/testcontainers (same)
+     npm trust github @godoo-dev/client  --repo godoo-dev/godoo-ts  --file release.yml  --allow-publish
+     npm trust github @godoo-dev/introspection  (same)
+     npm trust github @godoo-dev/testcontainers (same)
 ```
 
 ### Recommended Project Structure (additions only)
@@ -195,7 +195,7 @@ godoo-ts/
 │   └── release.yml          # NEW: changesets/action release workflow
 ├── .changeset/
 │   ├── config.json          # existing — unchanged
-│   ├── rename-client.md     # NEW: rename changeset (patch) for @godoo/client
+│   ├── rename-client.md     # NEW: rename changeset (patch) for @godoo-dev/client
 │   ├── rename-introspection.md  # NEW
 │   └── rename-testcontainers.md # NEW
 └── scripts/
@@ -264,7 +264,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
           # Break-glass: if OIDC fails for known npm/cli#8976 reason, swap in:
-          # NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_BREAKGLASS }}
 ```
 
 **Critical observations from research:**
@@ -288,7 +287,7 @@ stub-bootstrap/
 
 ```json
 {
-  "name": "@godoo/client",
+  "name": "@godoo-dev/client",
   "version": "0.0.0",
   "description": "Placeholder — install the latest release",
   "license": "LGPL-3.0",
@@ -307,8 +306,8 @@ stub-bootstrap/
 ```js
 // index.js
 throw new Error(
-  "@godoo/client@0.0.0 is a placeholder for trusted publishing setup. " +
-  "Install the latest release: npm install @godoo/client"
+  "@godoo-dev/client@0.0.0 is a placeholder for trusted publishing setup. " +
+  "Install the latest release: npm install @godoo-dev/client"
 );
 ```
 
@@ -329,39 +328,39 @@ npm publish --access public
 
 ```markdown
 ---
-"@godoo/client": patch
+"@godoo-dev/client": patch
 ---
 
-Renamed from `@marcfargas/odoo-client`. Install `@godoo/client` instead.
+Renamed from `@marcfargas/odoo-client`. Install `@godoo-dev/client` instead.
 ```
 
-Note: "patch" instructs changesets to leave the version as-is relative to what is in `package.json`. Since `@godoo/client@0.6.0` is already in `package.json`, changesets will publish at `0.6.0` when it encounters a patch changeset starting from the stub's `0.0.0` on the registry — no, this needs clarification (see Pitfall 2).
+Note: "patch" instructs changesets to leave the version as-is relative to what is in `package.json`. Since `@godoo-dev/client@0.6.0` is already in `package.json`, changesets will publish at `0.6.0` when it encounters a patch changeset starting from the stub's `0.0.0` on the registry — no, this needs clarification (see Pitfall 2).
 
 ### Pattern 4: npm trust CLI for Trusted Publishers
 
 ```bash
 # Requires npm@11.10.0+ with --allow-publish flag
 # Requires the package to exist on the registry (stubs must be published first)
-npm trust github @godoo/client \
+npm trust github @godoo-dev/client \
   --repo godoo-dev/godoo-ts \
   --file release.yml \
   --allow-publish \
   --yes
 
-npm trust github @godoo/introspection \
+npm trust github @godoo-dev/introspection \
   --repo godoo-dev/godoo-ts \
   --file release.yml \
   --allow-publish \
   --yes
 
-npm trust github @godoo/testcontainers \
+npm trust github @godoo-dev/testcontainers \
   --repo godoo-dev/godoo-ts \
   --file release.yml \
   --allow-publish \
   --yes
 ```
 
-[ASSUMED] — `--allow-publish` flag syntax based on npm docs. Local npm@11.12.1 help output does NOT show this flag. Fallback: use npmjs.com UI at `https://www.npmjs.com/package/@godoo/client/access` → "Trusted Publishers" → "GitHub Actions" → select "npm publish" as the allowed action.
+[ASSUMED] — `--allow-publish` flag syntax based on npm docs. Local npm@11.12.1 help output does NOT show this flag. Fallback: use npmjs.com UI at `https://www.npmjs.com/package/@godoo-dev/client/access` → "Trusted Publishers" → "GitHub Actions" → select "npm publish" as the allowed action.
 
 **Important (post-May 20, 2026):** New trusted publisher configurations must explicitly select "npm publish" as the allowed action. This is mandatory — the default no longer auto-selects it.
 
@@ -373,13 +372,13 @@ npm trust github @godoo/testcontainers \
 # Run from the laptop with npm auth active (OTP will be requested per package or use --otp=<code>)
 
 npm deprecate '@marcfargas/odoo-client@*' \
-  "Renamed to @godoo/client. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
+  "Renamed to @godoo-dev/client. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
 
 npm deprecate '@marcfargas/odoo-introspection@*' \
-  "Renamed to @godoo/introspection. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
+  "Renamed to @godoo-dev/introspection. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
 
 npm deprecate '@marcfargas/odoo-testcontainers@*' \
-  "Renamed to @godoo/testcontainers. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
+  "Renamed to @godoo-dev/testcontainers. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
 
 npm deprecate '@marcfargas/odoo-state-manager@*' \
   "Superseded by godoo-stateman (Python). No JS shim — see https://github.com/godoo-dev for the godoo initiative."
@@ -451,7 +450,7 @@ npm deprecate '@marcfargas/odoo-skills@*' \
 
 ### Pitfall 2: Changeset Version vs. Package.json Version Interplay
 
-**What goes wrong:** The stub at `@godoo/client@0.0.0` is on the registry. The `package.json` says `0.6.0`. When changesets runs `changeset version` (during the Version Packages PR), it reads the current package.json version (`0.6.0`) and applies the patch bump — producing `0.6.0` again (no change, since 0.6.0 + patch = still 0.6.0 conceptually, but changesets will NOT bump to 0.6.1 unless explicitly asked). The actual publish via `changeset publish` checks npm for the latest published version: the registry shows `0.0.0`, and `0.6.0 > 0.0.0`, so it will publish `0.6.0`. This is the desired behavior.
+**What goes wrong:** The stub at `@godoo-dev/client@0.0.0` is on the registry. The `package.json` says `0.6.0`. When changesets runs `changeset version` (during the Version Packages PR), it reads the current package.json version (`0.6.0`) and applies the patch bump — producing `0.6.0` again (no change, since 0.6.0 + patch = still 0.6.0 conceptually, but changesets will NOT bump to 0.6.1 unless explicitly asked). The actual publish via `changeset publish` checks npm for the latest published version: the registry shows `0.0.0`, and `0.6.0 > 0.0.0`, so it will publish `0.6.0`. This is the desired behavior.
 
 **Concrete resolution:** `changeset publish` always compares `package.json` version to the published `dist-tag: latest`. If `package.json` version > registry version, it publishes. So `0.6.0 > 0.0.0` → publishes `0.6.0`. The rename changeset file should be `patch` level — this seeds the CHANGELOG.md correctly and does NOT cause a version bump if `0.6.0` is already in `package.json`. [ASSUMED based on changesets behavior]
 
@@ -461,13 +460,13 @@ npm deprecate '@marcfargas/odoo-skills@*' \
 
 ### Pitfall 3: workspace:* in peerDependencies Not Resolved
 
-**What goes wrong:** `@godoo/testcontainers` has `@godoo/client: "workspace:*"` in BOTH `dependencies` AND `peerDependencies`. When published, the workspace:* must be resolved to the concrete version in BOTH fields.
+**What goes wrong:** `@godoo-dev/testcontainers` has `@godoo-dev/client: "workspace:*"` in BOTH `dependencies` AND `peerDependencies`. When published, the workspace:* must be resolved to the concrete version in BOTH fields.
 
 **Status:** pnpm's publish/pack behavior replaces `workspace:*` with the concrete version for ALL dependency types (dependencies, optionalDependencies, peerDependencies) as of pnpm v11. The `changeset publish` command delegates to pnpm's native pack, so this resolution is automatic. [CITED: pnpm.io/workspaces — "workspace: dependencies are dynamically replaced by the corresponding version"]
 
-**Warning signs:** Published `@godoo/testcontainers` package on npm still shows `"@godoo/client": "workspace:*"` in its package.json — this would break consumer installs.
+**Warning signs:** Published `@godoo-dev/testcontainers` package on npm still shows `"@godoo-dev/client": "workspace:*"` in its package.json — this would break consumer installs.
 
-**Verification:** After publish, `npm view @godoo/testcontainers` and inspect the `dependencies` and `peerDependencies` fields to confirm concrete version ranges.
+**Verification:** After publish, `npm view @godoo-dev/testcontainers` and inspect the `dependencies` and `peerDependencies` fields to confirm concrete version ranges.
 
 ### Pitfall 4: Trusted Publisher "Allowed Actions" Not Set
 
@@ -479,7 +478,7 @@ npm deprecate '@marcfargas/odoo-skills@*' \
 
 **Warning signs:** OIDC token is obtained successfully (visible in workflow logs) but `npm publish` returns 403.
 
-**Important CLI note:** Local npm@11.12.1 help output does NOT show `--allow-publish` flag. This may indicate: (a) the flag exists but is not shown in short help, or (b) npmjs.com UI is the authoritative path for the allowed-actions configuration for this npm version. The UI approach at `https://www.npmjs.com/package/@godoo/client/access` is safe regardless.
+**Important CLI note:** Local npm@11.12.1 help output does NOT show `--allow-publish` flag. This may indicate: (a) the flag exists but is not shown in short help, or (b) npmjs.com UI is the authoritative path for the allowed-actions configuration for this npm version. The UI approach at `https://www.npmjs.com/package/@godoo-dev/client/access` is safe regardless.
 
 ### Pitfall 5: `master`→`main` rename BEFORE PR2 merges
 
@@ -577,13 +576,13 @@ jobs:
 ```markdown
 # .changeset/rename-client.md
 ---
-"@godoo/client": patch
+"@godoo-dev/client": patch
 ---
 
-Renamed from `@marcfargas/odoo-client`. Migrate by replacing `@marcfargas/odoo-client` with `@godoo/client` in your `package.json`.
+Renamed from `@marcfargas/odoo-client`. Migrate by replacing `@marcfargas/odoo-client` with `@godoo-dev/client` in your `package.json`.
 ```
 
-(Repeat for `@godoo/introspection` and `@godoo/testcontainers`)
+(Repeat for `@godoo-dev/introspection` and `@godoo-dev/testcontainers`)
 
 ### odoo-toolbox PR1 commit sequence
 
@@ -594,17 +593,17 @@ Renamed from `@marcfargas/odoo-client`. Migrate by replacing `@marcfargas/odoo-c
 git rm -r packages/odoo-client/
 # update root package.json workspaces array and build scripts
 git add package.json
-git commit -m "shed(client): remove packages/odoo-client/ — adopted as @godoo/client in godoo-ts"
+git commit -m "shed(client): remove packages/odoo-client/ — adopted as @godoo-dev/client in godoo-ts"
 
 # Commit 2: remove odoo-introspection
 git rm -r packages/odoo-introspection/
 git add package.json
-git commit -m "shed(introspection): remove packages/odoo-introspection/ — adopted as @godoo/introspection in godoo-ts"
+git commit -m "shed(introspection): remove packages/odoo-introspection/ — adopted as @godoo-dev/introspection in godoo-ts"
 
 # Commit 3: remove odoo-testcontainers
 git rm -r packages/odoo-testcontainers/
 git add package.json
-git commit -m "shed(testcontainers): remove packages/odoo-testcontainers/ — adopted as @godoo/testcontainers in godoo-ts"
+git commit -m "shed(testcontainers): remove packages/odoo-testcontainers/ — adopted as @godoo-dev/testcontainers in godoo-ts"
 ```
 
 ---
@@ -615,8 +614,8 @@ This is a **publish + retirement phase** — it creates new registry state and r
 
 | Category | Items | Action Required |
 |----------|-------|-----------------|
-| Stored data (npm registry) | `@godoo/*` packages will be created at 0.0.0 (stubs) then real versions; `@marcfargas/*` packages will gain deprecation warning metadata | Publish stubs; publish real versions; run deprecation pass |
-| Stored data (npm registry — trusted publishers) | Three new trusted publisher configs on npmjs.com for `@godoo/client`, `@godoo/introspection`, `@godoo/testcontainers` | Configure via `npm trust` CLI or npmjs.com UI (post-stub publish) |
+| Stored data (npm registry) | `@godoo-dev/*` packages will be created at 0.0.0 (stubs) then real versions; `@marcfargas/*` packages will gain deprecation warning metadata | Publish stubs; publish real versions; run deprecation pass |
+| Stored data (npm registry — trusted publishers) | Three new trusted publisher configs on npmjs.com for `@godoo-dev/client`, `@godoo-dev/introspection`, `@godoo-dev/testcontainers` | Configure via `npm trust` CLI or npmjs.com UI (post-stub publish) |
 | Live service config (GitHub) | `odoo-toolbox` GitHub repo: default branch is `master`; isArchived is `false`; two open branch protection rules (if any) | Rename `master`→`main`; update default branch; archive |
 | OS-registered state | None identified | None |
 | Secrets/env vars | `NPM_TOKEN_BREAKGLASS` will be added as a new GitHub Actions secret on `godoo-dev/godoo-ts` | Add secret via `gh secret set` |
@@ -646,7 +645,7 @@ This is a **publish + retirement phase** — it creates new registry state and r
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | `changeset publish` with `pnpm` resolves `workspace:*` in peerDependencies to a concrete version in the published tarball | Pitfall 3, workspace:* resolution | Published `@godoo/testcontainers` would have unresolvable `workspace:*` in peerDependencies — consumer installs would fail |
+| A1 | `changeset publish` with `pnpm` resolves `workspace:*` in peerDependencies to a concrete version in the published tarball | Pitfall 3, workspace:* resolution | Published `@godoo-dev/testcontainers` would have unresolvable `workspace:*` in peerDependencies — consumer installs would fail |
 | A2 | The rename changeset (patch level) does NOT cause a version bump when `package.json` already has the target version (e.g. `0.6.0`) — changesets publishes `0.6.0` from the `package.json` against the stub `0.0.0` on the registry | Pitfall 2, Pattern 3 | Version mismatch on first publish; packages might not publish at inherited versions |
 | A3 | The stub packages at `0.0.0` can be published from a non-workspace directory (e.g. a temp dir) without being part of the pnpm workspace | Pattern 2 | Workspace conflict if stubs are inside workspace; failure of stub publish |
 | A4 | `npm trust github --allow-publish` flag is accessible in npm@11.12.1 (despite not appearing in short help) OR the npmjs.com UI is fully equivalent | Pattern 4, Pitfall 4 | If neither CLI flag nor UI works as expected, trusted publisher setup fails — break-glass token needed immediately |
@@ -741,7 +740,7 @@ Nyquist validation is disabled (`workflow.nyquist_validation: false` in `.planni
 - [pnpm.io/using-changesets](https://pnpm.io/using-changesets) — changesets + pnpm publish script shape
 - [github.blog/changelog/2025-07-31-npm-trusted-publishing-with-oidc-is-generally-available](https://github.blog/changelog/2025-07-31-npm-trusted-publishing-with-oidc-is-generally-available/) — GA announcement, npm CLI v11.5.1 requirement
 - npm CLI local inspection (`npm --version`, `npm trust github --help`) — confirmed npm@11.12.1 installed
-- npm registry live queries — confirmed all seven `@marcfargas/*` packages live at expected versions; `@godoo` org exists; `@godoo/*` packages not yet on registry
+- npm registry live queries — confirmed all seven `@marcfargas/*` packages live at expected versions; `@godoo` org exists; `@godoo-dev/*` packages not yet on registry
 
 ### Secondary (MEDIUM confidence)
 - [github.com/npm/cli/issues/8976](https://github.com/npm/cli/issues/8976) — confirmed OPEN as of Feb 2026; E404 scoped package + changesets/action + OIDC

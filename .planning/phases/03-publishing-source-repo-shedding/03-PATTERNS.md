@@ -149,7 +149,6 @@ jobs:
           NPM_CONFIG_PROVENANCE: 'true'
           NODE_AUTH_TOKEN: ''
           # Break-glass: if OIDC fails for npm/cli#8976, swap in:
-          # NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_BREAKGLASS }}
 ```
 
 ---
@@ -160,32 +159,32 @@ jobs:
 
 **Pattern source:** RESEARCH.md Code Example "Rename Changeset File" + `.changeset/config.json` lines 1–11.
 
-**Config.json confirms** (lines 3–9): package names are `@godoo/client`, `@godoo/introspection`, `@godoo/testcontainers`; access is `public`; `baseBranch` is `main`. These are the exact strings to use in changeset frontmatter.
+**Config.json confirms** (lines 3–9): package names are `@godoo-dev/client`, `@godoo-dev/introspection`, `@godoo-dev/testcontainers`; access is `public`; `baseBranch` is `main`. These are the exact strings to use in changeset frontmatter.
 
 **Shape to copy for each file:**
 
 ```markdown
 ---
-"@godoo/client": patch
+"@godoo-dev/client": patch
 ---
 
-Renamed from `@marcfargas/odoo-client`. Migrate by replacing `@marcfargas/odoo-client` with `@godoo/client` in your `package.json`.
+Renamed from `@marcfargas/odoo-client`. Migrate by replacing `@marcfargas/odoo-client` with `@godoo-dev/client` in your `package.json`.
 ```
 
 ```markdown
 ---
-"@godoo/introspection": patch
+"@godoo-dev/introspection": patch
 ---
 
-Renamed from `@marcfargas/odoo-introspection`. Migrate by replacing `@marcfargas/odoo-introspection` with `@godoo/introspection` in your `package.json`.
+Renamed from `@marcfargas/odoo-introspection`. Migrate by replacing `@marcfargas/odoo-introspection` with `@godoo-dev/introspection` in your `package.json`.
 ```
 
 ```markdown
 ---
-"@godoo/testcontainers": patch
+"@godoo-dev/testcontainers": patch
 ---
 
-Renamed from `@marcfargas/odoo-testcontainers`. Migrate by replacing `@marcfargas/odoo-testcontainers` with `@godoo/testcontainers` in your `package.json`.
+Renamed from `@marcfargas/odoo-testcontainers`. Migrate by replacing `@marcfargas/odoo-testcontainers` with `@godoo-dev/testcontainers` in your `package.json`.
 ```
 
 **Why `patch` not `minor`:** The package.json versions (`0.6.0`, `0.2.1`, `0.1.5`) are already at the inherited baseline. `patch` signals "no API change, rename only" and does not cause an unexpected version bump. `changeset publish` will compare `package.json` version to the stub `0.0.0` on the registry and publish the inherited version because `0.6.0 > 0.0.0`.
@@ -210,13 +209,13 @@ Renamed from `@marcfargas/odoo-testcontainers`. Migrate by replacing `@marcfarga
 set -euo pipefail
 
 npm deprecate '@marcfargas/odoo-client@*' \
-  "Renamed to @godoo/client. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
+  "Renamed to @godoo-dev/client. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
 
 npm deprecate '@marcfargas/odoo-introspection@*' \
-  "Renamed to @godoo/introspection. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
+  "Renamed to @godoo-dev/introspection. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
 
 npm deprecate '@marcfargas/odoo-testcontainers@*' \
-  "Renamed to @godoo/testcontainers. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
+  "Renamed to @godoo-dev/testcontainers. Install that package instead — see https://github.com/godoo-dev/godoo-ts."
 
 npm deprecate '@marcfargas/odoo-state-manager@*' \
   "Superseded by godoo-stateman (Python). No JS shim — see https://github.com/godoo-dev for the godoo initiative."
@@ -249,10 +248,10 @@ npm deprecate '@marcfargas/odoo-skills@*' \
 
 **Shape to produce for each stub:**
 
-`@godoo/client` stub `package.json`:
+`@godoo-dev/client` stub `package.json`:
 ```json
 {
-  "name": "@godoo/client",
+  "name": "@godoo-dev/client",
   "version": "0.0.0",
   "description": "Placeholder — install the latest release",
   "license": "LGPL-3.0",
@@ -269,16 +268,16 @@ npm deprecate '@marcfargas/odoo-skills@*' \
 }
 ```
 
-`@godoo/introspection` stub — identical except `"name": "@godoo/introspection"` and `"directory": "packages/introspection"`.
+`@godoo-dev/introspection` stub — identical except `"name": "@godoo-dev/introspection"` and `"directory": "packages/introspection"`.
 
-`@godoo/testcontainers` stub — identical except `"name": "@godoo/testcontainers"` and `"directory": "packages/testcontainers"`.
+`@godoo-dev/testcontainers` stub — identical except `"name": "@godoo-dev/testcontainers"` and `"directory": "packages/testcontainers"`.
 
 **Stub `index.js` shape (same for all three, only package name varies in message):**
 ```js
 // index.js
 throw new Error(
-  "@godoo/client@0.0.0 is a placeholder for trusted publishing setup. " +
-  "Install the latest release: npm install @godoo/client"
+  "@godoo-dev/client@0.0.0 is a placeholder for trusted publishing setup. " +
+  "Install the latest release: npm install @godoo-dev/client"
 );
 ```
 
@@ -337,7 +336,7 @@ These three fields are identical across all packages (directory differs). Copy v
 **Source:** `.changeset/config.json` lines 1–11
 **Apply to:** All three `.changeset/rename-*.md` files
 
-The changeset frontmatter package names must exactly match the `name` fields in each `package.json` — confirmed as `"@godoo/client"`, `"@godoo/introspection"`, `"@godoo/testcontainers"`.
+The changeset frontmatter package names must exactly match the `name` fields in each `package.json` — confirmed as `"@godoo-dev/client"`, `"@godoo-dev/introspection"`, `"@godoo-dev/testcontainers"`.
 
 ---
 

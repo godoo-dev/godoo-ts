@@ -149,6 +149,62 @@ const info = await client.modules.getModuleInfo('sale');
 > ⚠️ `installModule()` and `uninstallModule()` are admin-only, irreversible operations.
 > Never call them without explicit user confirmation.
 
+### Explicit installation and upgrade (local source)
+
+After reviewing the read-only prerequisite preview and selecting an authorized
+instance, use the existing module methods explicitly:
+
+```typescript
+const revision = client.modules.catalogRevision;
+try {
+  const result = await client.modules.installModule('project', {
+    context: { lang: 'en_US' },
+    maxAttempts: 3,
+    retryDelayMs: 5000,
+  });
+  // upgradeModule('project', options) has the same result shape.
+  console.log(result.state, result.changed, result.schemaInvalidated);
+  console.log(result.prerequisites); // fresh installed dependency closure
+} finally {
+  if (client.modules.catalogRevision !== revision) {
+    introspector.clearCache();
+    // Obtain fresh model/field metadata and build a new resource plan.
+  }
+}
+```
+
+`ModuleOperationResult` extends the existing `ModuleInfo` result with `operation`,
+`changed`, `schemaInvalidated`, `attempts` and fresh `prerequisites`. Installing an
+already installed module is a verified no-op (`changed: false`, zero attempts).
+Every visible dependency must be installed for a success result. Missing,
+ambiguous, inaccessible, uninstallable, transitional or incomplete metadata fails
+closed before dispatch; unexpected/authentication/network/safety errors propagate.
+After dispatch, deferred/noninstalled states, changed identities or a refused or
+malformed action response fail verification. This verifies observed state, not a
+whole-run transaction or filesystem readiness.
+
+Odoo installs dependencies and may auto-install addons. Upgrade can refresh Odoo's
+catalog and upgrade dependent modules internally; the client does not invoke a
+separate refresh or enumerate calls to install dependencies. Inspection remains
+read-only. No automatic removal is added. Existing safety guards remain active.
+
+Only the structured Odoo 17 English cron-lock `UserError` is retried: at most
+`maxAttempts` (1–5, default 3), with `retryDelayMs` (0–30000, default 5000).
+Translated/unrecognized errors propagate without retry. Each retry rechecks fresh
+prerequisites and the original module identities; postcondition failures never
+retry. Other RPC failures may follow committed work: inspect again before deciding
+whether to retry manually. `catalogRevision` increments conservatively before each
+install/upgrade dispatch, including a dispatch rejected by safety or one whose
+outcome is unknown. It is a per-manager invalidation signal, not a server-wide catalog
+version. `schemaInvalidated: true`/`changed: true` mean a lifecycle call completed
+and metadata may have changed, not proof of a schema diff. Replan after successful
+lifecycle work and after uncertain failures.
+
+This API is verified with offline fake RPC tests and available in local source and
+packed artifacts; published client 0.6.1 does not contain this seam. Disposable
+Odoo acceptance is a separate check. The existing explicit `uninstallModule()`
+API is unchanged and is outside this installation/upgrade verification contract.
+
 ## Advanced: Manual Client Construction
 
 For custom configurations, use `OdooClient` directly:

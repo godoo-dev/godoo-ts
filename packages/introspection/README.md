@@ -16,7 +16,7 @@ TypeScript introspection and code generation for Odoo models.
 pnpm add @godoo-dev/introspection @godoo-dev/client
 ```
 
-**Prerequisites**: Node.js ≥ 22, a running Odoo v17 instance.
+**Prerequisites**: Node.js ≥ 22.18.0, a running Odoo v17 instance.
 
 ## Quick Start
 

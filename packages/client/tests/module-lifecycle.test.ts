@@ -351,6 +351,127 @@ describe('explicit module lifecycle', () => {
     expect(mutations()).toHaveLength(1);
   });
 
+  it.each([
+    {
+      type: 'ir.actions.act_window',
+      res_model: 'base.module.upgrade',
+      target: 'new',
+      view_mode: 'form',
+      name: 'Apply Schedule Upgrade',
+    },
+    { error: 'operation refused' },
+    {
+      id: 9,
+      type: 'ir.actions.act_window',
+      res_model: 'base.module.upgrade',
+      target: 'new',
+      view_mode: 'form',
+      context: { disable_log: true },
+    },
+    {
+      id: 9,
+      type: 'ir.actions.act_window',
+      res_model: 'base.module.install',
+      target: 'new',
+      view_mode: 'form',
+      context: { disable_log: true },
+    },
+    {
+      id: 9,
+      type: 'ir.actions.act_window',
+      res_model: 'ir.module.module',
+      target: 'new',
+      view_mode: 'form',
+      context: { disable_log: true },
+    },
+    { type: 'ir.actions.client', tag: 'reload', error: 'operation refused' },
+    { type: 'ir.actions.client', tag: 'reload', status: 'deferred' },
+    { type: 'ir.actions.client', tag: 'reload', success: false },
+    {
+      type: 'ir.actions.client',
+      tag: 'display_notification',
+      params: { message: 'Operation refused' },
+    },
+    { type: 'ir.actions.client', tag: 'unsupported' },
+    { type: 'ir.actions.act_window_close' },
+    { type: 'ir.actions.act_url', url: '/web', target: 'new' },
+    { type: 'ir.actions.act_url', url: '/web/pending-upgrade', target: 'self' },
+    {
+      type: 'ir.actions.act_window',
+      res_model: 'res.config.settings',
+      target: 'new',
+      view_mode: 'form',
+    },
+    {
+      id: 9,
+      type: 'ir.actions.act_window',
+      res_model: 'res.config.settings',
+      target: 'new',
+      view_mode: 'form',
+      context: {},
+    },
+    {
+      id: 9,
+      type: 'ir.actions.act_window',
+      res_model: 'res.config.settings',
+      target: 'invalid',
+      view_mode: 'form',
+      context: { disable_log: true },
+    },
+    {
+      id: 9,
+      type: 'ir.actions.act_window',
+      res_model: 'res.config.settings',
+      target: 'new',
+      view_mode: '',
+      context: { disable_log: true },
+    },
+    { arbitrary: 'object' },
+  ])('rejects deferred/refusal/unsupported object response %j without retry even for installed upgrades', async (response) => {
+    const { client, mutations } = fixture({ modules: [addon(1, 'sale', 'installed')], response });
+    await client.authenticate();
+    await expect(client.modules.upgradeModule('sale', { retryDelayMs: 0 })).rejects.toMatchObject({
+      name: 'ModuleLifecycleError',
+      phase: 'postcondition',
+      schemaInvalidated: true,
+    });
+    expect(mutations()).toHaveLength(1);
+    expect(client.modules.catalogRevision).toBe(1);
+  });
+
+  it.each([
+    {},
+    { type: 'ir.actions.client', tag: 'reload' },
+    { type: 'ir.actions.client', tag: 'reload', params: { menu_id: 3 } },
+    { type: 'ir.actions.act_url', url: '/web', target: 'self' },
+    {
+      id: 9,
+      type: 'ir.actions.act_window',
+      res_model: 'res.config.settings',
+      target: 'new',
+      view_mode: 'form',
+      context: { disable_log: true },
+    },
+    {
+      id: 10,
+      type: 'ir.actions.act_window',
+      res_model: 'res.company',
+      target: 'current',
+      view_mode: 'tree,form',
+      context: { disable_log: true, res_id: 1 },
+    },
+  ])('preserves supported Odoo17 completion/configuration response %j without requiring version change', async (response) => {
+    const { client, mutations } = fixture({ modules: [addon(1, 'sale', 'installed')], response });
+    await client.authenticate();
+    await expect(client.modules.upgradeModule('sale')).resolves.toMatchObject({
+      operation: 'upgrade',
+      installed_version: '17.0.1.0',
+      state: 'installed',
+      changed: true,
+    });
+    expect(mutations()).toHaveLength(1);
+  });
+
   it('requires installed state for upgrade', async () => {
     const { client, mutations } = fixture();
     await client.authenticate();

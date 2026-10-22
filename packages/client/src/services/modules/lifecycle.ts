@@ -115,6 +115,50 @@ function requireIdentities(
   }
 }
 
+/**
+ * Supported Odoo 17 _button_immediate_function/next completion responses.
+ * Registered todo windows come from action.read() and action_launch adds
+ * disable_log. A module-operation wizard is pending work, even if every module
+ * already reports installed. Unknown/custom responses fail closed.
+ */
+function isCompletionResponse(response: unknown): boolean {
+  if (!response || typeof response !== 'object' || Array.isArray(response)) return false;
+  const action = response as Record<string, unknown>;
+  if (Object.keys(action).length === 0) return true; // next() or {} after commit
+  if (
+    ['error', 'errors', 'warning', 'refused', 'deferred', 'status', 'success'].some((key) =>
+      Object.hasOwn(action, key),
+    )
+  )
+    return false;
+  const model = action.res_model;
+  if (
+    typeof model === 'string' &&
+    (model.startsWith('base.module.') || model === 'ir.module.module')
+  )
+    return false;
+  if (action.type === 'ir.actions.client') return action.tag === 'reload';
+  if (action.type === 'ir.actions.act_url')
+    return action.url === '/web' && action.target === 'self';
+  if (action.type !== 'ir.actions.act_window') return false;
+  const context = action.context;
+  return (
+    typeof action.id === 'number' &&
+    Number.isSafeInteger(action.id) &&
+    action.id > 0 &&
+    typeof model === 'string' &&
+    /^[a-z_][a-z0-9_.]*$/.test(model) &&
+    typeof action.view_mode === 'string' &&
+    action.view_mode.split(',').every((mode) => /^[a-z][a-z0-9_]*$/.test(mode)) &&
+    typeof action.target === 'string' &&
+    ['current', 'new', 'inline', 'fullscreen', 'main'].includes(action.target) &&
+    !!context &&
+    typeof context === 'object' &&
+    !Array.isArray(context) &&
+    (context as Record<string, unknown>).disable_log === true
+  );
+}
+
 /** Internal shared implementation; ModuleManager retains the guarded client call. */
 export async function performModuleOperation(
   client: Pick<OdooCrudClient, 'call' | 'searchRead'>,
@@ -225,9 +269,9 @@ export async function performModuleOperation(
   const after = await inspectModulePrerequisites(client, names, options);
   requireClosure(after, true, 'postcondition', true);
   requireIdentities(before, after, 'postcondition', true);
-  if (!response || typeof response !== 'object' || Array.isArray(response))
+  if (!isCompletionResponse(response))
     throw new ModuleLifecycleError(
-      `Module '${name}' lifecycle returned no Odoo action; completion is unverified`,
+      `Module '${name}' lifecycle returned an unsupported, refused or deferred action; completion is unverified`,
       'postcondition',
       after,
       true,

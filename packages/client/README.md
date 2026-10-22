@@ -183,6 +183,15 @@ After dispatch, deferred/noninstalled states, changed identities or a refused or
 malformed action response fail verification. This verifies observed state, not a
 whole-run transaction or filesystem readiness.
 
+Completion-response validation: accept an empty dictionary, a client
+`reload`, the canonical `/web` self redirect, or a registered configuration-window
+action returned by Odoo 17 `ir.actions.todo.action_launch` (positive action ID,
+valid destination/view mode/target and `context.disable_log: true`). Reject module
+operation models (`base.module.*` and `ir.module.module`), explicit error/refusal
+markers and unsupported action shapes. A configuration window is recognized as
+completion metadata only; this client never executes it. An unchanged installed version is
+valid for an upgrade. Response validation complements fresh state/identity checks.
+
 Odoo installs dependencies and may auto-install addons. Upgrade can refresh Odoo's
 catalog and upgrade dependent modules internally; the client does not invoke a
 separate refresh or enumerate calls to install dependencies. Inspection remains

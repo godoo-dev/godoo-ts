@@ -14,6 +14,7 @@ import {
   OdooRpcError,
   OdooValidationError,
 } from '../types/errors';
+import { type OdooServerInfo, parseServerInfo } from './server-info';
 import type { JsonRpcRequest, JsonRpcResponse, OdooSessionInfo, RpcArg } from './types';
 
 // Re-export types for convenience
@@ -58,6 +59,16 @@ export class JsonRpcTransport {
    */
   getSession(): OdooSessionInfo | null {
     return this.sessionInfo;
+  }
+
+  /** Read common.version without authentication, credentials or session mutation. */
+  async getServerInfo(): Promise<OdooServerInfo> {
+    const result = await this.callRpc<unknown>('call', {
+      service: 'common',
+      method: 'version',
+      args: [],
+    });
+    return parseServerInfo(result);
   }
 
   /**

@@ -70,6 +70,71 @@ await client.mail.postOpenMessage('res.partner', partnerId, {
 
 ### Module Management
 
+Read-only prerequisite inspection:
+
+The APIs below are available in this source checkout. Registry publication and
+consumer acceptance require separate evidence; the package version alone does
+not establish their availability in an installed release.
+
+```typescript
+const server = await client.getServerInfo();
+const prerequisites = await client.modules.inspectPrerequisites(['sale', 'crm'], {
+  context: { lang: 'en_US' },
+});
+console.log(server.version, prerequisites.modules, prerequisites.diagnostics);
+
+// The same inspector can use any OdooCrudClient, including OAuthProxyClient.
+import { inspectModulePrerequisites } from '@godoo-dev/client';
+const report = await inspectModulePrerequisites(client, ['sale']);
+for (const addon of report.modules) {
+  console.log(addon.name, addon.status, addon.state, addon.dependencies);
+}
+```
+
+Inspection reads the registered addon catalog and dependency metadata. It never
+refreshes that catalog or installs, upgrades, uninstalls, or executes actions.
+Missing catalog entries do not prove addon source is absent from disk. Source
+availability and Python/system prerequisites remain unknown through this seam.
+
+`getServerInfo()` calls JSON-RPC `common.version` without logging in or changing
+the session. It returns `version`, `versionInfo`, `major`, `series`,
+`protocolVersion`, the raw reported facts and the observed
+`capabilities.jsonRpcCommonVersion`. Missing facts are `null`; it never infers
+addon support from a version number. The proxy CRUD contract has no version
+endpoint; `getServerInfo()` is on `OdooClient` and `JsonRpcTransport` only.
+
+`inspectPrerequisites(names, { context? })` uses only `fields_get` and
+`search_read`. Names and dependency lists are deduplicated and sorted; cycles
+terminate and appear as deterministic DFS back edges in `cycleEdges`. Returned
+statuses are `installed`, `uninstalled`, `missing`, `uninstallable`, `transitional`
+and `unknown` or `inaccessible`. `state` preserves Odoo's exact value.
+`dependencies: null` means the full list could not be established. The inspector
+continues through valid visible edges when some dependency rows are hidden.
+`closureComplete` concerns visible registered dependency metadata only; it does
+not establish installability, readiness or a consistent transactional snapshot.
+
+Access failures, missing metadata models and unavailable/restricted schema have
+separate diagnostics with original structured errors where observable.
+Addon state is read separately from dependency relations, so a denied relation
+read retains the known addon ID/state and reports incomplete dependencies. Relation
+diagnostics identify the requested `field` and `relatedModel` without guessing
+which model's ACL caused the denial. An empty
+addon search is `missing` **from the visible catalog**; record rules can silently
+hide records, and this API cannot distinguish that from an absent catalog entry.
+It never refreshes the catalog to resolve the ambiguity. Authentication, network,
+safety and unexpected RPC errors propagate unchanged. An `uninstallable` state
+does not identify the reason or establish whether source files exist.
+
+The schema is designed against Odoo **17.0**
+([upstream module metadata](https://github.com/odoo/odoo/blob/1959040e5cab026612c3ac627a838871cb4a9fce/odoo/addons/base/models/ir_module.py)).
+Other versions/customizations are schema-probed, not certified by version number.
+Offline mocks verify the call contract; no live compatibility claim is made here.
+There is no filesystem or manifest/external-dependency check, auto-install or
+exclusion policy, or resource/adoption plan. Use introspection or raw
+`fields_get` separately for required custom models/fields; a missing schema or
+access error does not establish that an addon source is missing. Odoo resolves
+addon installation dependencies during a separately authorized installation.
+
 ```typescript
 // Check if a module is installed
 const hasCRM = await client.modules.isModuleInstalled('crm');

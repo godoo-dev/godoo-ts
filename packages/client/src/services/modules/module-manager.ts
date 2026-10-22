@@ -9,6 +9,11 @@
 import debug from 'debug';
 import type { OdooClient } from '../../client/odoo-client';
 import type { Domain } from '../../rpc/types';
+import {
+  inspectModulePrerequisites,
+  type ModuleInspectionOptions,
+  type ModulePrerequisiteInspection,
+} from './inspection';
 
 const log = debug('odoo-client:module-manager');
 
@@ -49,6 +54,14 @@ export class ModuleManager {
 
   constructor(client: OdooClient) {
     this.client = client;
+  }
+
+  /** Read registered addon states and transitive dependency facts without mutations. */
+  inspectPrerequisites(
+    moduleNames: readonly string[],
+    options: ModuleInspectionOptions = {},
+  ): Promise<ModulePrerequisiteInspection> {
+    return inspectModulePrerequisites(this.client, moduleNames, options);
   }
 
   /**

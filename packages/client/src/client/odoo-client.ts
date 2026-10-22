@@ -17,6 +17,7 @@
  * 4. Update skill docs to show `client.{module}.*` pattern
  */
 
+import type { OdooServerInfo } from '../rpc/server-info';
 import { JsonRpcTransport, type OdooSessionInfo } from '../rpc/transport';
 import type { Domain, RpcArg } from '../rpc/types';
 import {
@@ -283,6 +284,11 @@ export class OdooClient implements OdooCrudClient {
    */
   getSession(): OdooSessionInfo | null {
     return this.transport.getSession();
+  }
+
+  /** Read server-reported version facts; does not authenticate or infer addon support. */
+  getServerInfo(): Promise<OdooServerInfo> {
+    return this.transport.getServerInfo();
   }
 
   // ── Safety ──────────────────────────────────────────────────────────

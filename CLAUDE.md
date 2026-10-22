@@ -1,10 +1,11 @@
 # godoo-ts
 
-This repo is a Layer-1 satellite of the godoo / Odoo Atlas initiative. The shared
-umbrella context is imported (never copied) from the sibling spine repo, so a freshly
-cloned godoo-ts is immediately umbrella-aware:
-
-@../godoo-hq/UMBRELLA_CLAUDE.md
+This repo owns the TypeScript godoo libraries. Product targets and navigation live
+in godoo-hq's README.md and docs/libraries.md; Stateman's contract lives in
+docs/stateman.md there. Resolve HQ from the workspace rather than assuming an
+isolated checkout has a sibling HQ. Engineering and API documentation belong here.
+Use the current owner instructions and installed mafe-si delivery procedures.
+Work and evidence use the shared godoo tracker when authorized; Perficio is dormant.
 
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
@@ -28,8 +29,7 @@ single canonical TS home, with **no period of dual-maintenance** between the two
 - **Process**: `godoo-adoption` branch protocol — no dual-maintenance; code is removed from `odoo-toolbox` as godoo-ts confirms each package stable
 - **Dependency**: the `@godoo-dev/client` rename must lead — every other package imports from it, so renaming any package before the client would force two passes of import-path updates
 - **Coupling**: `@godoo-dev/client`'s integration test suite spins up real Odoo containers via `@godoo-dev/testcontainers`; the client cannot be fully validated until `testcontainers` is adopted
-- **Reporting**: a single terminal report-back is appended to `godoo-hq/dev-log.md` — only when all six success outcomes are met; no periodic status updates
-- **Umbrella wiring**: the generated `CLAUDE.md` must `@`-import `../godoo-hq/UMBRELLA_CLAUDE.md`
+- **Reporting**: retain work and evidence through the current shared godoo tracker procedure; do not recreate deleted HQ journals or umbrella imports
 <!-- GSD:project-end -->
 
 <!-- GSD:stack-start source:STACK.md -->

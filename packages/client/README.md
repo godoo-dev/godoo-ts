@@ -17,7 +17,7 @@ Lightweight TypeScript client for Odoo RPC operations.
 pnpm add @godoo-dev/client
 ```
 
-**Prerequisites**: Node.js ≥ 24, a running Odoo v17 instance.
+**Prerequisites**: Node.js ≥ 22.18.0, a running Odoo v17 instance.
 
 ## Quick Start
 
@@ -30,7 +30,7 @@ const client = await createClient();
 // Search
 const partners = await client.searchRead('res.partner',
   [['name', 'ilike', 'John']],
-  ['name', 'email']
+  { fields: ['name', 'email'] }
 );
 
 // Create
@@ -203,7 +203,7 @@ For lower-level control, `BearerJsonRpcTransport` is also exported.
 
 ## Tested Examples
 
-For comprehensive, tested examples of Odoo patterns — CRUD, search, domains, field types, and more — see the [knowledge modules](../../skills/odoo/SKILL.md).
+Client examples and assertions live in [the package tests](tests). Odoo knowledge belongs to the separate Atlas product; this package does not bundle a knowledge skill.
 
 ## Related Packages
 

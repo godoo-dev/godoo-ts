@@ -89,11 +89,10 @@ export class ModuleManager {
       { fields: ['id', 'name', 'state'], limit: 1 },
     );
 
-    if (modules.length === 0) {
+    const module = modules[0];
+    if (!module) {
       throw new Error(`Module '${moduleName}' not found`);
     }
-
-    const module = modules[0];
 
     if (module.state === 'uninstalled') {
       log('Module %s is already uninstalled', moduleName);
@@ -119,6 +118,7 @@ export class ModuleManager {
       },
     );
 
+    if (!updatedModule) throw new Error(`Module '${moduleName}' not readable after uninstall`);
     log('Module %s uninstalled successfully (state: %s)', moduleName, updatedModule.state);
     return updatedModule;
   }
@@ -238,11 +238,12 @@ export class ModuleManager {
       },
     );
 
-    if (modules.length === 0) {
+    const module = modules[0];
+    if (!module) {
       throw new Error(`Module '${moduleName}' not found`);
     }
 
-    return modules[0];
+    return module;
   }
 
   /**

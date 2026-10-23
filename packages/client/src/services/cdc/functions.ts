@@ -1,3 +1,4 @@
+import type { Domain } from '../../rpc/types';
 /**
  * CDC service core logic: check, getHistory, getFeed.
  *
@@ -207,7 +208,7 @@ export async function getHistory(
 ): Promise<TrackingEvent[]> {
   log('getHistory %s#%d', model, id);
 
-  const domain: unknown[] = [
+  const domain: Domain = [
     ['mail_message_id.model', '=', model],
     ['mail_message_id.res_id', '=', id],
   ];
@@ -311,7 +312,7 @@ export async function* getFeed(
     page++;
 
     // Build domain
-    const domain: unknown[] = [['mail_message_id.model', '=', model]];
+    const domain: Domain = [['mail_message_id.model', '=', model]];
 
     if (cursor === 0 && opts.since) {
       // Initial filter: start from since date
@@ -368,7 +369,9 @@ export async function* getFeed(
     }
 
     // Advance cursor to last row's id
-    cursor = rows[rows.length - 1].id;
+    const lastRow = rows.at(-1);
+    if (!lastRow) throw new Error('Tracking page unexpectedly empty');
+    cursor = lastRow.id;
     log('page %d: yielded %d events, cursor now %d', page, rows.length, cursor);
 
     // If we got fewer rows than pageSize, we're done

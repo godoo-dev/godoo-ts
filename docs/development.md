@@ -5,23 +5,44 @@ workspace root:
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm lint
-pnpm typecheck
-pnpm build
-pnpm test
+pnpm check
+export CANDIDATE_DIR=/absolute/path/outside/checkout/new-candidate
+node scripts/candidate.mjs pack "$CANDIDATE_DIR"
+pnpm check:package
+pnpm check:odoo18
 ```
 
-`pnpm test` is the default unit suite. Docker integration is a separate opt-in
-workflow: `pnpm test:integration`. It starts disposable Odoo/Postgres through
-testcontainers; do not use business instances as a substitute. Client integration
-setup owns the shared container lifecycle and injects its test connection values.
-Never log credentials or load private connection files for documentation checks.
+`check` validates all package source and test code under strict TypeScript,
+using bundler resolution to match tsdown, then builds declarations and runs units
+and gate regressions. `tsconfig.check.json` includes production, tests and configs;
+package configs own declaration builds. No baseline diagnostics are accepted.
+The source packages have a development-only client/testcontainers cycle; the
+all-source check does not depend on cyclic project-reference builds.
 
-The root `pnpm typecheck` invokes `tsc --noEmit` on a solution config with an
-empty `files` list; it does not establish that referenced package sources pass
-strict checking. Check changed source and emitted declarations explicitly. The
-full client source has known strict diagnostics; compare against the unchanged
-baseline before attributing failures to a change.
+`check:package` installs exact tarballs in an external consumer, compiles public
+APIs and generated output with NodeNext, checks import origins and runs the CLI.
+The retained manifest includes versions, internal dependencies, peer dependencies,
+SHA256, source content/commit/tree/patch identity, lock and tool versions. A supplied
+candidate is never rebuilt. The consumer lock is prepared once, retained and then
+installed frozen; internal dependencies always use the explicit candidate files.
+Third-party packages still need registry/network availability on a cold cache.
+
+`pnpm test` stays Docker-free. The11 skipped legacy example-file checks refer to
+absent tutorial files and are reported separately. `pnpm test:integration:list`
+proves selection across all three packages without Docker. `check:odoo18` requires
+Docker, nonzero collection and fully executed integration suites, then exercises
+client CRUD/readback, addon inspection, introspection and generated code through
+the installed tarballs. It rejects an explicit17 before provisioning. Odoo19 is
+manual via `check:odoo19`, requires18 proof for the same candidate and is not yet
+qualified. Never use a business instance as a substitute.
+
+The provisioner uses unique networks and labeled containers, loopback-only
+published ports, authenticated ORM readiness and observed-major assertions. It
+logs exact image/container/module identity and cleans only its own resources.
+Tests use disposable databases and temporary addon directories; evidence survives
+teardown outside the checkout. Do not log credentials or load private connections.
+See the [verification skill](../.agents/skills/godoo-ts-verification/SKILL.md) for
+failure trials and cleanup checks.
 
 ## Package structure and constraints
 
@@ -53,8 +74,8 @@ because root configuration excludes integrations.
 Changesets describe package-facing changes. Workspace dependencies use
 `workspace:*`; packing/releasing must resolve publishable versions, including peer
 dependencies. Package manifests own the exact names and versions.
-`.github/workflows/release.yml` configures Changesets on `main`, Node 24 and npm OIDC
-with provenance. This describes repository configuration, not a verified publisher
+The version-only workflow uses Changesets on `main`; the separate release workflow
+uses Node24 and npm OIDC with provenance. This describes configuration, not a verified publisher
 or registry state. Publishing, branch merges and old-package deprecation require
 separately authorized work. `scripts/deprecate-marcfargas.sh` is a mutating registry
 tool, not a housekeeping check.
@@ -83,7 +104,7 @@ dependency metadata is unavailable. `dependencies: null` and
 `common.version` through `OdooClient.getServerInfo()` or
 `JsonRpcTransport.getServerInfo()`; the proxy CRUD seam has no version endpoint.
 See the [client guide](../packages/client/README.md#module-management) for results
-and diagnostics. The schema targets Odoo 17 and is probed per inspection; offline
+and diagnostics. The schema was originally designed against Odoo17 and is probed per inspection; offline
 checks establish the call contract, not live compatibility, filesystem source
 availability, external prerequisites or a transactional snapshot. Local source
 availability does not establish registry publication or Stateman acceptance.
@@ -92,3 +113,28 @@ Seeding and portable fixtures remain a product interface choice. The historical
 idea of embedding Python Stateman through WASM and reducing testcontainers to
 initialization is superseded by standalone TS delivery; it does not authorize
 removing existing test setup capabilities.
+
+## Integration and release controls
+
+CI runs on all changes targeting/pushed to develop/main and manual validation.
+Its stable `required` job accepts only explicit success from offline (Node22/24),
+package and Odoo18 jobs, rejecting skipped, cancelled, failed and missing results.
+Prepared YAML and local predicate trials do not prove hosted execution or applied
+branch protection. Administrators must separately configure/read back rules for
+these actual job producers and any bypasses; no such settings are changed here.
+
+Changesets remains the independent-package version convention with main as base.
+Run `pnpm version-packages` locally, or use manual **Prepare versions** on main to
+retain a reviewable patch. Review/commit version changes before final validation.
+That entrypoint does not publish or push. The direct `pnpm release` command refuses
+and points to manual **Release**, whose `publish` input defaults false.
+
+Release first rejects ineligible/stale refs (only the fetched reviewed main head),
+then calls the same full validation workflow. Optional protected-environment
+promotion downloads the exact qualified artifacts from that run, rechecks source,
+metadata and SHA256/proof, and publishes those tarballs with scripts disabled.
+It does not rebuild or version after proof. npm trusted-publisher/environment
+protection must be provisioned/read back by the owner before any publication;
+this change neither provisions nor exercises it. No automatic release or deploy
+is configured. Current local candidates are unreleased, even if their version
+numbers match an existing registry version.

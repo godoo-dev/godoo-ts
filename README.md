@@ -30,7 +30,8 @@ const partners = await client.searchRead('res.partner', [], {
 ```
 
 The source workspace requires Node >=22.18.0 and pnpm 11.1.3. CI is configured for
-Node 22 and 24. Package versions in a checkout, registry publication and runtime
+Node22.18.0 and24.22.1. Odoo18 is the required baseline; later-major qualification
+is manual after18 on the same packed candidate. Package versions in a checkout, registry publication and runtime
 compatibility are separate evidence; this README is not a release receipt.
 
 For contributors, start with [development](docs/development.md). The libraries

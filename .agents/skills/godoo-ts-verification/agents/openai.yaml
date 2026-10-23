@@ -1,0 +1,3 @@
+interface:
+  display_name: "Verify godoo-ts"
+  short_description: "Check installed TS packages and owned Odoo18 behavior"

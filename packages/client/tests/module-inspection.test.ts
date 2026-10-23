@@ -327,7 +327,7 @@ describe('read-only addon prerequisite inspection', () => {
     await client.authenticate();
     const seam: ModuleInspectionClient = {
       call: client.call.bind(client),
-      searchRead: async <T extends Row>(
+      searchRead: async <T extends object>(
         model: string,
         domain: Domain = [],
         options: SearchReadOptions = {},

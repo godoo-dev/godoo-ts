@@ -39,11 +39,12 @@ async function resolveGroupId(client: ProvisionerClient, xmlId: string): Promise
     { fields: ['res_id'], limit: 1 },
   );
 
-  if (results.length === 0) {
+  const group = results[0];
+  if (!group) {
     throw new Error(`Group XML ID not found: "${xmlId}"`);
   }
 
-  return results[0].res_id;
+  return group.res_id;
 }
 
 /**

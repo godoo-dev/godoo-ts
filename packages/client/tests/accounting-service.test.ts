@@ -8,6 +8,8 @@
  * - Closing entry detection from pre-loaded lines
  */
 import { beforeAll, describe, expect, it } from 'vitest';
+import { required } from '../../../scripts/test-assertions.js';
+import type { OdooClient } from '../src/index.js';
 
 import { isClosingEntryFromLines } from '../src/services/accounting/functions.js';
 
@@ -15,7 +17,7 @@ import { isClosingEntryFromLines } from '../src/services/accounting/functions.js
 
 describe('isClosingEntryFromLines', () => {
   it('should detect closing entries with 129x account code', () => {
-    const lines = [
+    const lines: { account_id: [number, string] }[] = [
       { account_id: [100, '1290 Resultado del ejercicio'] },
       { account_id: [200, '7000 Ventas'] },
     ];
@@ -23,7 +25,7 @@ describe('isClosingEntryFromLines', () => {
   });
 
   it('should detect 1291, 1292 etc. as closing', () => {
-    const lines = [
+    const lines: { account_id: [number, string] }[] = [
       { account_id: [100, '1291 Pérdidas y ganancias'] },
       { account_id: [200, '6400 Sueldos y salarios'] },
     ];
@@ -31,7 +33,7 @@ describe('isClosingEntryFromLines', () => {
   });
 
   it('should NOT flag regular entries as closing', () => {
-    const lines = [
+    const lines: { account_id: [number, string] }[] = [
       { account_id: [100, '6400 Sueldos y salarios'] },
       { account_id: [200, '4100 Proveedores'] },
       { account_id: [300, '5720 Banco'] },
@@ -44,13 +46,16 @@ describe('isClosingEntryFromLines', () => {
   });
 
   it('should handle accounts starting with 12 but not 129', () => {
-    const lines = [{ account_id: [100, '1200 Capital'] }, { account_id: [200, '1210 Reservas'] }];
+    const lines: { account_id: [number, string] }[] = [
+      { account_id: [100, '1200 Capital'] },
+      { account_id: [200, '1210 Reservas'] },
+    ];
     expect(isClosingEntryFromLines(lines)).toBe(false);
   });
 
   it('should handle accounts where 129 appears mid-string', () => {
     // Account name has 129 in it but doesn't START with 129
-    const lines = [{ account_id: [100, '41290 Some account'] }];
+    const lines: { account_id: [number, string] }[] = [{ account_id: [100, '41290 Some account'] }];
     expect(isClosingEntryFromLines(lines)).toBe(false);
   });
 });
@@ -58,7 +63,7 @@ describe('isClosingEntryFromLines', () => {
 // ── discoverCashAccounts (with mock client) ─────────────────────────
 
 describe('discoverCashAccounts', () => {
-  let discoverCashAccounts: unknown;
+  let discoverCashAccounts: typeof import('../src/services/accounting/functions.js').discoverCashAccounts;
 
   beforeAll(async () => {
     const mod = await import('../src/services/accounting/functions');
@@ -76,7 +81,7 @@ describe('discoverCashAccounts', () => {
         },
         { id: 2, name: 'Caja', default_account_id: [58, '5700 Caja'], type: 'cash' },
       ],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const accounts = await discoverCashAccounts(mockClient);
 
@@ -103,17 +108,17 @@ describe('discoverCashAccounts', () => {
         { id: 1, name: 'Banco', default_account_id: [57, '5720 Banco'], type: 'bank' },
         { id: 2, name: 'Broken Journal', default_account_id: false, type: 'bank' },
       ],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const accounts = await discoverCashAccounts(mockClient);
     expect(accounts).toHaveLength(1);
-    expect(accounts[0].journalName).toBe('Banco');
+    expect(required(accounts[0]).journalName).toBe('Banco');
   });
 
   it('should return empty array when no bank/cash journals exist', async () => {
     const mockClient = {
       searchRead: async () => [],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const accounts = await discoverCashAccounts(mockClient);
     expect(accounts).toEqual([]);
@@ -123,7 +128,7 @@ describe('discoverCashAccounts', () => {
 // ── getCashAccountIds ───────────────────────────────────────────────
 
 describe('getCashAccountIds', () => {
-  let getCashAccountIds: unknown;
+  let getCashAccountIds: typeof import('../src/services/accounting/functions.js').getCashAccountIds;
 
   beforeAll(async () => {
     const mod = await import('../src/services/accounting/functions');
@@ -136,7 +141,7 @@ describe('getCashAccountIds', () => {
         { id: 1, name: 'Banco', default_account_id: [57, '5720 Banco'], type: 'bank' },
         { id: 2, name: 'Caja', default_account_id: [58, '5700 Caja'], type: 'cash' },
       ],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const ids = await getCashAccountIds(mockClient);
     expect(ids).toEqual([57, 58]);
@@ -146,7 +151,7 @@ describe('getCashAccountIds', () => {
 // ── resolvePartnerFromMove ──────────────────────────────────────────
 
 describe('resolvePartnerFromMove', () => {
-  let resolvePartnerFromMove: unknown;
+  let resolvePartnerFromMove: typeof import('../src/services/accounting/functions.js').resolvePartnerFromMove;
 
   beforeAll(async () => {
     const mod = await import('../src/services/accounting/functions');
@@ -171,7 +176,7 @@ describe('resolvePartnerFromMove', () => {
           credit: 0,
         },
       ],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await resolvePartnerFromMove(mockClient, 1, [57]);
     expect(result.partnerId).toBe(10);
@@ -192,7 +197,7 @@ describe('resolvePartnerFromMove', () => {
           credit: 0,
         },
       ],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await resolvePartnerFromMove(mockClient, 1, [57]);
     expect(result.partnerId).toBe(10);
@@ -220,7 +225,7 @@ describe('resolvePartnerFromMove', () => {
           credit: 0,
         },
       ],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await resolvePartnerFromMove(mockClient, 1, [57]);
     expect(result.isBatchPayment).toBe(true);
@@ -238,7 +243,7 @@ describe('resolvePartnerFromMove', () => {
         { id: 1, account_id: [57, '5720 Banco'], partner_id: false, debit: 0, credit: 1000 },
         { id: 2, account_id: [41, '4100 Proveedores'], partner_id: false, debit: 1000, credit: 0 },
       ],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await resolvePartnerFromMove(mockClient, 1, [57]);
     expect(result.partnerId).toBe(false);
@@ -256,7 +261,7 @@ describe('resolvePartnerFromMove', () => {
         { id: 3, account_id: [42, '4110'], partner_id: [10, 'Partner A'], debit: 1000, credit: 0 },
         { id: 4, account_id: [43, '4750'], partner_id: [10, 'Partner A'], debit: 1000, credit: 0 },
       ],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await resolvePartnerFromMove(mockClient, 1, [57]);
     expect(result.isBatchPayment).toBe(false); // Same partner on all lines
@@ -267,7 +272,7 @@ describe('resolvePartnerFromMove', () => {
 // ── traceReconciliation (with mock) ─────────────────────────────────
 
 describe('traceReconciliation', () => {
-  let traceReconciliation: unknown;
+  let traceReconciliation: typeof import('../src/services/accounting/functions.js').traceReconciliation;
 
   beforeAll(async () => {
     const mod = await import('../src/services/accounting/functions');
@@ -298,15 +303,15 @@ describe('traceReconciliation', () => {
           date: '2025-02-01',
         },
       ],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await traceReconciliation(mockClient, 42);
     expect(result.reconcileId).toBe(42);
     expect(result.lines).toHaveLength(2);
     expect(result.moveIds).toEqual([100, 200]);
-    expect(result.lines[0].moveName).toBe('INV/2025/001');
-    expect(result.lines[1].moveName).toBe('BNK/2025/050');
-    expect(result.lines[0].partnerId).toBe(10);
+    expect(required(result.lines[0]).moveName).toBe('INV/2025/001');
+    expect(required(result.lines[1]).moveName).toBe('BNK/2025/050');
+    expect(required(result.lines[0]).partnerId).toBe(10);
   });
 
   it('should handle lines without partner', async () => {
@@ -323,18 +328,18 @@ describe('traceReconciliation', () => {
           date: '2025-03-01',
         },
       ],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await traceReconciliation(mockClient, 99);
-    expect(result.lines[0].partnerId).toBe(false);
-    expect(result.lines[0].partnerName).toBe(false);
+    expect(required(result.lines[0]).partnerId).toBe(false);
+    expect(required(result.lines[0]).partnerName).toBe(false);
   });
 });
 
 // ── calculateDaysToPay (with mock) ──────────────────────────────────
 
 describe('calculateDaysToPay', () => {
-  let calculateDaysToPay: unknown;
+  let calculateDaysToPay: typeof import('../src/services/accounting/functions.js').calculateDaysToPay;
 
   beforeAll(async () => {
     const mod = await import('../src/services/accounting/functions');
@@ -360,7 +365,7 @@ describe('calculateDaysToPay', () => {
           { id: 2, date: '2025-02-01' },
         ];
       },
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await calculateDaysToPay(mockClient, 100);
     expect(result).not.toBeNull();
@@ -374,7 +379,7 @@ describe('calculateDaysToPay', () => {
   it('should return null for unpaid invoices', async () => {
     const mockClient = {
       searchRead: async () => [], // No reconciled lines
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await calculateDaysToPay(mockClient, 100);
     expect(result).toBeNull();
@@ -391,7 +396,7 @@ describe('calculateDaysToPay', () => {
           { id: 2, date: '2025-03-15' },
         ];
       },
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await calculateDaysToPay(mockClient, 200);
     expect(result?.days).toBe(0);
@@ -401,7 +406,7 @@ describe('calculateDaysToPay', () => {
 // ── getPostedMoveLines (with mock) ──────────────────────────────────
 
 describe('getPostedMoveLines', () => {
-  let getPostedMoveLines: unknown;
+  let getPostedMoveLines: typeof import('../src/services/accounting/functions.js').getPostedMoveLines;
 
   beforeAll(async () => {
     const mod = await import('../src/services/accounting/functions');
@@ -409,13 +414,13 @@ describe('getPostedMoveLines', () => {
   });
 
   it('should automatically add parent_state=posted filter', async () => {
-    let capturedDomain: unknown[];
+    let capturedDomain: unknown[] = [];
     const mockClient = {
-      searchRead: async (_model: string, domain: unknown[], _options: unknown) => {
+      searchRead: async (_model: string, domain: unknown[], _options: Record<string, unknown>) => {
         capturedDomain = domain;
         return [];
       },
-    } as unknown;
+    } as unknown as OdooClient;
 
     await getPostedMoveLines(mockClient, [['date', '>=', '2025-01-01']]);
 
@@ -426,13 +431,13 @@ describe('getPostedMoveLines', () => {
   });
 
   it('should default limit to 0 (all records)', async () => {
-    let capturedOptions: unknown;
+    let capturedOptions: Record<string, unknown> = {};
     const mockClient = {
-      searchRead: async (_model: string, _domain: unknown[], options: unknown) => {
+      searchRead: async (_model: string, _domain: unknown[], options: Record<string, unknown>) => {
         capturedOptions = options;
         return [];
       },
-    } as unknown;
+    } as unknown as OdooClient;
 
     await getPostedMoveLines(mockClient);
 
@@ -440,13 +445,13 @@ describe('getPostedMoveLines', () => {
   });
 
   it('should respect explicit limit override', async () => {
-    let capturedOptions: unknown;
+    let capturedOptions: Record<string, unknown> = {};
     const mockClient = {
-      searchRead: async (_model: string, _domain: unknown[], options: unknown) => {
+      searchRead: async (_model: string, _domain: unknown[], options: Record<string, unknown>) => {
         capturedOptions = options;
         return [];
       },
-    } as unknown;
+    } as unknown as OdooClient;
 
     await getPostedMoveLines(mockClient, [], { limit: 10 });
 
@@ -454,13 +459,13 @@ describe('getPostedMoveLines', () => {
   });
 
   it('should pass through fields and order options', async () => {
-    let capturedOptions: unknown;
+    let capturedOptions: Record<string, unknown> = {};
     const mockClient = {
-      searchRead: async (_model: string, _domain: unknown[], options: unknown) => {
+      searchRead: async (_model: string, _domain: unknown[], options: Record<string, unknown>) => {
         capturedOptions = options;
         return [];
       },
-    } as unknown;
+    } as unknown as OdooClient;
 
     await getPostedMoveLines(mockClient, [], {
       fields: ['debit', 'credit'],
@@ -475,7 +480,7 @@ describe('getPostedMoveLines', () => {
 // ── getCashBalance (with mock) ──────────────────────────────────────
 
 describe('getCashBalance', () => {
-  let getCashBalance: unknown;
+  let getCashBalance: typeof import('../src/services/accounting/functions.js').getCashBalance;
 
   beforeAll(async () => {
     const mod = await import('../src/services/accounting/functions');
@@ -485,7 +490,7 @@ describe('getCashBalance', () => {
   it('should sum balances across all cash account lines', async () => {
     const mockClient = {
       searchRead: async () => [{ balance: 5000 }, { balance: -2000 }, { balance: 1500 }],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const total = await getCashBalance(mockClient, [57, 58], '2025-06-30');
     expect(total).toBe(4500);
@@ -494,7 +499,7 @@ describe('getCashBalance', () => {
   it('should return 0 when no lines exist', async () => {
     const mockClient = {
       searchRead: async () => [],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const total = await getCashBalance(mockClient, [57], '2025-01-01');
     expect(total).toBe(0);
@@ -503,7 +508,7 @@ describe('getCashBalance', () => {
   it('should handle null balance values', async () => {
     const mockClient = {
       searchRead: async () => [{ balance: 1000 }, { balance: null }, { balance: 500 }],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const total = await getCashBalance(mockClient, [57], '2025-06-30');
     expect(total).toBe(1500);

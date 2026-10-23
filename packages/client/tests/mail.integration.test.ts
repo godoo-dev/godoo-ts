@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 /**
  * Integration tests for mail helpers: postInternalNote, postOpenMessage
  *
@@ -62,7 +63,11 @@ describe('Mail helpers integration', () => {
       expect(msgId).toBeGreaterThan(0);
 
       // Re-read and verify
-      const [msg] = await client.read('mail.message', msgId, [
+      const [msg] = await client.read<{
+        subtype_id: [number, string];
+        notification_ids: number[];
+        [field: string]: unknown;
+      }>('mail.message', msgId, [
         'body',
         'message_type',
         'subtype_id',
@@ -70,6 +75,7 @@ describe('Mail helpers integration', () => {
         'model',
         'res_id',
       ]);
+      assert(msg !== undefined);
 
       expect(msg.body).toContain('<b>bold</b>');
       expect(msg.message_type).toBe('comment');
@@ -88,7 +94,12 @@ describe('Mail helpers integration', () => {
       );
       cleanup.push({ model: 'mail.message', id: msgId });
 
-      const [msg] = await client.read('mail.message', msgId, ['body']);
+      const [msg] = await client.read<{
+        subtype_id: [number, string];
+        notification_ids: number[];
+        [field: string]: unknown;
+      }>('mail.message', msgId, ['body']);
+      assert(msg !== undefined);
       expect(msg.body).toContain('<p>Plain text note from integration test</p>');
     });
 
@@ -110,7 +121,12 @@ describe('Mail helpers integration', () => {
       );
       cleanup.push({ model: 'mail.message', id: msgId });
 
-      const [msg] = await client.read('mail.message', msgId, ['is_internal', 'subtype_id']);
+      const [msg] = await client.read<{
+        subtype_id: [number, string];
+        notification_ids: number[];
+        [field: string]: unknown;
+      }>('mail.message', msgId, ['is_internal', 'subtype_id']);
+      assert(msg !== undefined);
       expect(msg.is_internal).toBe(true);
       expect(msg.subtype_id[0]).toBe(2);
     });
@@ -126,7 +142,11 @@ describe('Mail helpers integration', () => {
 
       expect(msgId).toBeGreaterThan(0);
 
-      const [msg] = await client.read('mail.message', msgId, [
+      const [msg] = await client.read<{
+        subtype_id: [number, string];
+        notification_ids: number[];
+        [field: string]: unknown;
+      }>('mail.message', msgId, [
         'body',
         'message_type',
         'subtype_id',
@@ -134,6 +154,7 @@ describe('Mail helpers integration', () => {
         'model',
         'res_id',
       ]);
+      assert(msg !== undefined);
 
       expect(msg.body).toContain('<em>italic</em>');
       expect(msg.message_type).toBe('comment');
@@ -152,7 +173,12 @@ describe('Mail helpers integration', () => {
       );
       cleanup.push({ model: 'mail.message', id: msgId });
 
-      const [msg] = await client.read('mail.message', msgId, ['body']);
+      const [msg] = await client.read<{
+        subtype_id: [number, string];
+        notification_ids: number[];
+        [field: string]: unknown;
+      }>('mail.message', msgId, ['body']);
+      assert(msg !== undefined);
       expect(msg.body).toContain('<p>Plain text public message</p>');
     });
 
@@ -170,7 +196,12 @@ describe('Mail helpers integration', () => {
       );
       cleanup.push({ model: 'mail.message', id: msgId });
 
-      const [msg] = await client.read('mail.message', msgId, ['is_internal', 'subtype_id']);
+      const [msg] = await client.read<{
+        subtype_id: [number, string];
+        notification_ids: number[];
+        [field: string]: unknown;
+      }>('mail.message', msgId, ['is_internal', 'subtype_id']);
+      assert(msg !== undefined);
       expect(msg.is_internal).toBe(false);
       expect(msg.subtype_id[0]).toBe(1);
     });
@@ -181,10 +212,15 @@ describe('Mail helpers integration', () => {
   describe('mentions', () => {
     it('should attach @mentions via partnerIds option', async () => {
       // Get admin's partner ID
-      const [adminUser] = await client.searchRead('res.users', [['login', '=', 'admin']], {
-        fields: ['partner_id'],
-        limit: 1,
-      });
+      const [adminUser] = await client.searchRead<{ partner_id: [number, string] }>(
+        'res.users',
+        [['login', '=', 'admin']],
+        {
+          fields: ['partner_id'],
+          limit: 1,
+        },
+      );
+      assert(adminUser !== undefined);
       const adminPartnerId = adminUser.partner_id[0] as number;
 
       const msgId = await postOpenMessage(
@@ -196,7 +232,12 @@ describe('Mail helpers integration', () => {
       );
       cleanup.push({ model: 'mail.message', id: msgId });
 
-      const [msg] = await client.read('mail.message', msgId, ['partner_ids']);
+      const [msg] = await client.read<{
+        subtype_id: [number, string];
+        notification_ids: number[];
+        [field: string]: unknown;
+      }>('mail.message', msgId, ['partner_ids']);
+      assert(msg !== undefined);
       expect(msg.partner_ids).toContain(adminPartnerId);
     });
   });
@@ -228,19 +269,23 @@ describe('Mail helpers integration', () => {
       );
       cleanup.push({ model: 'mail.message', id: msgId });
 
-      const [msg] = await client.read('mail.message', msgId, ['notification_ids']);
+      const [msg] = await client.read<{
+        subtype_id: [number, string];
+        notification_ids: number[];
+        [field: string]: unknown;
+      }>('mail.message', msgId, ['notification_ids']);
+      assert(msg !== undefined);
       const notifIds = msg.notification_ids as number[];
 
       expect(notifIds.length).toBeGreaterThan(0);
 
       // Verify notification targets our follower
-      const notifs = await client.read('mail.notification', notifIds, [
-        'res_partner_id',
-        'notification_type',
-      ]);
-      const followerNotif = notifs.find(
-        (n: unknown) => (n.res_partner_id as unknown)[0] === followerPartnerId,
+      const notifs = await client.read<{ res_partner_id: [number, string] }>(
+        'mail.notification',
+        notifIds,
+        ['res_partner_id', 'notification_type'],
       );
+      const followerNotif = notifs.find((n) => n.res_partner_id[0] === followerPartnerId);
       expect(followerNotif).toBeDefined();
     });
 
@@ -253,7 +298,12 @@ describe('Mail helpers integration', () => {
       );
       cleanup.push({ model: 'mail.message', id: msgId });
 
-      const [msg] = await client.read('mail.message', msgId, ['notification_ids']);
+      const [msg] = await client.read<{
+        subtype_id: [number, string];
+        notification_ids: number[];
+        [field: string]: unknown;
+      }>('mail.message', msgId, ['notification_ids']);
+      assert(msg !== undefined);
       const notifIds = msg.notification_ids as number[];
 
       expect(notifIds.length).toBe(0);
@@ -337,7 +387,7 @@ describe('Mail helpers integration', () => {
         { fields: ['id'] },
       );
 
-      const publicIds = publicVisible.map((m: unknown) => m.id);
+      const publicIds = publicVisible.map((m) => m.id);
       expect(publicIds).toContain(openId);
       expect(publicIds).not.toContain(noteId);
     });

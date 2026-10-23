@@ -128,7 +128,7 @@ export function resolveValues(
     case 'date': {
       const toDate = (s: string | false): string | null => {
         const v = str(s);
-        return v ? v.split(' ')[0] : null;
+        return v ? (v.split(' ')[0] ?? null) : null;
       };
       const o = toDate(row.old_value_datetime);
       const n = toDate(row.new_value_datetime);

@@ -173,13 +173,6 @@ export function generateCompleteFile(allMetadata: ModelMetadata[]): string {
     lines.push('');
   }
 
-  // Generate index exports
-  lines.push('// Type exports');
-  for (const metadata of allMetadata) {
-    const interfaceName = modelNameToInterfaceName(metadata.model.model);
-    lines.push(`export type { ${interfaceName} };`);
-  }
-
   return lines.join('\n');
 }
 

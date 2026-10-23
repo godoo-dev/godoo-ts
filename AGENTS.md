@@ -30,3 +30,9 @@ Use strict TypeScript, pnpm workspaces, tsdown and Vitest. Public package names 
 `@godoo-dev/client`, `@godoo-dev/introspection` and `@godoo-dev/testcontainers`.
 Keep transport and generic Odoo operations in the client; Stateman owns resource
 ordering, adoption and ownership. See [development](docs/development.md).
+
+Use [.agents/skills/godoo-ts-verification/SKILL.md](.agents/skills/godoo-ts-verification/SKILL.md)
+for offline, installed-candidate and disposable Odoo18 proof. `pnpm check` is the
+source/test gate; `check:package` and `check:odoo18` qualify exact tarball bytes.
+Keep Odoo19 manual and after18 for the same candidate. Neither the skill nor local
+checks authorize publication or establish applied remote branch protection.

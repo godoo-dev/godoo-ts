@@ -311,12 +311,11 @@ export class BearerJsonRpcTransport {
  *
  * @see {@link JsonRpcTransport#categorizeError} in src/rpc/transport.ts
  */
-function categorizeError(error: {
-  code?: number;
-  message?: string;
-  data?: Record<string, unknown>;
-}): OdooRpcError {
-  const errorData = error.data;
+function categorizeError(error: { code?: number; message?: string; data?: unknown }): OdooRpcError {
+  const errorData =
+    typeof error.data === 'object' && error.data !== null && !Array.isArray(error.data)
+      ? (error.data as Record<string, unknown>)
+      : undefined;
   const rawExceptionType = errorData?.exception_type;
   const rawExceptionName = errorData?.name;
   const rawMessage = errorData?.message;

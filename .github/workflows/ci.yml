@@ -1,45 +1,152 @@
 name: CI
 on:
   push:
-    branches: [main, develop]
+    branches: [develop, main]
   pull_request:
-    branches:
-      - main
-      - develop
+    branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      qualify19:
+        description: Qualify Odoo19 only after18 on this same candidate
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      release_candidate:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+  PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
 
 jobs:
-  ci:
+  offline:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [22, 24]
+        node: ['22.18.0', '24.22.1']
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: pnpm/action-setup@f68f5791346aaeb8b9d7ea636c1bcf61c15511ed # v6.0.2
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm biome check .
-      - run: pnpm tsc --noEmit
-      - run: pnpm build
-      - run: pnpm test
-
-  integration:
+      - if: inputs.release_candidate == true
+        run: node scripts/release-guard.mjs
+      - run: pnpm check
+  package:
+    needs: offline
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22, 24]
+    env:
+      CANDIDATE_DIR: ${{ github.workspace }}/../ts-candidate-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          persist-credentials: false
+      - uses: pnpm/action-setup@f68f5791346aaeb8b9d7ea636c1bcf61c15511ed # v6.0.2
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.22.1'
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: pnpm test:integration
+      - run: node scripts/candidate.mjs pack "$CANDIDATE_DIR"
+      - run: pnpm check:package
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ts-candidate-${{ github.sha }}
+          path: ${{ env.CANDIDATE_DIR }}
+          if-no-files-found: error
+          retention-days: 14
+  odoo18:
+    needs: package
+    runs-on: ubuntu-latest
+    env:
+      CANDIDATE_DIR: ${{ github.workspace }}/../ts-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f68f5791346aaeb8b9d7ea636c1bcf61c15511ed # v6.0.2
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.22.1'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Source suites import built workspace packages. These are not promotion artifacts.
+      - run: pnpm build
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ts-candidate-${{ github.sha }}
+          path: ${{ env.CANDIDATE_DIR }}
+      - run: pnpm check:odoo18
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: ts-qualified-${{ github.sha }}
+          path: ${{ env.CANDIDATE_DIR }}
+          if-no-files-found: error
+          retention-days: 14
+  required:
+    name: required
+    if: ${{ always() }}
+    needs: [offline, package, odoo18]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.22.1'
+      - name: Require every mandatory result
         env:
-          TESTCONTAINERS_RYUK_DISABLED: 'false'
+          RESULTS: ${{ toJSON(needs) }}
+        run: node scripts/required.mjs
+  odoo19:
+    if: github.event_name == 'workflow_dispatch' && inputs.qualify19 == true
+    needs: required
+    runs-on: ubuntu-latest
+    env:
+      CANDIDATE_DIR: ${{ github.workspace }}/../ts-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f68f5791346aaeb8b9d7ea636c1bcf61c15511ed # v6.0.2
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.22.1'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ts-qualified-${{ github.sha }}
+          path: ${{ env.CANDIDATE_DIR }}
+      - run: pnpm check:odoo19
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: ts-odoo19-${{ github.sha }}
+          path: ${{ env.CANDIDATE_DIR }}
+          if-no-files-found: error

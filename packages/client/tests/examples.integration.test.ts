@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 /**
  * Integration tests for odoo-client examples
  */
@@ -34,9 +35,11 @@ describe('odoo-client examples', () => {
 
       // Odoo session info doesn’t expose partner_id; resolve via res.users
       const [user] = await client.read('res.users', [sessionInfo.uid], ['partner_id']);
+      assert(user !== undefined);
       const partnerId = Array.isArray(user.partner_id) ? user.partner_id[0] : user.partner_id;
 
       const [partner] = await client.read('res.partner', [partnerId], ['name', 'email']);
+      assert(partner !== undefined);
       expect(partner).toBeDefined();
       expect(partner.name).toBeDefined();
     });
@@ -56,6 +59,7 @@ describe('odoo-client examples', () => {
 
     it('should read the created partner', async () => {
       const [partner] = await client.read('res.partner', [testPartnerId], ['id', 'name', 'email']);
+      assert(partner !== undefined);
       expect(partner).toBeDefined();
       expect(partner.name).toBe('Test Partner');
       expect(partner.email).toBe('test@example.com');
@@ -68,6 +72,7 @@ describe('odoo-client examples', () => {
       expect(success).toBe(true);
 
       const [partner] = await client.read('res.partner', [testPartnerId], ['email']);
+      assert(partner !== undefined);
       expect(partner.email).toBe('updated@example.com');
     });
 

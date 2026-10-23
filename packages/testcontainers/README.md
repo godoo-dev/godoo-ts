@@ -12,6 +12,10 @@ A custom Testcontainers module for Odoo development in Node.js.
 - ⚡ **Parallel test execution** (each test gets its own Odoo)
 - 🧹 **Automatic cleanup** after tests
 
+Odoo18 is the default provisioned version and the required verification baseline.
+The verifier rejects17 before provisioning;19 qualification is manual after18 on
+the same candidate. Published Odoo/Postgres ports bind only127.0.0.1.
+
 ## Installation
 
 ```bash

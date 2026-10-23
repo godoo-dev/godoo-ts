@@ -183,9 +183,12 @@ export class JsonRpcTransport {
   private categorizeError(error: {
     code?: number;
     message?: string;
-    data?: Record<string, unknown>;
+    data?: unknown;
   }): OdooRpcError {
-    const errorData = error.data;
+    const errorData =
+      typeof error.data === 'object' && error.data !== null && !Array.isArray(error.data)
+        ? (error.data as Record<string, unknown>)
+        : undefined;
     const rawExceptionType = errorData?.exception_type;
     const rawExceptionName = errorData?.name;
     const rawMessage = errorData?.message;

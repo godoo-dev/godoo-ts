@@ -387,7 +387,7 @@ export class OdooClient implements OdooCrudClient {
    * @param fields - Fields to read (empty = all fields)
    * @returns Array of record objects
    */
-  async read<T extends Record<string, unknown> = Record<string, unknown>>(
+  async read<T extends object = Record<string, unknown>>(
     model: string,
     ids: number | number[],
     fields: string[] = [],
@@ -407,7 +407,7 @@ export class OdooClient implements OdooCrudClient {
    * @param options - Search and read options
    * @returns Array of record objects
    */
-  async searchRead<T extends Record<string, unknown> = Record<string, unknown>>(
+  async searchRead<T extends object = Record<string, unknown>>(
     model: string,
     domain: Domain = [],
     options: {

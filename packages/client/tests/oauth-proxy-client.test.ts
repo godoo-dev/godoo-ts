@@ -1,3 +1,6 @@
+import assert from 'node:assert/strict';
+import type { JsonRpcRequest } from '../src/rpc/types.js';
+import { OdooRpcError } from '../src/types/errors.js';
 /**
  * Unit tests for OAuthProxyClient.
  *
@@ -17,8 +20,12 @@ function mockJsonResponse(body: unknown): Response {
   });
 }
 
-function getOutboundEnvelope(fetchSpy: ReturnType<typeof vi.fn>, callIndex = 0): unknown {
+function getOutboundEnvelope(
+  fetchSpy: ReturnType<typeof vi.fn>,
+  callIndex = 0,
+): JsonRpcRequest & { params: { args: unknown[] } } {
   const call = fetchSpy.mock.calls[callIndex];
+  assert(call !== undefined);
   const init = call[1] as RequestInit;
   return JSON.parse(init.body as string);
 }
@@ -28,13 +35,14 @@ function getOutboundHeaders(
   callIndex = 0,
 ): Record<string, string> {
   const call = fetchSpy.mock.calls[callIndex];
+  assert(call !== undefined);
   const init = call[1] as RequestInit;
   return init.headers as Record<string, string>;
 }
 
 describe('OAuthProxyClient', () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
-  let getAccessToken: ReturnType<typeof vi.fn>;
+  let getAccessToken: ReturnType<typeof vi.fn<() => Promise<string>>>;
 
   const PROXY_URL = 'https://proxy.example.com';
 
@@ -45,7 +53,7 @@ describe('OAuthProxyClient', () => {
         Promise.resolve(mockJsonResponse({ jsonrpc: '2.0', id: 1, result: [] })),
       );
     vi.stubGlobal('fetch', fetchSpy);
-    getAccessToken = vi.fn().mockResolvedValue('TEST_BEARER_TOKEN');
+    getAccessToken = vi.fn<() => Promise<string>>().mockResolvedValue('TEST_BEARER_TOKEN');
   });
 
   afterEach(() => {
@@ -369,6 +377,7 @@ describe('OAuthProxyClient', () => {
       thrown = e;
     }
     expect(thrown).toBeDefined();
+    assert(thrown instanceof OdooRpcError);
     expect(thrown.message).not.toContain('SUPER_SECRET_TOKEN_VALUE');
     // Stringified error (toJSON) also must not contain the token.
     expect(JSON.stringify(thrown.toJSON?.() ?? thrown)).not.toContain('SUPER_SECRET_TOKEN_VALUE');

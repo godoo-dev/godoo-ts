@@ -17,7 +17,7 @@ Lightweight TypeScript client for Odoo RPC operations.
 pnpm add @godoo-dev/client
 ```
 
-**Prerequisites**: Node.js ≥ 22.18.0, a running Odoo v17 instance.
+**Prerequisites**: Node.js ≥ 22.18.0, an authorized Odoo18 instance.
 
 ## Quick Start
 
@@ -125,7 +125,7 @@ It never refreshes the catalog to resolve the ambiguity. Authentication, network
 safety and unexpected RPC errors propagate unchanged. An `uninstallable` state
 does not identify the reason or establish whether source files exist.
 
-The schema is designed against Odoo **17.0**
+The original schema design used Odoo **17.0** (historical reference)
 ([upstream module metadata](https://github.com/odoo/odoo/blob/1959040e5cab026612c3ac627a838871cb4a9fce/odoo/addons/base/models/ir_module.py)).
 Other versions/customizations are schema-probed, not certified by version number.
 Offline mocks verify the call contract; no live compatibility claim is made here.

@@ -35,7 +35,7 @@ import { type StartedOdooContainer, startOdoo } from '@godoo-dev/testcontainers'
 let odoo: StartedOdooContainer | undefined;
 
 export async function setup(): Promise<void> {
-  odoo = await startOdoo({ modules: ['base', 'mail', 'crm'] });
+  odoo = await startOdoo({ snapshot: false, modules: ['base', 'mail', 'crm'] });
 
   // Canonical env-var contract (used by 9 of 10 integration files).
   process.env.ODOO_URL = odoo.url;

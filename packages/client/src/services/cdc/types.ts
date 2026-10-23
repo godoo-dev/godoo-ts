@@ -1,3 +1,4 @@
+import type { Domain } from '../../rpc/types';
 /**
  * CDC (Change Data Capture) service types.
  * Built on mail.tracking.value — Odoo's native field-change audit log.
@@ -113,7 +114,7 @@ export interface GetHistoryOptions {
  */
 export interface GetFeedOptions {
   /** Additional domain on mail.tracking.value */
-  domain?: unknown[];
+  domain?: Domain;
   /** Only events on or after this ISO datetime (used as initial filter only) */
   since?: string;
   /** Only events before this ISO datetime */

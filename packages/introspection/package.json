@@ -31,7 +31,8 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@godoo-dev/client": "workspace:*",
@@ -39,7 +40,8 @@
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "@godoo-dev/testcontainers": "workspace:*"
   },
   "repository": {
     "type": "git",

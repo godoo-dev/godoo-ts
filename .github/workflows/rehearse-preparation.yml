@@ -39,7 +39,11 @@ jobs:
           git show-ref --tags > "$RUNNER_TEMP/tags-after" || true
           diff "$RUNNER_TEMP/head-before" "$RUNNER_TEMP/head-after"
           diff "$RUNNER_TEMP/tags-before" "$RUNNER_TEMP/tags-after"
+          git add --intent-to-add -- packages/*/CHANGELOG.md
           git diff HEAD --binary > "$RUNNER_TEMP/version-preparation.patch"
+          grep -F '+++ b/packages/client/CHANGELOG.md' "$RUNNER_TEMP/version-preparation.patch"
+          grep -F '+++ b/packages/introspection/CHANGELOG.md' "$RUNNER_TEMP/version-preparation.patch"
+          grep -F '+++ b/packages/testcontainers/CHANGELOG.md' "$RUNNER_TEMP/version-preparation.patch"
           test -s "$RUNNER_TEMP/version-preparation.patch"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

@@ -37,7 +37,7 @@ jobs:
       contents: read
       id-token: write
     env:
-      CANDIDATE_DIR: ${{ runner.temp }}/ts-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+      CANDIDATE_DIR: ${{ github.workspace }}-candidate-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:

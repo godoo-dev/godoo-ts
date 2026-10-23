@@ -57,6 +57,23 @@ test('verification rejects17 and conflicting requested major before Docker', () 
     assert.match(child.stderr, /17 is rejected|ODOO_VERSION conflicts/);
   }
 });
+test('integration listing collects every package without Docker or global service setup', () => {
+  const child = spawnSync(process.execPath, ['scripts/check-odoo.mjs', '18', '--list'], {
+    cwd: root,
+    env: {
+      ...process.env,
+      ODOO_VERSION: '18.0',
+      DOCKER_CONTEXT: '',
+      DOCKER_HOST: 'unix:///tmp/godoo-list-must-not-use-docker.sock',
+    },
+    encoding: 'utf8',
+    timeout: 60_000,
+  });
+  assert.equal(child.status, 0, `${child.stdout}${child.stderr}`);
+  const selected = JSON.parse(child.stdout);
+  assert.deepEqual(Object.keys(selected).sort(), [...packages].sort());
+  for (const name of packages) assert(selected[name].length > 0, `${name}: no collected tests`);
+});
 test('promotion rejects ineligible branch before querying a registry or granting credentials', () => {
   assert.throws(() => requireMainCandidate('refs/heads/develop'), /reviewed main/);
   assert.throws(() => requireMainCandidate('refs/tags/v0.6.0'), /reviewed main/);

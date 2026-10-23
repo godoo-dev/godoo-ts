@@ -42,7 +42,7 @@ for (const name of packages) {
     output(
       'pnpm',
       ['exec', 'vitest', 'list', '--config', 'vitest.integration.config.ts', '--json'],
-      { cwd },
+      { cwd, env: { ...process.env, GODOO_INTEGRATION_LIST: 'true' } },
     ),
   );
   assert(selected.length > 0, `${name}: empty integration collection`);
@@ -69,7 +69,12 @@ for (const name of packages) {
       ],
       {
         cwd,
-        env: { ...process.env, ODOO_VERSION: `${major}.0`, TESTCONTAINERS_RYUK_DISABLED: 'false' },
+        env: {
+          ...process.env,
+          GODOO_INTEGRATION_LIST: 'false',
+          ODOO_VERSION: `${major}.0`,
+          TESTCONTAINERS_RYUK_DISABLED: 'false',
+        },
       },
     );
     const result = readJson(report);

@@ -51,7 +51,7 @@ jobs:
     needs: offline
     runs-on: ubuntu-latest
     env:
-      CANDIDATE_DIR: ${{ github.workspace }}/../ts-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+      CANDIDATE_DIR: ${{ runner.temp }}/ts-candidate-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -77,7 +77,7 @@ jobs:
     needs: package
     runs-on: ubuntu-latest
     env:
-      CANDIDATE_DIR: ${{ github.workspace }}/../ts-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+      CANDIDATE_DIR: ${{ runner.temp }}/ts-candidate-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -126,7 +126,7 @@ jobs:
     needs: [package, odoo18]
     runs-on: ubuntu-latest
     env:
-      CANDIDATE_DIR: ${{ github.workspace }}/../ts-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+      CANDIDATE_DIR: ${{ runner.temp }}/ts-candidate-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:

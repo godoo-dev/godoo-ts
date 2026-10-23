@@ -184,13 +184,20 @@ malformed action response fail verification. This verifies observed state, not a
 whole-run transaction or filesystem readiness.
 
 Completion-response validation: accept an empty dictionary, a client
-`reload`, the canonical `/web` self redirect, or a registered configuration-window
+`reload`, the canonical `/web` (Odoo 17) or `/odoo` (Odoo 18) self redirect, or a
+registered configuration-window
 action returned by Odoo 17 `ir.actions.todo.action_launch` (positive action ID,
 valid destination/view mode/target and `context.disable_log: true`). Reject module
 operation models (`base.module.*` and `ir.module.module`), explicit error/refusal
 markers and unsupported action shapes. A configuration window is recognized as
 completion metadata only; this client never executes it. An unchanged installed version is
 valid for an upgrade. Response validation complements fresh state/identity checks.
+
+The exact Odoo 18 redirect follows
+[`ir_module.next()` at upstream a2e1d43](https://github.com/odoo/odoo/blob/a2e1d43d94215dc98babd5674ca4d3956eef5c9e/odoo/addons/base/models/ir_module.py#L584-L599).
+Other URL paths, query strings and targets remain unsupported. This narrow
+completion contract does not certify other Odoo 18 behavior; prerequisite schema
+design and the original supplier acceptance remain based on Odoo 17.
 
 Odoo installs dependencies and may auto-install addons. Upgrade can refresh Odoo's
 catalog and upgrade dependent modules internally; the client does not invoke a

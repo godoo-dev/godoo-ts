@@ -396,6 +396,20 @@ describe('explicit module lifecycle', () => {
     { type: 'ir.actions.act_window_close' },
     { type: 'ir.actions.act_url', url: '/web', target: 'new' },
     { type: 'ir.actions.act_url', url: '/web/pending-upgrade', target: 'self' },
+    ...[
+      { url: '/odoo', target: 'new' },
+      { url: '/odoo', target: 'current' },
+      { url: '/odoo' },
+      { url: '/odoo/', target: 'self' },
+      { url: '/odoo/pending-upgrade', target: 'self' },
+      { url: '/odoo?pending=true', target: 'self' },
+      { url: '/odoo#pending', target: 'self' },
+      { url: 'https://external.invalid/odoo', target: 'self' },
+      { url: '//external.invalid/odoo', target: 'self' },
+      { url: '/odoo', target: 'self', error: 'operation refused' },
+      { url: '/odoo', target: 'self', status: 'deferred' },
+      { url: '/odoo', target: 'self', res_model: 'base.module.upgrade' },
+    ].map((action) => ({ type: 'ir.actions.act_url', ...action })),
     {
       type: 'ir.actions.act_window',
       res_model: 'res.config.settings',
@@ -470,6 +484,45 @@ describe('explicit module lifecycle', () => {
       changed: true,
     });
     expect(mutations()).toHaveLength(1);
+  });
+
+  it.each([
+    'install',
+    'upgrade',
+  ] as const)('accepts the exact Odoo18 self redirect for %s after verifying installed closure', async (operation) => {
+    const { client, mutations } = fixture({
+      modules: [addon(1, 'sale', operation === 'upgrade' ? 'installed' : 'uninstalled')],
+      response: { type: 'ir.actions.act_url', target: 'self', url: '/odoo' },
+    });
+    await client.authenticate();
+    const result =
+      operation === 'install'
+        ? await client.modules.installModule('sale')
+        : await client.modules.upgradeModule('sale');
+    expect(result).toMatchObject({
+      operation,
+      state: 'installed',
+      changed: true,
+      schemaInvalidated: true,
+    });
+    expect(mutations()).toHaveLength(1);
+  });
+
+  it('still rejects incomplete installed closure after the Odoo18 redirect', async () => {
+    const { client } = fixture({
+      modules: [addon(1, 'sale', 'uninstalled', [10]), addon(2, 'base')],
+      edges: [edge(10, 'base', 1)],
+      response: { type: 'ir.actions.act_url', target: 'self', url: '/odoo' },
+      mutate: (_request, modules) => {
+        firstRow(modules).state = 'installed';
+      },
+    });
+    await client.authenticate();
+    await expect(client.modules.installModule('sale')).rejects.toMatchObject({
+      name: 'ModuleLifecycleError',
+      phase: 'postcondition',
+      schemaInvalidated: true,
+    });
   });
 
   it('requires installed state for upgrade', async () => {

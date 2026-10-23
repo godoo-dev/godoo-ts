@@ -116,7 +116,7 @@ function requireIdentities(
 }
 
 /**
- * Supported Odoo 17 _button_immediate_function/next completion responses.
+ * Supported Odoo 17/18 _button_immediate_function/next completion responses.
  * Registered todo windows come from action.read() and action_launch adds
  * disable_log. A module-operation wizard is pending work, even if every module
  * already reports installed. Unknown/custom responses fail closed.
@@ -139,7 +139,7 @@ function isCompletionResponse(response: unknown): boolean {
     return false;
   if (action.type === 'ir.actions.client') return action.tag === 'reload';
   if (action.type === 'ir.actions.act_url')
-    return action.url === '/web' && action.target === 'self';
+    return (action.url === '/web' || action.url === '/odoo') && action.target === 'self';
   if (action.type !== 'ir.actions.act_window') return false;
   const context = action.context;
   return (

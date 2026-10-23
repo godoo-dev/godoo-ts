@@ -24,7 +24,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - name: Retain reviewable version preparation; no push or publication
-        run: git diff --binary > "${{ runner.temp }}/version-preparation.patch"
+        run: |
+          # Changesets creates untracked changelogs; include their bytes in the patch.
+          git add --intent-to-add -- packages/*/CHANGELOG.md
+          git diff HEAD --binary > "${{ runner.temp }}/version-preparation.patch"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: version-preparation-${{ github.sha }}

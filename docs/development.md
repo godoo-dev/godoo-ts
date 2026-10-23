@@ -119,6 +119,9 @@ removing existing test setup capabilities.
 CI runs on all changes targeting/pushed to develop/main and manual validation.
 Its stable `required` job accepts only explicit success from offline (Node22/24),
 package and Odoo18 jobs, rejecting skipped, cancelled, failed and missing results.
+Manual requested19 depends on successful package/Odoo18 proof for the same candidate;
+`required` also waits for19 and requires success when requested, allowing its
+explicit skipped result only when unrequested.
 Prepared YAML and local predicate trials do not prove hosted execution or applied
 branch protection. Administrators must separately configure/read back rules for
 these actual job producers and any bypasses; no such settings are changed here.

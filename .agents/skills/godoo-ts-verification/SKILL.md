@@ -106,10 +106,13 @@ The maintained helper is `node scripts/negative-typecheck.mjs`; set
 `NEGATIVE_EVIDENCE` to the desired external JSON filename and retain its log too.
 
 Odoo19 qualification is explicit `pnpm check:odoo19`, after successful18 on the
-same source/tarballs/consumer lock. CI's manual19 job depends on `required`; its
-failure fails the requested qualification.19 is unqualified until actually run.
+same source/tarballs/consumer lock. CI's manual19 job depends on package/Odoo18
+success, and `required` waits for it: requested19 must succeed; unrequested19 must
+be explicitly skipped. Failure, cancellation or missing requested results fail
+the aggregate.19 is unqualified until actually run.
 
-CI owns `required` with explicit success for offline/package/odoo18. Changesets
+CI owns `required` with explicit success for offline/package/odoo18 and the
+request-sensitive19 result above. Changesets
 version preparation is separate from manual Release validation. `publish` defaults
 false; promotion requires reviewed main, that run's full validation, hash checks
 and the protected npm environment, and consumes the tested tarballs without a

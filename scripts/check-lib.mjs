@@ -88,14 +88,20 @@ export function verifyCandidate(dir, expectedCommit = output('git', ['rev-parse'
   }
   return manifest;
 }
-export function requireResults(results, expected = ['offline', 'package', 'odoo18']) {
+export function requireResults(results, requested19 = false) {
+  const expected = ['offline', 'package', 'odoo18', 'odoo19'];
   assert.deepEqual(
     Object.keys(results).sort(),
     [...expected].sort(),
     'Missing/extra required jobs',
   );
-  for (const name of expected)
+  for (const name of ['offline', 'package', 'odoo18'])
     assert.equal(results[name]?.result, 'success', `${name} must succeed`);
+  assert.equal(
+    results.odoo19?.result,
+    requested19 ? 'success' : 'skipped',
+    requested19 ? 'Requested Odoo19 must succeed' : 'Unrequested Odoo19 must be skipped',
+  );
 }
 export function requirePackageProof(dir, manifest = verifyCandidate(dir)) {
   const proof = readJson(resolve(dir, 'package-proof.json'));

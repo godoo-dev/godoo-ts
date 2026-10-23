@@ -21,17 +21,18 @@ const allSuccess = {
   offline: { result: 'success' },
   package: { result: 'success' },
   odoo18: { result: 'success' },
+  odoo19: { result: 'skipped' },
 };
 test('required caller admits all success and rejects failed/skipped/cancelled/missing jobs', () => {
   requireResults(allSuccess);
-  for (const name of Object.keys(allSuccess)) {
+  for (const name of ['offline', 'package', 'odoo18']) {
     for (const result of ['failure', 'skipped', 'cancelled', undefined]) {
       const jobs = structuredClone(allSuccess);
       if (result) jobs[name].result = result;
       else delete jobs[name];
       const child = spawnSync(process.execPath, ['scripts/required.mjs'], {
         cwd: root,
-        env: { ...process.env, RESULTS: JSON.stringify(jobs) },
+        env: { ...process.env, RESULTS: JSON.stringify(jobs), QUALIFY19: 'false' },
         encoding: 'utf8',
       });
       assert.notEqual(child.status, 0, `${name}:${result} must fail`);
@@ -39,9 +40,30 @@ test('required caller admits all success and rejects failed/skipped/cancelled/mi
   }
   const child = spawnSync(process.execPath, ['scripts/required.mjs'], {
     cwd: root,
-    env: { ...process.env, RESULTS: JSON.stringify(allSuccess) },
+    env: { ...process.env, RESULTS: JSON.stringify(allSuccess), QUALIFY19: 'false' },
   });
   assert.equal(child.status, 0);
+});
+test('required consumes requested19 and permits its skip only when unrequested', () => {
+  for (const requested of ['true', 'false']) {
+    for (const result of ['success', 'failure', 'skipped', 'cancelled', undefined]) {
+      const jobs = structuredClone(allSuccess);
+      if (result) jobs.odoo19.result = result;
+      else delete jobs.odoo19;
+      const child = spawnSync(process.execPath, ['scripts/required.mjs'], {
+        cwd: root,
+        env: { ...process.env, RESULTS: JSON.stringify(jobs), QUALIFY19: requested },
+        encoding: 'utf8',
+      });
+      const admitted = requested === 'true' ? result === 'success' : result === 'skipped';
+      assert.equal(child.status === 0, admitted, `${requested}:${result}: ${child.stderr}`);
+    }
+  }
+  const invalid = spawnSync(process.execPath, ['scripts/required.mjs'], {
+    cwd: root,
+    env: { ...process.env, RESULTS: JSON.stringify(allSuccess), QUALIFY19: 'yes' },
+  });
+  assert.notEqual(invalid.status, 0);
 });
 test('verification rejects17 and conflicting requested major before Docker', () => {
   for (const [major, envMajor] of [

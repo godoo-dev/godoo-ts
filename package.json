@@ -20,7 +20,7 @@
     "version-packages": "changeset version",
     "release": "node scripts/release-instructions.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm build && pnpm test && pnpm check:controls",
-    "check:controls": "node --test scripts/controls.test.mjs",
+    "check:controls": "node --test scripts/controls.test.mjs scripts/publish-registry.test.mjs",
     "check:package": "node scripts/check-package.mjs",
     "check:odoo18": "node scripts/check-odoo.mjs 18",
     "check:odoo19": "node scripts/check-odoo.mjs 19",

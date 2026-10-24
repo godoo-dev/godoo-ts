@@ -141,3 +141,9 @@ protection must be provisioned/read back by the owner before any publication;
 this change neither provisions nor exercises it. No automatic release or deploy
 is configured. Current local candidates are unreleased, even if their version
 numbers match an existing registry version.
+
+Publication recovery must first inspect every selected npm version and compare
+downloaded bytes with the retained candidate. Matching archives are retained;
+only missing archives are uploaded. A collision or unavailable registry check
+halts the whole selected set before another upload. This recovery does not
+replace the main-line, same-run proof or publishing-access requirements.

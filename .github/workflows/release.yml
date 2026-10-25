@@ -38,6 +38,9 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      - uses: pnpm/action-setup@f68f5791346aaeb8b9d7ea636c1bcf61c15511ed # v6.0.2
+        with:
+          version: 11.1.3
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24.22.1'

@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 /**
  * Tests for the safety module and error hierarchy
  */
@@ -81,7 +82,7 @@ describe('Error Hierarchy', () => {
     it('has toJSON with NETWORK_ERROR code', () => {
       const json = new OdooNetworkError('fail', new Error('cause')).toJSON();
       expect(json.error).toBe('NETWORK_ERROR');
-      expect((json.details as unknown).cause).toBe('cause');
+      expect((json.details as { cause: string }).cause).toBe('cause');
     });
   });
 
@@ -153,7 +154,7 @@ describe('Error Hierarchy', () => {
       };
       const json = new OdooSafetyError(op).toJSON();
       expect(json.error).toBe('SAFETY_BLOCKED');
-      expect((json.details as unknown).operation.name).toBe('odoo.unlink');
+      expect((json.details as { operation: OperationInfo }).operation.name).toBe('odoo.unlink');
     });
   });
 
@@ -305,6 +306,7 @@ describe('configFromEnv', () => {
     try {
       configFromEnv('TEST_ODOO');
     } catch (e: unknown) {
+      assert(e instanceof Error);
       expect(e.message).toContain('TEST_ODOO_DB');
       expect(e.message).toContain('TEST_ODOO_USER');
       expect(e.message).toContain('TEST_ODOO_PASSWORD');

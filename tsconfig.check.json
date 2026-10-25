@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "isolatedDeclarations": false,
+    "declaration": false,
+    "declarationMap": false,
+    "paths": {
+      "@godoo-dev/client": ["./packages/client/src/index.ts"],
+      "@godoo-dev/testcontainers": ["./packages/testcontainers/src/index.ts"],
+      "@godoo-dev/introspection": ["./packages/introspection/src/index.ts"]
+    },
+    "module": "preserve",
+    "moduleResolution": "bundler"
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/tests/**/*.ts",
+    "packages/*/*.config.ts",
+    "vitest.config.ts",
+    "scripts/**/*.ts"
+  ]
+}

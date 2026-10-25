@@ -2,13 +2,14 @@
  * Unit tests for timesheets service validation logic.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
+import type { OdooClient } from '../src/index.js';
 
 import { OdooValidationError } from '../src/types/errors.js';
 
 describe('timesheets validation', () => {
-  let startTimer: unknown;
-  let logTime: unknown;
-  let stopTimer: unknown;
+  let startTimer: typeof import('../src/services/timesheets/functions.js').startTimer;
+  let logTime: typeof import('../src/services/timesheets/functions.js').logTime;
+  let stopTimer: typeof import('../src/services/timesheets/functions.js').stopTimer;
 
   const mockClient = {
     getSession: () => ({ uid: 2 }),
@@ -19,7 +20,7 @@ describe('timesheets validation', () => {
     read: async () => [{ id: 1, unit_amount: 1.5, create_date: '2026-02-14 10:00:00' }],
     create: async () => 1,
     call: async () => ({}),
-  } as unknown;
+  } as unknown as OdooClient;
 
   beforeAll(async () => {
     const mod = await import('../src/services/timesheets/functions');

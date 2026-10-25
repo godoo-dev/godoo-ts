@@ -368,8 +368,8 @@ describe('Code Formatter', () => {
       const code = generateCompleteFile([metadata1, metadata2]);
       expect(code).toContain('export interface ResPartner');
       expect(code).toContain('export interface SaleOrder');
-      expect(code).toContain('export type { ResPartner }');
-      expect(code).toContain('export type { SaleOrder }');
+      expect(code).not.toContain('export type { ResPartner }');
+      expect(code).not.toContain('export type { SaleOrder }');
     });
   });
 

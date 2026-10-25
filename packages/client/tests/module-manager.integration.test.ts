@@ -1,9 +1,11 @@
+import assert from 'node:assert/strict';
+import { required } from '../../../scripts/test-assertions.js';
 /**
  * Integration tests for ModuleManager
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ModuleManager, OdooClient } from '../src/index.js';
+import { ModuleLifecycleError, ModuleManager, OdooClient } from '../src/index.js';
 
 describe('ModuleManager integration tests', () => {
   let client: OdooClient;
@@ -198,9 +200,17 @@ describe('ModuleManager integration tests', () => {
     });
 
     it('should throw error when installing non-existent module', async () => {
-      await expect(moduleManager.installModule('non_existent_module_xyz')).rejects.toThrow(
-        "Module 'non_existent_module_xyz' not found",
-      );
+      try {
+        await moduleManager.installModule('non_existent_module_xyz');
+        throw new Error('Missing addon must be refused');
+      } catch (error) {
+        assert(error instanceof ModuleLifecycleError);
+        expect(error.phase).toBe('prerequisite');
+        expect(error.schemaInvalidated).toBe(false);
+        expect(
+          error.inspection.modules.find((m) => m.name === 'non_existent_module_xyz')?.status,
+        ).toBe('missing');
+      }
     });
 
     it('should throw error when uninstalling non-existent module', async () => {
@@ -217,9 +227,19 @@ describe('ModuleManager integration tests', () => {
       });
 
       if (uninstallableModules.length > 0) {
-        const moduleName = uninstallableModules[0].name;
+        const moduleName = required(uninstallableModules[0]).name;
 
-        await expect(moduleManager.installModule(moduleName)).rejects.toThrow(/not installable/);
+        try {
+          await moduleManager.installModule(moduleName);
+          throw new Error('Uninstallable addon must be refused');
+        } catch (error) {
+          assert(error instanceof ModuleLifecycleError);
+          expect(error.phase).toBe('prerequisite');
+          expect(error.schemaInvalidated).toBe(false);
+          expect(error.inspection.modules.find((m) => m.name === moduleName)?.status).toBe(
+            'uninstallable',
+          );
+        }
       }
     });
   });

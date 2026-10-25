@@ -70,7 +70,7 @@ export interface OdooCrudClient {
   /**
    * Read records by ID.
    */
-  read<T extends Record<string, unknown> = Record<string, unknown>>(
+  read<T extends object = Record<string, unknown>>(
     model: string,
     ids: number | number[],
     fields?: string[],
@@ -80,7 +80,7 @@ export interface OdooCrudClient {
   /**
    * Search and read records in a single call.
    */
-  searchRead<T extends Record<string, unknown> = Record<string, unknown>>(
+  searchRead<T extends object = Record<string, unknown>>(
     model: string,
     domain?: Domain,
     options?: SearchReadOptions,

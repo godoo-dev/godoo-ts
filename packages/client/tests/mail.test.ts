@@ -42,7 +42,7 @@ describe('ensureHtmlBody', () => {
   it('should include helpful examples in error message', () => {
     try {
       ensureHtmlBody('');
-      fail('Should have thrown');
+      throw new Error('Should have thrown');
     } catch (e) {
       expect(e).toBeInstanceOf(OdooValidationError);
       expect((e as Error).message).toContain('<p>');

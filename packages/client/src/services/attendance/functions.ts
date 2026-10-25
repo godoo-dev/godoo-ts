@@ -43,19 +43,24 @@ export async function resolveEmployeeId(client: OdooClient, employeeId?: number)
     );
   }
 
-  const employees = await client.searchRead('hr.employee', [['user_id', '=', session.uid]], {
-    fields: ['id'],
-    limit: 1,
-  });
+  const employees = await client.searchRead<{ id: number }>(
+    'hr.employee',
+    [['user_id', '=', session.uid]],
+    {
+      fields: ['id'],
+      limit: 1,
+    },
+  );
 
-  if (employees.length === 0) {
+  const employee = employees[0];
+  if (!employee) {
     throw new OdooValidationError(
       `No hr.employee record found for user ID ${session.uid}. ` +
         'Create an employee record linked to this user, or pass employeeId explicitly.',
     );
   }
 
-  return employees[0].id;
+  return employee.id;
 }
 
 /**
@@ -84,10 +89,11 @@ export async function clockIn(client: OdooClient, employeeId?: number): Promise<
     { fields: ATTENDANCE_FIELDS, limit: 1 },
   );
 
-  if (open.length > 0) {
+  const attendance = open[0];
+  if (attendance) {
     throw new OdooValidationError(
-      `Employee ${empId} is already clocked in (attendance ID: ${open[0].id}, ` +
-        `since: ${open[0].check_in}). Clock out first.`,
+      `Employee ${empId} is already clocked in (attendance ID: ${attendance.id}, ` +
+        `since: ${attendance.check_in}). Clock out first.`,
     );
   }
 
@@ -100,6 +106,7 @@ export async function clockIn(client: OdooClient, employeeId?: number): Promise<
   log('Clocked in employee %d → attendance %d at %s', empId, id, now);
 
   const [record] = await client.read<AttendanceRecord>('hr.attendance', id, ATTENDANCE_FIELDS);
+  if (!record) throw new OdooValidationError('Attendance record not readable after write.');
   return record;
 }
 
@@ -128,11 +135,11 @@ export async function clockOut(client: OdooClient, employeeId?: number): Promise
     { fields: ATTENDANCE_FIELDS, limit: 1 },
   );
 
-  if (open.length === 0) {
+  const attendance = open[0];
+  if (!attendance) {
     throw new OdooValidationError(`Employee ${empId} is not clocked in. Cannot clock out.`);
   }
 
-  const attendance = open[0];
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
   await client.write('hr.attendance', attendance.id, { check_out: now });
@@ -143,6 +150,7 @@ export async function clockOut(client: OdooClient, employeeId?: number): Promise
     attendance.id,
     ATTENDANCE_FIELDS,
   );
+  if (!record) throw new OdooValidationError('Attendance record not readable after write.');
   return record;
 }
 
@@ -164,7 +172,7 @@ export async function getStatus(
   log('Checking attendance status for employee %d', empId);
 
   // Get employee display name
-  const [employee] = await client.read('hr.employee', empId, ['name']);
+  const [employee] = await client.read<{ name: string }>('hr.employee', empId, ['name']);
 
   const open = await client.searchRead<AttendanceRecord>(
     'hr.attendance',
@@ -175,9 +183,10 @@ export async function getStatus(
     { fields: ATTENDANCE_FIELDS, limit: 1 },
   );
 
+  if (!employee) throw new OdooValidationError(`Employee ${empId} not readable.`);
   return {
     checkedIn: open.length > 0,
-    currentAttendance: open.length > 0 ? open[0] : null,
+    currentAttendance: open[0] ?? null,
     employee: [empId, employee.name as string],
   };
 }

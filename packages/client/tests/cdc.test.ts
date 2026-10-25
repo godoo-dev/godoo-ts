@@ -1,3 +1,6 @@
+import assert from 'node:assert/strict';
+import { required } from '../../../scripts/test-assertions.js';
+import type { OdooClient } from '../src/index.js';
 /**
  * Unit tests for CDC service.
  *
@@ -284,7 +287,7 @@ describe('FieldMetaCache', () => {
 // ── check() function tests ────────────────────────────────────────────────────
 
 describe('check()', () => {
-  let check: (client: unknown, model: string) => Promise<unknown>;
+  let check: typeof import('../src/services/cdc/functions.js').check;
 
   beforeEach(async () => {
     const mod = await import('../src/services/cdc/functions');
@@ -299,7 +302,10 @@ describe('check()', () => {
         { name: 'field_b', tracking: 10 },
       ],
       searchCount: async () => 3,
-    } as unknown;
+    } as unknown as OdooClient & {
+      searchRead: ReturnType<typeof vi.fn>;
+      read: ReturnType<typeof vi.fn>;
+    };
 
     const result = await check(mockClient, 'test.model');
     expect(result.model).toBe('test.model');
@@ -312,7 +318,10 @@ describe('check()', () => {
     const mockClient = {
       searchRead: async () => [{ name: 'name', tracking: false }],
       searchCount: async () => 0,
-    } as unknown;
+    } as unknown as OdooClient & {
+      searchRead: ReturnType<typeof vi.fn>;
+      read: ReturnType<typeof vi.fn>;
+    };
 
     const result = await check(mockClient, 'test.model');
     expect(result.isMailThread).toBe(false);
@@ -330,7 +339,10 @@ describe('check()', () => {
         { name: 'tracked_d', tracking: 100 },
       ],
       searchCount: async () => 1,
-    } as unknown;
+    } as unknown as OdooClient & {
+      searchRead: ReturnType<typeof vi.fn>;
+      read: ReturnType<typeof vi.fn>;
+    };
 
     const result = await check(mockClient, 'test.model');
     expect(result.trackedFieldCount).toBe(2); // tracked_b + tracked_d only
@@ -340,7 +352,10 @@ describe('check()', () => {
     const mockClient = {
       searchRead: async () => [{ name: 'message_ids', tracking: false }],
       searchCount: async () => 0,
-    } as unknown;
+    } as unknown as OdooClient & {
+      searchRead: ReturnType<typeof vi.fn>;
+      read: ReturnType<typeof vi.fn>;
+    };
 
     const result = await check(mockClient, 'test.model');
     expect(result.hasHistory).toBe(false);
@@ -350,7 +365,7 @@ describe('check()', () => {
 // ── getHistory() function tests ───────────────────────────────────────────────
 
 describe('getHistory()', () => {
-  let getHistory: unknown;
+  let getHistory: typeof import('../src/services/cdc/functions.js').getHistory;
 
   beforeEach(async () => {
     const mod = await import('../src/services/cdc/functions');
@@ -389,14 +404,20 @@ describe('getHistory()', () => {
         return [];
       }),
       read: vi.fn().mockResolvedValue([syntheticMessage]),
-    } as unknown;
+    } as unknown as OdooClient & {
+      searchRead: ReturnType<typeof vi.fn>;
+      read: ReturnType<typeof vi.fn>;
+    };
   }
 
   it('returns empty array when no tracking rows exist', async () => {
     const mockClient = {
       searchRead: vi.fn().mockResolvedValue([]),
       read: vi.fn(),
-    } as unknown;
+    } as unknown as OdooClient & {
+      searchRead: ReturnType<typeof vi.fn>;
+      read: ReturnType<typeof vi.fn>;
+    };
 
     const result = await getHistory(mockClient, 'test.model', 1);
     expect(result).toEqual([]);
@@ -408,6 +429,7 @@ describe('getHistory()', () => {
     expect(events).toHaveLength(1);
 
     const ev = events[0];
+    assert(ev !== undefined);
     expect(ev.id).toBe(1);
     expect(ev.messageId).toBe(100);
     expect(ev.model).toBe('test.model');
@@ -424,7 +446,7 @@ describe('getHistory()', () => {
     const mockClient = makeMockClient();
     await getHistory(mockClient, 'test.model', 42);
 
-    const [model, domain] = mockClient.searchRead.mock.calls[0];
+    const [model, domain] = required(mockClient.searchRead.mock.calls[0]);
     expect(model).toBe('mail.tracking.value');
     expect(domain).toContainEqual(['mail_message_id.model', '=', 'test.model']);
     expect(domain).toContainEqual(['mail_message_id.res_id', '=', 42]);
@@ -434,7 +456,7 @@ describe('getHistory()', () => {
     const mockClient = makeMockClient([]);
     await getHistory(mockClient, 'test.model', 1, { since: '2020-06-01' });
 
-    const [, domain] = mockClient.searchRead.mock.calls[0];
+    const [, domain] = required(mockClient.searchRead.mock.calls[0]);
     expect(domain).toContainEqual(['create_date', '>=', '2020-06-01']);
   });
 
@@ -442,7 +464,7 @@ describe('getHistory()', () => {
     const mockClient = makeMockClient([]);
     await getHistory(mockClient, 'test.model', 1, { until: '2021-01-01' });
 
-    const [, domain] = mockClient.searchRead.mock.calls[0];
+    const [, domain] = required(mockClient.searchRead.mock.calls[0]);
     expect(domain).toContainEqual(['create_date', '<', '2021-01-01']);
   });
 
@@ -472,11 +494,14 @@ describe('getHistory()', () => {
         return [];
       }),
       read: vi.fn().mockResolvedValue([syntheticMessage]),
-    } as unknown;
+    } as unknown as OdooClient & {
+      searchRead: ReturnType<typeof vi.fn>;
+      read: ReturnType<typeof vi.fn>;
+    };
 
     const events = await getHistory(mockClient, 'test.model', 1, { fields: ['state'] });
     expect(events).toHaveLength(1);
-    expect(events[0].field.name).toBe('state');
+    expect(required(events[0]).field.name).toBe('state');
   });
 
   it('handles deleted-field case (field_id=false, field_info set)', async () => {
@@ -495,14 +520,17 @@ describe('getHistory()', () => {
           model === 'mail.tracking.value' ? [deletedRow] : [],
         ),
       read: vi.fn().mockResolvedValue([syntheticMessage]),
-    } as unknown;
+    } as unknown as OdooClient & {
+      searchRead: ReturnType<typeof vi.fn>;
+      read: ReturnType<typeof vi.fn>;
+    };
 
     const events = await getHistory(mockClient, 'test.model', 1);
     expect(events).toHaveLength(1);
-    expect(events[0].field.id).toBe(0);
-    expect(events[0].field.name).toBe('removed_field');
-    expect(events[0].field.label).toBe('Removed Field');
-    expect(events[0].field.deletedInfo).toEqual({
+    expect(required(events[0]).field.id).toBe(0);
+    expect(required(events[0]).field.name).toBe('removed_field');
+    expect(required(events[0]).field.label).toBe('Removed Field');
+    expect(required(events[0]).field.deletedInfo).toEqual({
       name: 'removed_field',
       desc: 'Removed Field',
       type: 'char',
@@ -512,14 +540,14 @@ describe('getHistory()', () => {
   it('requests asc order by default', async () => {
     const mockClient = makeMockClient([]);
     await getHistory(mockClient, 'test.model', 1);
-    const [, , opts] = mockClient.searchRead.mock.calls[0];
+    const [, , opts] = required(mockClient.searchRead.mock.calls[0]);
     expect(opts.order).toBe('id asc');
   });
 
   it('requests desc order when specified', async () => {
     const mockClient = makeMockClient([]);
     await getHistory(mockClient, 'test.model', 1, { order: 'desc' });
-    const [, , opts] = mockClient.searchRead.mock.calls[0];
+    const [, , opts] = required(mockClient.searchRead.mock.calls[0]);
     expect(opts.order).toBe('id desc');
   });
 
@@ -529,7 +557,7 @@ describe('getHistory()', () => {
     await getHistory(mockClient, 'test.model', 1);
 
     const fieldMetaCalls = mockClient.searchRead.mock.calls.filter(
-      ([m]: [string]) => m === 'ir.model.fields',
+      ([m]) => m === 'ir.model.fields',
     );
     expect(fieldMetaCalls).toHaveLength(1);
   });
@@ -538,7 +566,7 @@ describe('getHistory()', () => {
 // ── getFeed() pagination and cursor tests ─────────────────────────────────────
 
 describe('getFeed()', () => {
-  let getFeed: unknown;
+  let getFeed: typeof import('../src/services/cdc/functions.js').getFeed;
 
   beforeEach(async () => {
     const mod = await import('../src/services/cdc/functions');
@@ -557,7 +585,7 @@ describe('getFeed()', () => {
   }
 
   /** Client whose searchRead cycles through pre-defined pages of tracking rows. */
-  function makeFeedClient(pages: RawTrackingRow[][]): unknown {
+  function makeFeedClient(pages: RawTrackingRow[][]) {
     let pageIndex = 0;
     return {
       searchRead: vi.fn().mockImplementation(async (model: string) => {
@@ -574,6 +602,9 @@ describe('getFeed()', () => {
           author_id: [1, 'Test User'],
         })),
       ),
+    } as unknown as OdooClient & {
+      searchRead: ReturnType<typeof vi.fn>;
+      read: ReturnType<typeof vi.fn>;
     };
   }
 
@@ -588,7 +619,7 @@ describe('getFeed()', () => {
       events.push(ev);
     }
     expect(events).toHaveLength(5);
-    expect(events.map((e: unknown) => e.id)).toEqual([1, 2, 3, 4, 5]);
+    expect(events.map((e) => e.id)).toEqual([1, 2, 3, 4, 5]);
   });
 
   it('stops when a page returns fewer rows than pageSize', async () => {
@@ -622,16 +653,14 @@ describe('getFeed()', () => {
     }
 
     // Filter to tracking value calls only (ir.model.fields calls are interleaved)
-    const tvCalls = client.searchRead.mock.calls.filter(
-      ([m]: [string]) => m === 'mail.tracking.value',
-    );
+    const tvCalls = client.searchRead.mock.calls.filter(([m]) => m === 'mail.tracking.value');
 
     // Page 1 must carry the since filter
-    const [, page1Domain] = tvCalls[0];
+    const [, page1Domain] = required(tvCalls[0]);
     expect(page1Domain).toContainEqual(['create_date', '>=', '2020-01-01']);
 
     // Page 2 must use id > cursor — NOT a date filter
-    const [, page2Domain] = tvCalls[1];
+    const [, page2Domain] = required(tvCalls[1]);
     expect(page2Domain).toContainEqual(['id', '>', 12]);
     const hasDateFilter = (page2Domain as unknown[]).some(
       (c: unknown) => Array.isArray(c) && c[0] === 'create_date' && c[1] === '>=',
@@ -649,7 +678,7 @@ describe('getFeed()', () => {
       // consume
     }
 
-    const [, domain] = client.searchRead.mock.calls[0];
+    const [, domain] = required(client.searchRead.mock.calls[0]);
     expect(domain).toContainEqual(['id', '>', 49]);
     const hasDateFilter = (domain as unknown[]).some(
       (c: unknown) => Array.isArray(c) && c[0] === 'create_date' && c[1] === '>=',
@@ -663,7 +692,7 @@ describe('getFeed()', () => {
     for await (const ev of getFeed(client, 'test.model', {})) {
       events.push(ev);
     }
-    expect(events[0].model).toBe('test.model');
+    expect(required(events[0]).model).toBe('test.model');
   });
 
   it('uses id asc order for stable pagination', async () => {
@@ -671,7 +700,7 @@ describe('getFeed()', () => {
     for await (const _ of getFeed(client, 'test.model', {})) {
       // consume
     }
-    const [, , opts] = client.searchRead.mock.calls[0];
+    const [, , opts] = required(client.searchRead.mock.calls[0]);
     expect(opts.order).toBe('id asc');
   });
 });

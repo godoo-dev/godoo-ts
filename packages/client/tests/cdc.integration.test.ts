@@ -1,3 +1,4 @@
+import { required } from '../../../scripts/test-assertions.js';
 /**
  * Integration tests for CdcService against a live Odoo instance.
  *
@@ -161,7 +162,7 @@ describe('CdcService integration', () => {
         .replace('T', ' ')
         .slice(0, 19);
 
-      const events: unknown[] = [];
+      const events = [];
       for await (const ev of cdc.getFeed('res.partner', {
         since: windowStart,
         pageSize: 10,
@@ -198,7 +199,7 @@ describe('CdcService integration', () => {
 
       // Verify strict monotonic increase (id asc ordering)
       for (let i = 1; i < ids.length; i++) {
-        expect(ids[i]).toBeGreaterThan(ids[i - 1]);
+        expect(ids[i]).toBeGreaterThan(required(ids[i - 1]));
       }
     });
   });

@@ -142,7 +142,7 @@ export async function stopTimer(client: OdooClient, timesheetId: number): Promis
   // Compute elapsed time from create_date — read_<TimesheetEntry> includes it
   // via TIMESHEET_FIELDS, but the typed record uses Record<string, unknown> for
   // extras. Pull and narrow.
-  const createDateRaw = (entry as Record<string, unknown>).create_date;
+  const createDateRaw = entry.create_date;
   const createDate = typeof createDateRaw === 'string' ? createDateRaw : '';
   if (!createDate) {
     throw new OdooValidationError(

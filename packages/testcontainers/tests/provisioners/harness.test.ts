@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provisionPartnerCategories, provisionPartners } from '../../src/provisioners/partners.js';
 import { provisionTaskProperties } from '../../src/provisioners/properties.js';
@@ -103,6 +104,7 @@ describe('provisionPartners', () => {
     );
 
     const secondCall = (client.create as ReturnType<typeof vi.fn>).mock.calls[1];
+    assert(secondCall !== undefined);
     expect(secondCall[1].parent_id).toBe(100);
   });
 
@@ -149,6 +151,7 @@ describe('provisionTaskProperties', () => {
       [{ name: 'Priority', type: 'selection', options: ['Low', 'High'] }],
     );
     const call = (client.write as ReturnType<typeof vi.fn>).mock.calls[0];
+    assert(call !== undefined);
     const defs = call[2].task_properties_definition;
     expect(defs[0].type).toBe('selection');
     expect(defs[0].selection).toEqual([
@@ -188,6 +191,7 @@ describe('provisionUsers', () => {
     ]);
 
     const createCall = (client.create as ReturnType<typeof vi.fn>).mock.calls[0];
+    assert(createCall !== undefined);
     expect(createCall[1].groups_id).toEqual([[4, 55]]);
   });
 

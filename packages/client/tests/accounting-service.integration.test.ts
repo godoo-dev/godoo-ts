@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 /**
  * Integration tests for accounting service against real Odoo instance.
  *
@@ -14,6 +15,7 @@
  * Requires: Docker Odoo with `account` module installed.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { required } from '../../../scripts/test-assertions.js';
 import { OdooClient } from '../src/client/odoo-client.js';
 import { AccountingService } from '../src/services/accounting/accounting-service.js';
 import {
@@ -79,6 +81,7 @@ describe('Accounting service integration', () => {
       // If there are accounts, verify structure
       if (accounts.length > 0) {
         const account = accounts[0];
+        assert(account !== undefined);
         expect(account.accountId).toBeGreaterThan(0);
         expect(account.accountName).toBeTruthy();
         expect(account.journalId).toBeGreaterThan(0);
@@ -199,7 +202,7 @@ describe('Accounting service integration', () => {
               name: 'Test service',
               quantity: 1,
               price_unit: 1000.0,
-              account_id: incomeAccounts[0].id,
+              account_id: required(incomeAccounts[0]).id,
             },
           ],
         ],
@@ -212,9 +215,10 @@ describe('Accounting service integration', () => {
       // 6. Register a payment
       try {
         // Use the register payment wizard
-        const paymentAction = await client.call('account.move', 'action_register_payment', [
-          [invoiceMoveId],
-        ]);
+        const paymentAction = await client.call<{
+          res_model: string;
+          context?: Record<string, unknown>;
+        }>('account.move', 'action_register_payment', [[invoiceMoveId]]);
 
         if (paymentAction && paymentAction.res_model === 'account.payment.register') {
           const wizardContext = paymentAction.context || {};
@@ -237,7 +241,10 @@ describe('Accounting service integration', () => {
       }
 
       // 7. Check for reconciliation
-      const invoiceLines = await client.searchRead(
+      const invoiceLines = await client.searchRead<{
+        full_reconcile_id: [number, string] | false;
+        account_id: [number, string] | false;
+      }>(
         'account.move.line',
         [
           ['move_id', '=', invoiceMoveId],
@@ -247,15 +254,13 @@ describe('Accounting service integration', () => {
         { fields: ['full_reconcile_id'], limit: 1 },
       );
 
-      if (invoiceLines.length > 0) {
-        fullReconcileId = Array.isArray(invoiceLines[0].full_reconcile_id)
-          ? invoiceLines[0].full_reconcile_id[0]
-          : invoiceLines[0].full_reconcile_id;
-      }
+      const reconcile = invoiceLines[0]?.full_reconcile_id;
+      fullReconcileId = reconcile ? reconcile[0] : null;
     }, 60_000);
 
     it('should find the invoice as posted', async () => {
       const [move] = await client.read('account.move', invoiceMoveId, ['state', 'move_type']);
+      assert(move !== undefined);
       expect(move.state).toBe('posted');
       expect(move.move_type).toBe('out_invoice');
     });
@@ -278,11 +283,13 @@ describe('Accounting service integration', () => {
     });
 
     it('isClosingEntryFromLines should match isClosingEntry', async () => {
-      const lines = await client.searchRead(
-        'account.move.line',
-        [['move_id', '=', invoiceMoveId]],
-        { fields: ['account_id'], limit: 0 },
-      );
+      const lines = await client.searchRead<{
+        full_reconcile_id: [number, string] | false;
+        account_id: [number, string] | false;
+      }>('account.move.line', [['move_id', '=', invoiceMoveId]], {
+        fields: ['account_id'],
+        limit: 0,
+      });
 
       const fromLines = isClosingEntryFromLines(lines);
       const fromRpc = await isClosingEntry(client, invoiceMoveId);
@@ -389,7 +396,7 @@ describe('Accounting service integration', () => {
             0,
             0,
             {
-              account_id: accounts[0].id,
+              account_id: required(accounts[0]).id,
               partner_id: testPartnerId,
               debit: 100,
               credit: 0,
@@ -400,7 +407,7 @@ describe('Accounting service integration', () => {
             0,
             0,
             {
-              account_id: accounts[1].id,
+              account_id: required(accounts[1]).id,
               partner_id: false,
               debit: 0,
               credit: 100,

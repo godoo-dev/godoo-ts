@@ -1,5 +1,7 @@
+import assert from 'node:assert/strict';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ModuleManager, OdooClient } from '../src/index.js';
+import type { PropertiesReadFormat } from '../src/types/properties.js';
 
 /**
  * Properties service integration tests using the project module.
@@ -112,8 +114,13 @@ describe('Properties Service Integration', () => {
       });
 
       // Read back and verify
-      const [task] = await client.read('project.task', [taskId], ['task_properties']);
-      const props = Object.fromEntries(task.task_properties.map((p: unknown) => [p.name, p.value]));
+      const [task] = await client.read<{ task_properties: PropertiesReadFormat }>(
+        'project.task',
+        [taskId],
+        ['task_properties'],
+      );
+      assert(task !== undefined);
+      const props = Object.fromEntries(task.task_properties.map((p) => [p.name, p.value]));
 
       expect(props.priority).toBe('high'); // Updated
       expect(props.score).toBe(50); // Preserved

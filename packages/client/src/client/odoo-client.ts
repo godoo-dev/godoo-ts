@@ -17,6 +17,7 @@
  * 4. Update skill docs to show `client.{module}.*` pattern
  */
 
+import type { OdooServerInfo } from '../rpc/server-info';
 import { JsonRpcTransport, type OdooSessionInfo } from '../rpc/transport';
 import type { Domain, RpcArg } from '../rpc/types';
 import {
@@ -285,6 +286,11 @@ export class OdooClient implements OdooCrudClient {
     return this.transport.getSession();
   }
 
+  /** Read server-reported version facts; does not authenticate or infer addon support. */
+  getServerInfo(): Promise<OdooServerInfo> {
+    return this.transport.getServerInfo();
+  }
+
   // ── Safety ──────────────────────────────────────────────────────────
 
   /**
@@ -381,7 +387,7 @@ export class OdooClient implements OdooCrudClient {
    * @param fields - Fields to read (empty = all fields)
    * @returns Array of record objects
    */
-  async read<T extends Record<string, unknown> = Record<string, unknown>>(
+  async read<T extends object = Record<string, unknown>>(
     model: string,
     ids: number | number[],
     fields: string[] = [],
@@ -401,7 +407,7 @@ export class OdooClient implements OdooCrudClient {
    * @param options - Search and read options
    * @returns Array of record objects
    */
-  async searchRead<T extends Record<string, unknown> = Record<string, unknown>>(
+  async searchRead<T extends object = Record<string, unknown>>(
     model: string,
     domain: Domain = [],
     options: {

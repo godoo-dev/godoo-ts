@@ -28,7 +28,10 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['tests/**/*.integration.test.ts'],
-    globalSetup: './tests/integration-setup.ts',
+    // Vitest list also runs globalSetup; the maintained listing caller disables
+    // it only while collecting. Actual execution explicitly clears this flag.
+    globalSetup:
+      process.env.GODOO_INTEGRATION_LIST === 'true' ? [] : './tests/integration-setup.ts',
     testTimeout: 600_000,
     hookTimeout: 600_000,
     sequence: { concurrent: false },

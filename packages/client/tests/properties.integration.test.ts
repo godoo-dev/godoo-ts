@@ -1,5 +1,8 @@
+import assert from 'node:assert/strict';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { required } from '../../../scripts/test-assertions.js';
 import { ModuleManager, OdooClient } from '../src/index.js';
+import type { PropertiesReadFormat } from '../src/types/properties.js';
 import {
   getPropertyDefinition,
   getPropertyValue,
@@ -120,17 +123,20 @@ describe('Properties Fields Integration', () => {
       });
 
       // Read back (cleanup via afterAll project deletion)
-      const project = await client.read('project.project', projectId, [
-        'task_properties_definition',
-      ]);
-
-      expect(project[0].task_properties_definition).toBeDefined();
-      expect(Array.isArray(project[0].task_properties_definition)).toBe(true);
-      expect(project[0].task_properties_definition.length).toBe(4);
-
-      const charDef = project[0].task_properties_definition.find(
-        (d: unknown) => d.name === 'test_char',
+      const project = await client.read<{ task_properties_definition: PropertiesDefinition }>(
+        'project.project',
+        projectId,
+        ['task_properties_definition'],
       );
+
+      expect(required(project[0]).task_properties_definition).toBeDefined();
+      expect(Array.isArray(required(project[0]).task_properties_definition)).toBe(true);
+      expect(required(project[0]).task_properties_definition.length).toBe(4);
+
+      const charDef = required(project[0]).task_properties_definition.find(
+        (d) => d.name === 'test_char',
+      );
+      assert(charDef !== undefined);
       expect(charDef).toBeDefined();
       expect(charDef.type).toBe('char');
       expect(charDef.string).toBe('Test Character Field');
@@ -155,11 +161,15 @@ describe('Properties Fields Integration', () => {
       expect(taskId).toBeGreaterThan(0);
 
       // Read back
-      const task = await client.read('project.task', taskId, ['task_properties']);
+      const task = await client.read<{ task_properties: PropertiesReadFormat }>(
+        'project.task',
+        taskId,
+        ['task_properties'],
+      );
 
-      expect(task[0].task_properties).toBeDefined();
-      expect(Array.isArray(task[0].task_properties)).toBe(true);
-      expect(task[0].task_properties.length).toBe(4);
+      expect(required(task[0]).task_properties).toBeDefined();
+      expect(Array.isArray(required(task[0]).task_properties)).toBe(true);
+      expect(required(task[0]).task_properties.length).toBe(4);
     });
 
     it('should update properties', async () => {
@@ -174,12 +184,16 @@ describe('Properties Fields Integration', () => {
         task_properties: updatedProperties,
       });
 
-      const task = await client.read('project.task', taskId, ['task_properties']);
+      const task = await client.read<{ task_properties: PropertiesReadFormat }>(
+        'project.task',
+        taskId,
+        ['task_properties'],
+      );
 
-      const charValue = getPropertyValue(task[0].task_properties, 'test_char');
-      const intValue = getPropertyValue(task[0].task_properties, 'test_integer');
-      const boolValue = getPropertyValue(task[0].task_properties, 'test_boolean');
-      const selValue = getPropertyValue(task[0].task_properties, 'test_selection');
+      const charValue = getPropertyValue(required(task[0]).task_properties, 'test_char');
+      const intValue = getPropertyValue(required(task[0]).task_properties, 'test_integer');
+      const boolValue = getPropertyValue(required(task[0]).task_properties, 'test_boolean');
+      const selValue = getPropertyValue(required(task[0]).task_properties, 'test_selection');
 
       expect(charValue).toBe('Updated Text');
       expect(intValue).toBe(100);
@@ -190,8 +204,12 @@ describe('Properties Fields Integration', () => {
     it('should handle partial updates (replaces unspecified with false)', async () => {
       // IMPORTANT: Odoo's behavior is to replace unspecified properties with false
       // To update only some properties, you must read first, modify, then write all
-      const task = await client.read('project.task', taskId, ['task_properties']);
-      const currentProps = propertiesToWriteFormat(task[0].task_properties);
+      const task = await client.read<{ task_properties: PropertiesReadFormat }>(
+        'project.task',
+        taskId,
+        ['task_properties'],
+      );
+      const currentProps = propertiesToWriteFormat(required(task[0]).task_properties);
 
       // Modify only what we want to change
       currentProps.test_integer = 999;
@@ -200,10 +218,14 @@ describe('Properties Fields Integration', () => {
         task_properties: currentProps,
       });
 
-      const updatedTask = await client.read('project.task', taskId, ['task_properties']);
+      const updatedTask = await client.read<{ task_properties: PropertiesReadFormat }>(
+        'project.task',
+        taskId,
+        ['task_properties'],
+      );
 
-      const intValue = getPropertyValue(updatedTask[0].task_properties, 'test_integer');
-      const charValue = getPropertyValue(updatedTask[0].task_properties, 'test_char');
+      const intValue = getPropertyValue(required(updatedTask[0]).task_properties, 'test_integer');
+      const charValue = getPropertyValue(required(updatedTask[0]).task_properties, 'test_char');
 
       expect(intValue).toBe(999);
       expect(charValue).toBe('Updated Text'); // Preserved because we wrote all properties
@@ -224,19 +246,27 @@ describe('Properties Fields Integration', () => {
         task_properties: knownProps,
       });
 
-      const task = await client.read('project.task', taskId, ['task_properties']);
+      const task = await client.read<{ task_properties: PropertiesReadFormat }>(
+        'project.task',
+        taskId,
+        ['task_properties'],
+      );
 
-      const value = getPropertyValue(task[0].task_properties, 'test_char');
+      const value = getPropertyValue(required(task[0]).task_properties, 'test_char');
       expect(value).toBe('Known Value');
 
-      const nonExistent = getPropertyValue(task[0].task_properties, 'non_existent');
+      const nonExistent = getPropertyValue(required(task[0]).task_properties, 'non_existent');
       expect(nonExistent).toBeUndefined();
     });
 
     it('should convert properties to write format', async () => {
-      const task = await client.read('project.task', taskId, ['task_properties']);
+      const task = await client.read<{ task_properties: PropertiesReadFormat }>(
+        'project.task',
+        taskId,
+        ['task_properties'],
+      );
 
-      const writeFormat = propertiesToWriteFormat(task[0].task_properties);
+      const writeFormat = propertiesToWriteFormat(required(task[0]).task_properties);
 
       expect(writeFormat).toEqual({
         test_char: 'Known Value',
@@ -247,17 +277,22 @@ describe('Properties Fields Integration', () => {
     });
 
     it('should get property definition by name', async () => {
-      const project = await client.read('project.project', projectId, [
-        'task_properties_definition',
-      ]);
+      const project = await client.read<{ task_properties_definition: PropertiesDefinition }>(
+        'project.project',
+        projectId,
+        ['task_properties_definition'],
+      );
 
-      const charDef = getPropertyDefinition(project[0].task_properties_definition, 'test_char');
+      const charDef = getPropertyDefinition(
+        required(project[0]).task_properties_definition,
+        'test_char',
+      );
       expect(charDef).toBeDefined();
       expect(charDef?.type).toBe('char');
       expect(charDef?.string).toBe('Test Character Field');
 
       const nonExistent = getPropertyDefinition(
-        project[0].task_properties_definition,
+        required(project[0]).task_properties_definition,
         'non_existent',
       );
       expect(nonExistent).toBeUndefined();
@@ -282,8 +317,12 @@ describe('Properties Fields Integration', () => {
         task_properties: { test_float: Math.PI },
       });
 
-      const task = await client.read('project.task', taskId, ['task_properties']);
-      const floatValue = getPropertyValue(task[0].task_properties, 'test_float');
+      const task = await client.read<{ task_properties: PropertiesReadFormat }>(
+        'project.task',
+        taskId,
+        ['task_properties'],
+      );
+      const floatValue = getPropertyValue(required(task[0]).task_properties, 'test_float');
 
       expect(floatValue).toBeCloseTo(Math.PI, 5);
     });
@@ -305,8 +344,12 @@ describe('Properties Fields Integration', () => {
         task_properties: { test_date: '2024-01-15' },
       });
 
-      const task = await client.read('project.task', taskId, ['task_properties']);
-      const dateValue = getPropertyValue(task[0].task_properties, 'test_date');
+      const task = await client.read<{ task_properties: PropertiesReadFormat }>(
+        'project.task',
+        taskId,
+        ['task_properties'],
+      );
+      const dateValue = getPropertyValue(required(task[0]).task_properties, 'test_date');
 
       expect(dateValue).toBe('2024-01-15');
     });
@@ -329,8 +372,12 @@ describe('Properties Fields Integration', () => {
         task_properties: { test_datetime: testDateTime },
       });
 
-      const task = await client.read('project.task', taskId, ['task_properties']);
-      const datetimeValue = getPropertyValue(task[0].task_properties, 'test_datetime');
+      const task = await client.read<{ task_properties: PropertiesReadFormat }>(
+        'project.task',
+        taskId,
+        ['task_properties'],
+      );
+      const datetimeValue = getPropertyValue(required(task[0]).task_properties, 'test_datetime');
 
       expect(datetimeValue).toBe(testDateTime);
     });

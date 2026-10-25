@@ -133,7 +133,8 @@ That entrypoint does not publish or push. The direct `pnpm release` command refu
 and points to manual **Release**, whose `publish` input defaults false.
 
 Release first rejects ineligible/stale refs (only the fetched reviewed main head),
-then calls the same full validation workflow. Optional protected-environment
+then calls the same full validation workflow and verifies the downloaded qualified
+artifacts even when `publish` is false. Optional protected-environment
 promotion downloads the exact qualified artifacts from that run, rechecks source,
 metadata and SHA256/proof, and publishes those tarballs with scripts disabled.
 It does not rebuild or version after proof. npm trusted-publisher/environment

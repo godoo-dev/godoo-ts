@@ -2,6 +2,7 @@
  * Unit tests for attendance service functions.
  */
 import { describe, expect, it } from 'vitest';
+import type { OdooClient } from '../src/index.js';
 import { resolveEmployeeId } from '../src/services/attendance/functions.js';
 import { OdooValidationError } from '../src/types/errors.js';
 
@@ -10,7 +11,7 @@ import { OdooValidationError } from '../src/types/errors.js';
 
 describe('resolveEmployeeId', () => {
   it('should return provided employeeId directly', async () => {
-    const mockClient = {} as unknown;
+    const mockClient = {} as unknown as OdooClient;
     const result = await resolveEmployeeId(mockClient, 42);
     expect(result).toBe(42);
   });
@@ -18,7 +19,7 @@ describe('resolveEmployeeId', () => {
   it('should throw when no session and no employeeId', async () => {
     const mockClient = {
       getSession: () => null,
-    } as unknown;
+    } as unknown as OdooClient;
 
     await expect(resolveEmployeeId(mockClient)).rejects.toThrow(OdooValidationError);
     await expect(resolveEmployeeId(mockClient)).rejects.toThrow(/no active session/);
@@ -28,7 +29,7 @@ describe('resolveEmployeeId', () => {
     const mockClient = {
       getSession: () => ({ uid: 99 }),
       searchRead: async () => [],
-    } as unknown;
+    } as unknown as OdooClient;
 
     await expect(resolveEmployeeId(mockClient)).rejects.toThrow(OdooValidationError);
     await expect(resolveEmployeeId(mockClient)).rejects.toThrow(/No hr.employee record/);
@@ -38,7 +39,7 @@ describe('resolveEmployeeId', () => {
     const mockClient = {
       getSession: () => ({ uid: 2 }),
       searchRead: async () => [{ id: 7 }],
-    } as unknown;
+    } as unknown as OdooClient;
 
     const result = await resolveEmployeeId(mockClient);
     expect(result).toBe(7);

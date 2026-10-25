@@ -8,7 +8,7 @@ let odoo: StartedOdooContainer | undefined;
 
 export async function getSharedOdooContainer() {
   if (!odoo) {
-    odoo = await startOdoo({ modules: ['base'] });
+    odoo = await startOdoo({ snapshot: false, modules: ['base'] });
   }
   return odoo;
 }

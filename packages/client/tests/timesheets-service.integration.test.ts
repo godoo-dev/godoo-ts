@@ -1,3 +1,4 @@
+import { required } from '../../../scripts/test-assertions.js';
 /**
  * Integration tests for timesheets service (account.analytic.line).
  *
@@ -41,13 +42,17 @@ describe('Timesheets service integration', () => {
 
     // Find or create employee
     const session = client.getSession();
-    const employees = await client.searchRead('hr.employee', [['user_id', '=', session?.uid]], {
-      fields: ['id'],
-      limit: 1,
-    });
+    const employees = await client.searchRead<{ id: number }>(
+      'hr.employee',
+      [['user_id', '=', session?.uid]],
+      {
+        fields: ['id'],
+        limit: 1,
+      },
+    );
 
     if (employees.length > 0) {
-      employeeId = employees[0].id;
+      employeeId = required(employees[0]).id;
     } else {
       employeeId = await client.create('hr.employee', {
         name: `__test_ts_emp_${Date.now()}`,

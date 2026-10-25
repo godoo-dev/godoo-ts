@@ -171,6 +171,7 @@ export async function getPortalUrl(
 
   const record = records[0];
 
+  if (!record) throw new Error(`Record ${model}:${resId} not readable`);
   if (!record.access_url || record.access_url === '#') {
     throw new Error(
       `Model '${model}' does not provide a portal URL (access_url is '${record.access_url}'). ` +

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { required } from '../../../../scripts/test-assertions.js';
 import { provisionProjects } from '../../src/provisioners/projects.js';
 import type { ProvisionerClient } from '../../src/provisioners/types.js';
 
@@ -45,13 +46,13 @@ describe('provisionProjects', () => {
     await provisionProjects(client, [{ name: 'Beta', stages: ['Backlog', 'In Progress', 'Done'] }]);
 
     const stageCalls = (client.create as ReturnType<typeof vi.fn>).mock.calls.filter(
-      ([model]: [string]) => model === 'project.task.type',
+      ([model]) => model === 'project.task.type',
     );
 
     expect(stageCalls).toHaveLength(3);
-    expect(stageCalls[0][1]).toMatchObject({ name: 'Backlog', sequence: 10 });
-    expect(stageCalls[1][1]).toMatchObject({ name: 'In Progress', sequence: 20 });
-    expect(stageCalls[2][1]).toMatchObject({ name: 'Done', sequence: 30 });
+    expect(required(stageCalls[0])[1]).toMatchObject({ name: 'Backlog', sequence: 10 });
+    expect(required(stageCalls[1])[1]).toMatchObject({ name: 'In Progress', sequence: 20 });
+    expect(required(stageCalls[2])[1]).toMatchObject({ name: 'Done', sequence: 30 });
   });
 
   it('links stages to the correct project via many2many command', async () => {
@@ -59,7 +60,7 @@ describe('provisionProjects', () => {
     await provisionProjects(client, [{ name: 'Gamma', stages: ['Todo'] }]);
 
     const stageCall = (client.create as ReturnType<typeof vi.fn>).mock.calls.find(
-      ([model]: [string]) => model === 'project.task.type',
+      ([model]) => model === 'project.task.type',
     );
 
     expect(stageCall).toBeDefined();
@@ -73,7 +74,7 @@ describe('provisionProjects', () => {
     ]);
 
     const taskCall = (client.create as ReturnType<typeof vi.fn>).mock.calls.find(
-      ([model]: [string]) => model === 'project.task',
+      ([model]) => model === 'project.task',
     );
 
     expect(taskCall).toBeDefined();
@@ -88,7 +89,7 @@ describe('provisionProjects', () => {
     ]);
 
     const taskCall = (client.create as ReturnType<typeof vi.fn>).mock.calls.find(
-      ([model]: [string]) => model === 'project.task',
+      ([model]) => model === 'project.task',
     );
 
     expect(taskCall![1].stage_id).toBe(2); // second create call
@@ -106,7 +107,7 @@ describe('provisionProjects', () => {
     await provisionProjects(client, [{ name: 'Eta', tasks: [{ name: 'Stageless Task' }] }]);
 
     const taskCall = (client.create as ReturnType<typeof vi.fn>).mock.calls.find(
-      ([model]: [string]) => model === 'project.task',
+      ([model]) => model === 'project.task',
     );
 
     expect(taskCall![1].stage_id).toBeUndefined();

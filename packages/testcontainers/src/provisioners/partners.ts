@@ -34,9 +34,10 @@ export async function provisionPartnerCategories(
   for (const name of categoryNames) {
     // Idempotent: search first
     const existing = await client.search('res.partner.category', [['name', '=', name]]);
-    if (existing.length > 0) {
-      log('Category "%s" already exists (id=%d) — reusing', name, existing[0]);
-      refs[name] = existing[0];
+    const existingId = existing[0];
+    if (existingId !== undefined) {
+      log('Category "%s" already exists (id=%d) — reusing', name, existingId);
+      refs[name] = existingId;
     } else {
       const id = await client.create('res.partner.category', { name });
       log('Created category "%s" → id=%d', name, id);

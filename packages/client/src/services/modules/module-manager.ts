@@ -9,35 +9,22 @@
 import debug from 'debug';
 import type { OdooClient } from '../../client/odoo-client';
 import type { Domain } from '../../rpc/types';
+import {
+  inspectModulePrerequisites,
+  type ModuleInspectionOptions,
+  type ModulePrerequisiteInspection,
+} from './inspection';
+
+import {
+  type ModuleOperationOptions,
+  type ModuleOperationResult,
+  performModuleOperation,
+} from './lifecycle';
+import type { ModuleInfo, ModuleListOptions } from './module-types';
+
+export type { ModuleInfo, ModuleListOptions } from './module-types';
 
 const log = debug('odoo-client:module-manager');
-
-export interface ModuleInfo {
-  id: number;
-  name: string;
-  state: 'uninstalled' | 'installed' | 'to install' | 'to upgrade' | 'to remove' | 'uninstallable';
-  shortdesc?: string;
-  summary?: string;
-  description?: string;
-  author?: string;
-  website?: string;
-  installed_version?: string;
-  latest_version?: string;
-  license?: string;
-  application?: boolean;
-  category_id?: [number, string];
-}
-
-export interface ModuleListOptions {
-  /** Filter modules by state */
-  state?: ModuleInfo['state'];
-  /** Filter modules that are applications */
-  application?: boolean;
-  /** Limit number of results */
-  limit?: number;
-  /** Offset for pagination */
-  offset?: number;
-}
 
 /**
  * Manager for Odoo module operations
@@ -51,95 +38,29 @@ export class ModuleManager {
     this.client = client;
   }
 
-  /**
-   * Install a module by name
-   *
-   * Uses button_immediate_install method from ir.module.module model.
-   * This method installs the module and its dependencies immediately.
-   *
-   * @param moduleName - Technical name of the module (e.g., 'project', 'sale', 'crm')
-   * @returns Module info after installation
-   *
-   * @see https://github.com/odoo/odoo/blob/17.0/odoo/addons/base/models/ir_module.py#L500
-   *
-   * @example
-   * ```typescript
-   * await moduleManager.installModule('project');
-   * ```
-   */
-  async installModule(moduleName: string): Promise<ModuleInfo> {
-    log('Installing module: %s', moduleName);
+  /** Read registered addon states and transitive dependency facts without mutations. */
+  inspectPrerequisites(
+    moduleNames: readonly string[],
+    options: ModuleInspectionOptions = {},
+  ): Promise<ModulePrerequisiteInspection> {
+    return inspectModulePrerequisites(this.client, moduleNames, options);
+  }
 
-    // Find the module
-    const modules = await this.client.searchRead<ModuleInfo>(
-      'ir.module.module',
-      [['name', '=', moduleName]],
-      { fields: ['id', 'name', 'state'], limit: 1 },
-    );
+  private _catalogRevision = 0;
 
-    if (modules.length === 0) {
-      throw new Error(`Module '${moduleName}' not found`);
-    }
+  /** Conservative local invalidation signal; compare in finally after lifecycle calls. */
+  get catalogRevision(): number {
+    return this._catalogRevision;
+  }
 
-    const module = modules[0];
-
-    if (module.state === 'installed') {
-      log('Module %s is already installed', moduleName);
-      return module;
-    }
-
-    if (module.state === 'uninstallable') {
-      throw new Error(`Module '${moduleName}' is not installable (state: ${module.state})`);
-    }
-
-    // Install the module using button_immediate_install
-    // This method installs the module and its dependencies immediately.
-    // Odoo's ir_cron (scheduled actions) can hold a lock during installation;
-    // retry up to 3 times with a 5 s delay when that happens.
-    // @see https://github.com/odoo/odoo/blob/17.0/odoo/addons/base/models/ir_cron.py
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY_MS = 5_000;
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        log(
-          'Calling button_immediate_install for module %s (id: %d, attempt %d/%d)',
-          moduleName,
-          module.id,
-          attempt,
-          MAX_RETRIES,
-        );
-        await this.client.call('ir.module.module', 'button_immediate_install', [[module.id]]);
-        break; // success — exit retry loop
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        const isCronLock = message.includes('ir_cron') || message.includes('scheduled action');
-
-        if (!isCronLock || attempt === MAX_RETRIES) {
-          throw err;
-        }
-
-        log(
-          'Module install blocked by ir_cron lock (attempt %d/%d). Retrying in %d ms…',
-          attempt,
-          MAX_RETRIES,
-          RETRY_DELAY_MS,
-        );
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-      }
-    }
-
-    // Fetch updated module info
-    const [updatedModule] = await this.client.searchRead<ModuleInfo>(
-      'ir.module.module',
-      [['id', '=', module.id]],
-      {
-        fields: ['id', 'name', 'state', 'shortdesc', 'summary', 'installed_version', 'application'],
-      },
-    );
-
-    log('Module %s installed successfully (state: %s)', moduleName, updatedModule.state);
-    return updatedModule;
+  /** Explicit install with fresh dependency postconditions; installed modules are verified no-ops. */
+  installModule(
+    moduleName: string,
+    options: ModuleOperationOptions = {},
+  ): Promise<ModuleOperationResult> {
+    return performModuleOperation(this.client, 'install', moduleName, options, () => {
+      this._catalogRevision++;
+    });
   }
 
   /**
@@ -168,11 +89,10 @@ export class ModuleManager {
       { fields: ['id', 'name', 'state'], limit: 1 },
     );
 
-    if (modules.length === 0) {
+    const module = modules[0];
+    if (!module) {
       throw new Error(`Module '${moduleName}' not found`);
     }
-
-    const module = modules[0];
 
     if (module.state === 'uninstalled') {
       log('Module %s is already uninstalled', moduleName);
@@ -198,62 +118,19 @@ export class ModuleManager {
       },
     );
 
+    if (!updatedModule) throw new Error(`Module '${moduleName}' not readable after uninstall`);
     log('Module %s uninstalled successfully (state: %s)', moduleName, updatedModule.state);
     return updatedModule;
   }
 
-  /**
-   * Upgrade a module to its latest version
-   *
-   * Uses button_immediate_upgrade method from ir.module.module model.
-   *
-   * @param moduleName - Technical name of the module
-   * @returns Module info after upgrade
-   *
-   * @see https://github.com/odoo/odoo/blob/17.0/odoo/addons/base/models/ir_module.py#L525
-   *
-   * @example
-   * ```typescript
-   * await moduleManager.upgradeModule('project');
-   * ```
-   */
-  async upgradeModule(moduleName: string): Promise<ModuleInfo> {
-    log('Upgrading module: %s', moduleName);
-
-    // Find the module
-    const modules = await this.client.searchRead<ModuleInfo>(
-      'ir.module.module',
-      [['name', '=', moduleName]],
-      { fields: ['id', 'name', 'state'], limit: 1 },
-    );
-
-    if (modules.length === 0) {
-      throw new Error(`Module '${moduleName}' not found`);
-    }
-
-    const module = modules[0];
-
-    if (module.state !== 'installed') {
-      throw new Error(
-        `Module '${moduleName}' must be installed to upgrade (current state: ${module.state})`,
-      );
-    }
-
-    // Upgrade the module using button_immediate_upgrade
-    log('Calling button_immediate_upgrade for module %s (id: %d)', moduleName, module.id);
-    await this.client.call('ir.module.module', 'button_immediate_upgrade', [[module.id]]);
-
-    // Fetch updated module info
-    const [updatedModule] = await this.client.searchRead<ModuleInfo>(
-      'ir.module.module',
-      [['id', '=', module.id]],
-      {
-        fields: ['id', 'name', 'state', 'shortdesc', 'summary', 'installed_version', 'application'],
-      },
-    );
-
-    log('Module %s upgraded successfully', moduleName);
-    return updatedModule;
+  /** Explicit upgrade with fresh dependency postconditions; Odoo owns dependent upgrades. */
+  upgradeModule(
+    moduleName: string,
+    options: ModuleOperationOptions = {},
+  ): Promise<ModuleOperationResult> {
+    return performModuleOperation(this.client, 'upgrade', moduleName, options, () => {
+      this._catalogRevision++;
+    });
   }
 
   /**
@@ -361,11 +238,12 @@ export class ModuleManager {
       },
     );
 
-    if (modules.length === 0) {
+    const module = modules[0];
+    if (!module) {
       throw new Error(`Module '${moduleName}' not found`);
     }
 
-    return modules[0];
+    return module;
   }
 
   /**

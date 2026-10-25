@@ -5,10 +5,17 @@
  * custom addons, and proper cleanup.
  */
 
+import { randomUUID } from 'node:crypto';
 import { ModuleManager, OdooClient } from '@godoo-dev/client';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import Dockerode from 'dockerode';
-import { GenericContainer, Network, type StartedTestContainer, Wait } from 'testcontainers';
+import Dockerode, { type HostConfig } from 'dockerode';
+import {
+  GenericContainer,
+  Network,
+  type StartedNetwork,
+  type StartedTestContainer,
+  Wait,
+} from 'testcontainers';
 import {
   createSnapshotCache,
   ensureSnapshotDir,
@@ -20,31 +27,62 @@ import {
 } from './snapshot-cache.js';
 import { normaliseOdooVersion } from './version.js';
 
+/** Bind only the run's ephemeral published ports, never a shared LAN interface. */
+function bindLoopback(config: HostConfig): void {
+  for (const bindings of Object.values(config.PortBindings ?? {}) as { HostIp?: string }[][]) {
+    for (const binding of bindings ?? []) binding.HostIp = '127.0.0.1';
+  }
+}
+class LoopbackOdooContainer extends GenericContainer {
+  protected async beforeContainerCreated(): Promise<void> {
+    bindLoopback(this.hostConfig);
+  }
+}
+class LoopbackPostgresContainer extends PostgreSqlContainer {
+  protected async beforeContainerCreated(): Promise<void> {
+    bindLoopback(this.hostConfig);
+  }
+}
+
 const POSTGRES_IMAGE = 'postgres:15-alpine';
 
-/**
- * Force-disconnect all containers from a Docker network.
- *
- * When testcontainers `.stop()` is called on containers, they may not fully
- * disconnect from networks before the promise resolves. Docker requires all
- * endpoints to be disconnected before a network can be removed. This helper
- * uses the Docker API directly to force-disconnect any remaining endpoints.
- */
-async function forceDisconnectNetwork(networkId: string): Promise<void> {
+/** Remove only this invocation's labeled containers and exact newly created network. */
+async function cleanupOwnedRun(
+  containers: StartedTestContainer[],
+  network: StartedNetwork,
+  runId: string,
+): Promise<void> {
   const docker = new Dockerode();
-  const network = docker.getNetwork(networkId);
-  try {
-    const info = await network.inspect();
-    for (const containerId of Object.keys(info.Containers || {})) {
-      try {
-        await network.disconnect({ Container: containerId, Force: true });
-      } catch {
-        /* container may already be gone */
-      }
-    }
-  } catch {
-    /* network may already be gone */
+  await Promise.allSettled(containers.map((c) => c.stop()));
+  const filters = { label: [`dev.godoo.test-run=${runId}`] };
+  const remaining = await docker.listContainers({ all: true, filters });
+  for (const info of remaining) {
+    if (info.Labels['dev.godoo.test-run'] !== runId)
+      throw new Error('Container ownership mismatch');
+    await docker.getContainer(info.Id).remove({ force: true, v: true });
   }
+  try {
+    await network.stop();
+  } catch (error) {
+    // A shared/foreign endpoint must not be force-disconnected to make cleanup green.
+    const networks = await docker.listNetworks({ filters: { id: [network.getId()] } });
+    if (networks.length) throw error;
+  }
+  const leaked = await docker.listContainers({ all: true, filters });
+  if (leaked.length)
+    throw new Error(`Owned containers leaked: ${leaked.map((c) => c.Id).join(',')}`);
+  const networks = await docker.listNetworks({ filters: { id: [network.getId()] } });
+  if (networks.length) throw new Error(`Owned network leaked: ${network.getId()}`);
+  console.log(
+    'GODOO_CLEANUP_PROOF ' +
+      JSON.stringify({
+        runId,
+        networkId: network.getId(),
+        containers: containers.map((c) => c.getId()),
+        remainingContainers: 0,
+        remainingNetworks: 0,
+      }),
+  );
 }
 
 // ── Public types ────────────────────────────────────────────────────
@@ -140,6 +178,8 @@ export class OdooTestContainer {
     }
 
     // Create a network for container communication
+    const runId = randomUUID();
+    const labels = { 'dev.godoo.test-run': runId };
     const network = await new Network().start();
 
     // Track started containers for cleanup on error
@@ -151,7 +191,8 @@ export class OdooTestContainer {
       const pgPassword = 'odoo';
 
       const postgresContainer: StartedPostgreSqlContainer | StartedTestContainer =
-        await new PostgreSqlContainer(POSTGRES_IMAGE)
+        await new LoopbackPostgresContainer(POSTGRES_IMAGE)
+          .withLabels(labels)
           .withDatabase(this.options.database)
           .withUsername(pgUser)
           .withPassword(pgPassword)
@@ -193,7 +234,8 @@ export class OdooTestContainer {
             '0',
           ];
 
-      let odooContainer = new GenericContainer(`odoo:${odooVer}`)
+      let odooContainer = new LoopbackOdooContainer(`odoo:${odooVer}`)
+        .withLabels(labels)
         .withNetwork(network)
         .withEnvironment({
           HOST: 'db',
@@ -203,6 +245,7 @@ export class OdooTestContainer {
           ...this.options.env,
         })
         .withCommand(odooCommand)
+        .withStartupTimeout(this.options.startupTimeout)
         .withExposedPorts(8069)
         .withWaitStrategy(
           // /web/health fires as soon as the HTTP listener binds (before
@@ -225,10 +268,11 @@ export class OdooTestContainer {
           ...addonsPaths, // Custom addon paths
         ].join(',');
 
-        odooContainer = odooContainer.withEnvironment({
-          ...this.options.env,
-          ADDONS_PATH: allAddonsPaths,
-        });
+        odooContainer = odooContainer.withCommand([
+          ...odooCommand,
+          '--addons-path',
+          allAddonsPaths,
+        ]);
       }
 
       const startedOdooContainer = await odooContainer.start();
@@ -249,7 +293,34 @@ export class OdooTestContainer {
       });
 
       await client.authenticate();
-      console.log('✅ Authenticated with Odoo');
+      const server = await client.getServerInfo();
+      if (server.major !== Number.parseInt(odooVer, 10)) {
+        throw new Error(`Requested Odoo ${odooVer}, observed ${server.version}`);
+      }
+      const docker = new Dockerode();
+      const owned = await Promise.all(
+        [startedOdooContainer, postgresContainer].map(async (container) => {
+          const info = await docker.getContainer(container.getId()).inspect();
+          const image = await docker.getImage(info.Image).inspect();
+          return {
+            id: container.getId(),
+            imageId: info.Image,
+            imageDigests: image.RepoDigests,
+            ports: info.NetworkSettings.Ports,
+          };
+        }),
+      );
+      console.log(
+        'GODOO_ODOO_PROOF ' +
+          JSON.stringify({
+            runId,
+            requested: odooVer,
+            observed: server,
+            modules: this.options.modules,
+            networkId: network.getId(),
+            containers: owned,
+          }),
+      );
 
       const moduleManager = new ModuleManager(client);
 
@@ -275,38 +346,15 @@ export class OdooTestContainer {
         cleanup: async () => {
           console.log('🧹 Cleaning up Odoo testcontainer...');
           client.logout();
-          // Stop containers first (parallel, settle all)
-          await Promise.allSettled([startedOdooContainer.stop(), postgresContainer.stop()]);
-          // Force-disconnect any remaining endpoints (containers may not fully
-          // disconnect from the network before .stop() resolves)
-          await forceDisconnectNetwork(network.getId());
-          // Network cleanup with retry
-          try {
-            await network.stop();
-          } catch {
-            try {
-              await network.stop();
-            } catch {
-              /* best-effort */
-            }
-          }
+          await cleanupOwnedRun(startedContainers, network, runId);
           console.log('✅ Cleanup complete');
         },
       };
     } catch (error) {
-      // Stop containers before network to avoid "active endpoints" error
-      await Promise.allSettled(startedContainers.map((c) => c.stop()));
-      // Force-disconnect any remaining endpoints, including orphan containers
-      // (e.g. a half-started Odoo container not yet in startedContainers[])
-      await forceDisconnectNetwork(network.getId());
       try {
-        await network.stop();
-      } catch {
-        try {
-          await network.stop();
-        } catch {
-          /* best-effort */
-        }
+        await cleanupOwnedRun(startedContainers, network, runId);
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], 'Startup failed and owned cleanup failed');
       }
       throw error;
     }
@@ -318,10 +366,10 @@ export class OdooTestContainer {
    * Prepare addon mounts from various input formats.
    */
   private prepareAddonMounts(addonsPath: string | AddonsMount[]): {
-    bindMounts: Array<{ source: string; target: string }>;
+    bindMounts: Array<{ source: string; target: string; mode?: 'ro' | 'rw' }>;
     addonsPaths: string[];
   } {
-    const bindMounts: Array<{ source: string; target: string }> = [];
+    const bindMounts: Array<{ source: string; target: string; mode?: 'ro' | 'rw' }> = [];
     const addonsPaths: string[] = [];
 
     if (typeof addonsPath === 'string') {
@@ -330,6 +378,7 @@ export class OdooTestContainer {
       bindMounts.push({
         source: addonsPath,
         target,
+        mode: 'ro',
       });
       addonsPaths.push(target);
     } else {
@@ -339,6 +388,7 @@ export class OdooTestContainer {
         bindMounts.push({
           source: mount.source,
           target,
+          mode: mount.mode ?? 'ro',
         });
         addonsPaths.push(target);
       });

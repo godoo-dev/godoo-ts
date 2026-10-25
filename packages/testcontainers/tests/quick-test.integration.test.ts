@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type StartedOdooContainer, startOdoo } from '../src/index.js';
 
 describe('Quick Testcontainer Smoke Test', () => {
-  it.skip('should demonstrate the API (no actual containers)', () => {
+  it('exposes the public provisioner API', () => {
     // This just shows what the API would look like
     expect(startOdoo).toBeDefined();
   });
@@ -19,6 +19,7 @@ describe('Actual Container Test', () => {
   beforeAll(async () => {
     console.log('🚀 Starting testcontainer...');
     odoo = await startOdoo({
+      snapshot: false,
       modules: ['base'], // Minimal modules
     });
     console.log('✅ Testcontainer ready');

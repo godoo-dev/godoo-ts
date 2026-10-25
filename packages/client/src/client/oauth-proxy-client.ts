@@ -180,7 +180,7 @@ export class OAuthProxyClient implements OdooCrudClient {
     return this.call<number[]>(model, 'search', [domain], kwargs);
   }
 
-  async read<T extends Record<string, unknown> = Record<string, unknown>>(
+  async read<T extends object = Record<string, unknown>>(
     model: string,
     ids: number | number[],
     fields: string[] = [],
@@ -192,7 +192,7 @@ export class OAuthProxyClient implements OdooCrudClient {
     return this.call<T[]>(model, 'read', [idArray, fields], kwargs);
   }
 
-  async searchRead<T extends Record<string, unknown> = Record<string, unknown>>(
+  async searchRead<T extends object = Record<string, unknown>>(
     model: string,
     domain: Domain = [],
     options: SearchReadOptions = {},

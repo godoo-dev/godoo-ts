@@ -16,9 +16,9 @@ describe('normaliseOdooVersion', () => {
     expect(normaliseOdooVersion('19')).toBe('19.0');
   });
 
-  it('defaults to 17.0', () => {
-    expect(normaliseOdooVersion(undefined)).toBe('17.0');
-    expect(normaliseOdooVersion('')).toBe('17.0');
+  it('defaults to 18.0', () => {
+    expect(normaliseOdooVersion(undefined)).toBe('18.0');
+    expect(normaliseOdooVersion('')).toBe('18.0');
   });
 });
 

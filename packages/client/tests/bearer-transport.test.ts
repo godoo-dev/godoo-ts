@@ -1,3 +1,6 @@
+import assert from 'node:assert/strict';
+import { required } from '../../../scripts/test-assertions.js';
+import type { JsonRpcRequest } from '../src/rpc/types.js';
 /**
  * Unit tests for BearerJsonRpcTransport.
  *
@@ -48,14 +51,18 @@ function mockResponse(init: MockResponseInit = {}): Response {
   });
 }
 
-function lastCallBody(fetchSpy: ReturnType<typeof vi.fn>): unknown {
+function lastCallBody(
+  fetchSpy: ReturnType<typeof vi.fn>,
+): JsonRpcRequest & { params: { args: unknown[] } } {
   const lastCall = fetchSpy.mock.calls[fetchSpy.mock.calls.length - 1];
+  assert(lastCall !== undefined);
   const init = lastCall[1] as RequestInit;
   return JSON.parse(init.body as string);
 }
 
 function lastCallHeaders(fetchSpy: ReturnType<typeof vi.fn>): Record<string, string> {
   const lastCall = fetchSpy.mock.calls[fetchSpy.mock.calls.length - 1];
+  assert(lastCall !== undefined);
   const init = lastCall[1] as RequestInit;
   // Headers may be a plain object literal (per our impl) — return verbatim.
   return init.headers as Record<string, string>;
@@ -63,12 +70,12 @@ function lastCallHeaders(fetchSpy: ReturnType<typeof vi.fn>): Record<string, str
 
 describe('BearerJsonRpcTransport', () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
-  let getAccessToken: ReturnType<typeof vi.fn>;
+  let getAccessToken: ReturnType<typeof vi.fn<() => Promise<string>>>;
 
   beforeEach(() => {
     fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
-    getAccessToken = vi.fn().mockResolvedValue('TEST_BEARER_TOKEN');
+    getAccessToken = vi.fn<() => Promise<string>>().mockResolvedValue('TEST_BEARER_TOKEN');
   });
 
   afterEach(() => {
@@ -89,7 +96,7 @@ describe('BearerJsonRpcTransport', () => {
     await transport.call('res.partner', 'search_read', [[]], { limit: 5 });
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchSpy.mock.calls[0];
+    const [url, init] = required(fetchSpy.mock.calls[0]);
     expect(url).toBe('https://proxy.example.com/jsonrpc');
     expect((init as RequestInit).method).toBe('POST');
   });
@@ -104,7 +111,7 @@ describe('BearerJsonRpcTransport', () => {
 
     await transport.call('res.partner', 'search_read', [[]], { limit: 5 });
 
-    const [url] = fetchSpy.mock.calls[0];
+    const [url] = required(fetchSpy.mock.calls[0]);
     expect(url).toBe('https://proxy.example.com/jsonrpc');
   });
 
@@ -217,8 +224,8 @@ describe('BearerJsonRpcTransport', () => {
     expect(getAccessToken).toHaveBeenCalledTimes(2);
 
     // First call had STALE_TOKEN; second had FRESH_TOKEN.
-    const firstHeaders = fetchSpy.mock.calls[0][1].headers as Record<string, string>;
-    const secondHeaders = fetchSpy.mock.calls[1][1].headers as Record<string, string>;
+    const firstHeaders = required(fetchSpy.mock.calls[0])[1].headers as Record<string, string>;
+    const secondHeaders = required(fetchSpy.mock.calls[1])[1].headers as Record<string, string>;
     const firstAuth = Object.entries(firstHeaders).find(
       ([k]) => k.toLowerCase() === 'authorization',
     )?.[1];
@@ -368,6 +375,7 @@ describe('BearerJsonRpcTransport', () => {
     } catch (e) {
       thrown = e;
     }
+    assert(thrown instanceof OdooRpcError);
     expect(thrown).toBeInstanceOf(OdooRpcError);
     expect(thrown.code).toBe('rate_limited');
     expect(thrown.data?.retryAfterSeconds).toBe(30);
@@ -392,6 +400,7 @@ describe('BearerJsonRpcTransport', () => {
     } catch (e) {
       thrown = e;
     }
+    assert(thrown instanceof OdooRpcError);
     expect(thrown).toBeInstanceOf(OdooRpcError);
     expect(thrown.code).toBe('rate_limited');
     expect(thrown.data?.retryAfterSeconds).toBeUndefined();
@@ -417,6 +426,7 @@ describe('BearerJsonRpcTransport', () => {
     } catch (e) {
       thrown = e;
     }
+    assert(thrown instanceof OdooRpcError);
     expect(thrown).toBeInstanceOf(OdooRpcError);
     expect(thrown.code).toBe('rate_limited');
     expect(thrown.data?.retryAfterSeconds).toBeUndefined();
@@ -459,6 +469,7 @@ describe('BearerJsonRpcTransport', () => {
     } catch (e) {
       thrown = e;
     }
+    assert(thrown instanceof OdooRpcError);
     expect(thrown).toBeInstanceOf(OdooNetworkError);
     expect(thrown.message).toContain('500');
   });
@@ -483,6 +494,7 @@ describe('BearerJsonRpcTransport', () => {
     } catch (e) {
       thrown = e;
     }
+    assert(thrown instanceof OdooRpcError);
     expect(thrown).toBeInstanceOf(OdooNetworkError);
     expect(thrown.message).toContain('502');
   });
@@ -518,7 +530,7 @@ describe('BearerJsonRpcTransport', () => {
 
     await transport.callRaw('common', 'version', []);
 
-    const [url] = fetchSpy.mock.calls[0];
+    const [url] = required(fetchSpy.mock.calls[0]);
     expect(url).toBe('https://proxy.example.com/jsonrpc');
     const headers = lastCallHeaders(fetchSpy);
     const authKey = Object.keys(headers).find((k) => k.toLowerCase() === 'authorization');

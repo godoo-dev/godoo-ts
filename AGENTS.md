@@ -1,30 +1,33 @@
 # Working in godoo-ts
 
-Read [README.md](README.md) for the package boundary and developer documentation.
-Product intent is maintained in the local [godoo HQ README](/home/marc/dev/godoo-dev/godoo-hq/README.md)
-and its linked targets. This absolute local route also works from linked worktrees;
-it is not a prerequisite for users installing these libraries independently.
+Read [README.md](README.md) for package boundaries and developer documentation.
+[Library targets](docs/libraries.md) own this project's capability intent.
+The public [Godoo organization profile](https://github.com/godoo-dev/.github/blob/main/profile/README.md)
+provides sibling orientation; normal work requires no online profile fetch.
 
-Use the installed mafe-si procedures for scoped delivery and coordination. Work,
-open decisions and acceptance evidence belong in the locally bound
-`~~project tracker`. Resolve its command/root from local mafe-si guidance rather
-than hardcoding them in tracked docs. Read the tracker agent guidance before
-unfamiliar operations; use explicit `--root` and `--json` and inspect warnings.
-Do not create parallel planning journals here. Perficio is dormant. Historical
-GSD phase/adoption/report-back gates do not govern current work.
+Use the installed mafe-si procedures for scoped delivery. Work, open decisions
+and acceptance evidence belong in [godoo-ts GitHub issues](https://github.com/godoo-dev/godoo-ts/issues),
+through [.agents/skills/godoo-ts-capture/SKILL.md](.agents/skills/godoo-ts-capture/SKILL.md).
+Use that procedure for incoming requests, work breakdowns, deferred observations,
+triage, retrieval and consequential handbacks. Capture creates no execution or
+scheduling authority. Do not create parallel planning journals here.
 
-Keep useful API and engineering guidance in the existing developer docs. Inspect
-source before claiming an API is available, and distinguish source, tests,
-publication, runtime and consumer acceptance. For a changed user contract, consult
-HQ's docs procedure before implementation and reconcile the affected target after
-verification. Documentation alone grants no release or deployment authority.
+Canonical API and engineering knowledge lives in this repository. Use
+[godoo-ts-docs](.agents/skills/godoo-ts-docs/SKILL.md) to retrieve or revise it.
+Before implementing a changed user/operator contract, prepare proposed guidance;
+after verification reconcile affected claims. Inspect source before claiming an
+API exists, and distinguish source, tests, publication, runtime and consumer
+acceptance. Documentation alone grants no release or deployment authority.
+Ignored local mafe-si categories override inherited bindings; machine-specific
+configuration and private evidence stay outside tracked public content.
 
 Preserve unrelated edits. Check status, branch, worktree ownership and active users
 before changes; do not switch/reset the primary branch or alter another worker's
-checkout. Use owner-paths for notes and evidence outside source. For a new
-cross-project introduction or shared-resource contention, follow
-`/home/marc/dev/marc-hq/fleet/AGENTS.md` through coordinate-projects. Established
-exchanges and independent authorized work continue directly.
+checkout. Use owner-paths for notes and evidence outside source. Work directly for
+Marc in the current conversation. Do not contact agents or coordinators, launch
+delegates, poll mailboxes or use files, issues, Slack or email as message relays.
+Report dependencies and ownership/resource conflicts to Marc here. Existing grants
+and holdings survive; recording work does not transfer them.
 
 Use strict TypeScript, pnpm workspaces, tsdown and Vitest. Public package names are
 `@godoo-dev/client`, `@godoo-dev/introspection` and `@godoo-dev/testcontainers`.

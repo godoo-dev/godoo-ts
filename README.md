@@ -36,5 +36,6 @@ compatibility are separate evidence; this README is not a release receipt.
 
 For contributors, start with [development](docs/development.md). The libraries
 provide reusable Odoo operations; standalone desired-state reconciliation belongs
-to godoo-stateman. See the local [library targets](/home/marc/dev/godoo-dev/godoo-hq/docs/libraries.md)
-for portfolio intent and [AGENTS.md](AGENTS.md) for agent guidance.
+to godoo-stateman. See [library targets](docs/libraries.md)
+for capability intent and the public [Godoo organization profile](https://github.com/godoo-dev/.github/blob/main/profile/README.md)
+for family orientation and [AGENTS.md](AGENTS.md) for agent guidance.

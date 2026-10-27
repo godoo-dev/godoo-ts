@@ -84,7 +84,7 @@ tool, not a housekeeping check.
 
 Generic server discovery, addon metadata and module-operation results belong in
 the client. Resource graphs, adoption, ownership and removal policy belong in
-Stateman. The [HQ library target](/home/marc/dev/godoo-dev/godoo-hq/docs/libraries.md)
+Stateman. The [library target](libraries.md)
 records the prerequisite contract. Do not infer module-operation postconditions
 from the existence of a method; verify the actual result and failure paths.
 

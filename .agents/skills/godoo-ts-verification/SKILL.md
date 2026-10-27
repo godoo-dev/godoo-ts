@@ -8,9 +8,9 @@ description: Verify godoo-ts source/tests, installed package APIs and CLI, and o
 Resolve this checkout from the skill's repository root, read `AGENTS.md` and
 `docs/development.md`, and inspect HEAD, status and linked worktrees before acting.
 Use this checkout's pnpm commands; never mutate another checkout or substitute a
-business instance. Work/evidence placement follows the locally bound tracker and
-owner paths. Do not publish, push, use credentials or change remote rules as a
-verification side effect.
+business instance. Work placement follows [godoo-ts-capture](../godoo-ts-capture/SKILL.md);
+evidence follows owner-paths. Do not publish, push, use credentials or change
+remote rules as a verification side effect.
 
 ## Offline and installed package boundary
 

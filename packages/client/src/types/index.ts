@@ -6,6 +6,7 @@ export {
   OdooError,
   OdooMissingError,
   OdooNetworkError,
+  OdooProtocolError,
   OdooRpcError,
   OdooSafetyError,
   OdooTimeoutError,

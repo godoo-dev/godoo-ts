@@ -59,9 +59,11 @@ import {
   OdooAuthError,
   OdooMissingError,
   OdooNetworkError,
+  OdooProtocolError,
   OdooRpcError,
   OdooValidationError,
 } from '../types/errors';
+import { validateRpcResponse } from './response';
 import type { JsonRpcRequest, JsonRpcResponse, RpcArg } from './types';
 
 const log = debug('odoo-client:bearer-rpc');
@@ -276,14 +278,19 @@ export class BearerJsonRpcTransport {
     // 2xx → parse body; surface JSON-RPC `error` shape via categorizeError.
     let data: JsonRpcResponse<T>;
     try {
-      data = (await response.json()) as JsonRpcResponse<T>;
+      const raw: unknown = await response.json();
+      validateRpcResponse<T>(raw, envelope.id);
+      data = raw;
     } catch (err) {
       return {
         kind: 'fail',
-        error: new OdooNetworkError(
-          `RPC response parse failed: ${err instanceof Error ? err.message : String(err)}`,
-          err instanceof Error ? err : new Error(String(err)),
-        ),
+        error:
+          err instanceof OdooProtocolError
+            ? err
+            : new OdooNetworkError(
+                `RPC response parse failed: ${err instanceof Error ? err.message : String(err)}`,
+                err instanceof Error ? err : new Error(String(err)),
+              ),
       };
     }
 
@@ -291,14 +298,7 @@ export class BearerJsonRpcTransport {
       return { kind: 'fail', error: categorizeError(data.error) };
     }
 
-    if (data.result === undefined) {
-      return {
-        kind: 'fail',
-        error: new OdooRpcError('Invalid RPC response: missing result field'),
-      };
-    }
-
-    return { kind: 'ok', value: data.result };
+    return { kind: 'ok', value: data.result as T };
   }
 }
 

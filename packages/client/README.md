@@ -244,6 +244,8 @@ These helpers read current values, merge the patch and replace the field. They
 preserve other supported values returned by Odoo, including relational properties.
 Odoo can hide stored values whose definitions were removed, and concurrent writers
 can overwrite each other's updates. The helpers do not make the operation atomic.
+The codec retains empty inputs and numeric zero; Odoo may normalize empty or unset
+values to `false` on readback.
 
 ## Advanced: Manual Client Construction
 

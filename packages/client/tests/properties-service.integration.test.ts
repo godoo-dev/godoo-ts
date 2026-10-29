@@ -229,7 +229,7 @@ describe('Properties relational read/merge/write integration', () => {
         project_id: projectId,
       });
       taskIds.push(task);
-      // Dict writes retain empty strings, unlike create's default/list conversion.
+      // Exercise empty inputs too; this Odoo task flow returns them as false.
       await client.write('project.task', task, {
         task_properties: {
           owner: partnerIds[index],
@@ -298,12 +298,12 @@ describe('Properties relational read/merge/write integration', () => {
     expect(getPropertyValue(raw, 'zero')).toBe(0);
     expect(getPropertyValue(raw, 'float_zero')).toBe(0);
     expect(getPropertyValue(raw, 'active')).toBe(false);
-    expect(getPropertyValue(raw, 'text')).toBe('');
+    expect(getPropertyValue(raw, 'text')).toBe(false);
     expect(getPropertyValue(raw, 'marker')).toBe(marker);
     expect(getPropertyValue(raw, 'choice')).toBe(index === 0 ? 'low' : 'high');
     expect(getPropertyValue(raw, 'tags')).toEqual(index === 0 ? ['red'] : ['blue']);
-    expect(getPropertyValue(raw, 'empty_tags')).toEqual([]);
-    expect(getPropertyValue(raw, 'unset_date')).toBeNull();
+    expect(getPropertyValue(raw, 'empty_tags')).toBe(false);
+    expect(getPropertyValue(raw, 'unset_date')).toBe(false);
     expect(raw.find((property) => property.name === 'section')?.type).toBe('separator');
   }
 
@@ -349,11 +349,11 @@ describe('Properties relational read/merge/write integration', () => {
     });
     const cleared = await readRaw(0);
     expect(getPropertyValue(cleared, 'owner')).toBe(false);
-    expect(getPropertyValue(cleared, 'watchers')).toEqual([]);
-    expect(getPropertyValue(cleared, 'tags')).toEqual([]);
+    expect(getPropertyValue(cleared, 'watchers')).toBe(false);
+    expect(getPropertyValue(cleared, 'tags')).toBe(false);
     expect(getPropertyValue(cleared, 'choice')).toBe(false);
     expect(getPropertyValue(cleared, 'text')).toBe(false);
-    expect(getPropertyValue(cleared, 'unset_date')).toBeNull();
+    expect(getPropertyValue(cleared, 'unset_date')).toBe(false);
     expect(getPropertyValue(cleared, 'zero')).toBe(0);
     expect(getPropertyValue(cleared, 'float_zero')).toBe(0);
     expect(getPropertyValue(cleared, 'marker')).toBe('before');
@@ -363,11 +363,11 @@ describe('Properties relational read/merge/write integration', () => {
     await client.write('project.task', taskId(1), { task_properties: { marker: 'direct' } });
     const replaced = await readRaw(1);
     expect(getPropertyValue(replaced, 'marker')).toBe('direct');
-    expect(getPropertyValue(replaced, 'owner')).toBeNull();
-    expect(getPropertyValue(replaced, 'watchers')).toBeNull();
-    expect(getPropertyValue(replaced, 'tags')).toBeNull();
-    expect(getPropertyValue(replaced, 'choice')).toBeNull();
-    expect(getPropertyValue(replaced, 'zero')).toBeNull();
+    expect(getPropertyValue(replaced, 'owner')).toBe(false);
+    expect(getPropertyValue(replaced, 'watchers')).toBe(false);
+    expect(getPropertyValue(replaced, 'tags')).toBe(false);
+    expect(getPropertyValue(replaced, 'choice')).toBe(false);
+    expect(getPropertyValue(replaced, 'zero')).toBe(false);
     expect(getPropertyValue(replaced, 'text')).toBe(false);
   });
 });

@@ -197,13 +197,14 @@ export class OdooClient implements OdooCrudClient {
   private _properties?: PropertiesService;
 
   /**
-   * Properties service — safe operations for Odoo properties fields.
+   * Properties service — read/merge/write operations for Odoo properties fields.
    *
-   * Properties use full-replacement semantics. This service prevents data loss
-   * by automatically reading current values, merging changes, and writing back.
+   * Normalizes and preserves supported server-returned values while merging
+   * updates. It cannot preserve hidden stored keys or prevent concurrent lost
+   * updates; reads and writes are not atomic.
    *
    * ```typescript
-   * // Safe update - preserves other properties
+   * // Update while preserving other supported server-returned properties
    * await client.properties.updateSafely(
    *   'crm.lead',
    *   leadId,

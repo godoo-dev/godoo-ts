@@ -5,6 +5,7 @@ import {
   inspectModulePrerequisites,
   OdooClient,
   type OdooCrudClient,
+  type PropertiesDeclarations,
   type PropertiesReadFormat,
   type PropertiesWriteFormat,
   type PropertyReadValueType,
@@ -111,3 +112,51 @@ export async function propertyBindingsConsumer(crud: OdooCrudClient) {
   // @ts-expect-error Selection bindings require an option map.
   scope.bind({ priority: { label: 'Priority', type: 'selection' } });
 }
+
+// These declarations may come from runtime configuration rather than literals.
+async function unionPropertyContract(
+  scope: Awaited<ReturnType<typeof createPropertiesScope>>,
+  kind: 'float' | 'boolean',
+  optionKind: 'selection' | 'tags',
+  declarations: PropertiesDeclarations,
+) {
+  const binding = scope.bind({ effort: { id: 'n', type: kind } });
+  const [row] = await binding.read([1]);
+  if (row) {
+    const effort: number | boolean | null = row.properties.effort;
+    void effort;
+    // @ts-expect-error A union-valued kind can return a number or boolean.
+    const text: string | null = row.properties.effort;
+    void text;
+  }
+  await binding.patch(1, { effort: 0 });
+  await binding.patch(1, { effort: false });
+  // @ts-expect-error Neither float nor boolean accepts text.
+  await binding.patch(1, { effort: 'text' });
+  const options = scope.bind({
+    choice: { id: 'p', type: optionKind, options: { ready: { id: 'r' } } },
+  });
+  const [optionRow] = await options.read([1]);
+  if (optionRow) {
+    const choice: 'ready' | Array<'ready'> | null = optionRow.properties.choice;
+    void choice;
+  }
+  await options.patch(1, { choice: 'ready' });
+  await options.patch(1, { choice: ['ready'] });
+  // @ts-expect-error Both option kinds retain their exact alias keys.
+  await options.patch(1, { choice: 'other' });
+  const broad = scope.bind(declarations);
+  const [broadRow] = await broad.read([1]);
+  if (broadRow) {
+    const value: string | number | boolean | string[] | number[] | null | undefined =
+      broadRow.properties.anyAlias;
+    void value;
+    // @ts-expect-error An annotated map can contain non-string property kinds.
+    const text: string | null | undefined = broadRow.properties.anyAlias;
+    void text;
+  }
+  await broad.patch(1, { numeric: 1, boolean: false, relation: [1], text: 'text' });
+  // @ts-expect-error No supported property kind accepts objects.
+  await broad.patch(1, { invalid: {} });
+}
+void unionPropertyContract;

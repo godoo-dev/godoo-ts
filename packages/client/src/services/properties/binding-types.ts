@@ -27,19 +27,25 @@ export type PropertyDeclaration = PropertySelector &
       }
   );
 export type PropertiesDeclarations = Readonly<Record<string, PropertyDeclaration>>;
-export type BoundPropertyValue<D extends PropertyDeclaration> =
-  | (D extends { type: 'selection'; options: infer O }
-      ? Extract<keyof O, string>
-      : D extends { type: 'tags'; options: infer O }
-        ? Array<Extract<keyof O, string>>
-        : D extends { type: 'many2many' }
-          ? number[]
-          : D extends { type: 'integer' | 'float' | 'many2one' }
-            ? number
-            : D extends { type: 'boolean' }
-              ? boolean
-              : string)
-  | null;
+type PropertyValueForKind<D extends PropertyDeclaration, K extends BoundPropertyKind> = K extends
+  | 'selection'
+  | 'tags'
+  ? D extends { options: infer O }
+    ? K extends 'tags'
+      ? Array<Extract<keyof O, string>>
+      : Extract<keyof O, string>
+    : never
+  : K extends 'many2many'
+    ? number[]
+    : K extends 'integer' | 'float' | 'many2one'
+      ? number
+      : K extends 'boolean'
+        ? boolean
+        : string;
+// Distribute both declaration unions and unions within a declaration's type.
+export type BoundPropertyValue<D extends PropertyDeclaration> = D extends PropertyDeclaration
+  ? PropertyValueForKind<D, D['type']> | null
+  : never;
 export type BoundProperties<D extends PropertiesDeclarations> = {
   -readonly [K in keyof D]: BoundPropertyValue<D[K]>;
 };

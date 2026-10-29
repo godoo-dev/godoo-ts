@@ -221,6 +221,30 @@ packed artifacts; published client 0.6.1 does not contain this seam. Disposable
 Odoo acceptance is a separate check. The existing explicit `uninstallModule()`
 API is unchanged and is outside this installation/upgrade verification contract.
 
+### Properties
+
+The source property helpers normalize Odoo's many2one `[id, display_name]` values
+to IDs and many2many display pairs to ID arrays
+before writing. `getPropertyValue()` extracts the raw read value, including display
+tuples; `propertiesToWriteFormat()` produces normalized dictionary-write values.
+These changes are unreleased.
+
+```typescript
+// Keys and selection/tag values are Odoo technical identifiers.
+await client.properties.updateSafely('project.task', taskId, 'task_properties', {
+  priority_property_id: 'high_option_id',
+});
+
+const values = await client.properties.getCurrentWriteFormat(
+  'project.task', taskId, 'task_properties',
+);
+```
+
+These helpers read current values, merge the patch and replace the field. They
+preserve other supported values returned by Odoo, including relational properties.
+Odoo can hide stored values whose definitions were removed, and concurrent writers
+can overwrite each other's updates. The helpers do not make the operation atomic.
+
 ## Advanced: Manual Client Construction
 
 For custom configurations, use `OdooClient` directly:

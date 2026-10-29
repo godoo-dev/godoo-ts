@@ -17,18 +17,16 @@ import type { PropertiesUpdate } from './types';
  * @internal
  */
 function asReadFormat(value: unknown): PropertiesReadFormat {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) throw new Error('Properties read format must be an array');
   return value as PropertiesReadFormat;
 }
 
 /**
- * Safely update properties on a record by merging with existing values
+ * Merge updates with supported properties returned by the server.
  *
- * This prevents accidental data loss by:
- * 1. Reading the current properties
- * 2. Converting to write format
- * 3. Merging your changes
- * 4. Writing back all properties
+ * Relation display tuples are normalized to IDs before writing. This read/merge/
+ * write operation is not atomic and cannot preserve hidden stored keys or prevent
+ * concurrent lost updates.
  *
  * @param client - Authenticated Odoo client
  * @param model - Model name (e.g., 'crm.lead')
@@ -47,7 +45,7 @@ export async function updateSafely(
   // Read current properties
   const [record] = await client.read(model, [recordId], [propertiesField]);
 
-  if (!record?.[propertiesField]) {
+  if (!record || !Object.hasOwn(record, propertiesField)) {
     throw new Error(`Record ${recordId} not found or has no ${propertiesField} field`);
   }
 
@@ -62,7 +60,10 @@ export async function updateSafely(
 }
 
 /**
- * Safely update properties on multiple records
+ * Merge updates with each record's supported server-returned properties.
+ * All read values and record IDs are validated before writes start. Writes are
+ * independent, not atomic; hidden stored keys and concurrent changes cannot be
+ * preserved.
  *
  * @param client - Authenticated Odoo client
  * @param model - Model name (e.g., 'crm.lead')
@@ -84,8 +85,8 @@ export async function updateSafelyBatch(
   const records = await client.read(model, recordIds, [propertiesField]);
 
   // Prepare updates for each record
-  const writeOperations = records.map((record) => {
-    if (!record[propertiesField]) {
+  const payloads = records.map((record) => {
+    if (!Object.hasOwn(record, propertiesField)) {
       throw new Error(`Record ${String(record.id)} has no ${propertiesField} field`);
     }
 
@@ -93,23 +94,22 @@ export async function updateSafelyBatch(
     const mergedProps: PropertiesWriteFormat = { ...currentProps, ...updates };
 
     const recordIdRaw = record.id;
-    if (typeof recordIdRaw !== 'number') {
-      throw new Error(`Record returned without numeric id: ${String(recordIdRaw)}`);
+    if (typeof recordIdRaw !== 'number' || !Number.isSafeInteger(recordIdRaw) || recordIdRaw <= 0) {
+      throw new Error(`Record returned without a positive integer id: ${String(recordIdRaw)}`);
     }
 
-    return client.write(model, recordIdRaw, {
-      [propertiesField]: mergedProps,
-    });
+    return { recordId: recordIdRaw, values: { [propertiesField]: mergedProps } };
   });
 
   // Execute all updates
-  await Promise.all(writeOperations);
+  await Promise.all(payloads.map(({ recordId, values }) => client.write(model, recordId, values)));
 }
 
 /**
  * Get current properties in write format for a record
  *
- * Useful when you need to inspect current values before updating.
+ * Relation display tuples are normalized to IDs; separators are omitted.
+ * Only supported properties exposed by the server read can be represented.
  *
  * @param client - Authenticated Odoo client
  * @param model - Model name (e.g., 'crm.lead')
@@ -125,7 +125,7 @@ export async function getCurrentWriteFormat(
 ): Promise<PropertiesWriteFormat> {
   const [record] = await client.read(model, [recordId], [propertiesField]);
 
-  if (!record?.[propertiesField]) {
+  if (!record || !Object.hasOwn(record, propertiesField)) {
     throw new Error(`Record ${recordId} not found or has no ${propertiesField} field`);
   }
 

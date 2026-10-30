@@ -163,6 +163,147 @@ describe('Parent-scoped properties over real Odoo18 RPC', () => {
     return row.task_properties;
   }
 
+  it('creates friendly properties in the scoped parent and independently reads technical values', async () => {
+    const defaultDefinition = {
+      name: 'default_key',
+      string: 'Default effort',
+      type: 'float' as const,
+      default: 9,
+    };
+    definitions.push(defaultDefinition);
+    await client.write('project.project', projectId, { task_properties_definition: definitions });
+    const { tasks } = await binding();
+    const created = await tasks.create(
+      { name: 'Created with friendly properties' },
+      {
+        priority: 'high',
+        effort: 0,
+        reviewer: partners[0],
+        watchers: partners,
+        labels: ['blocked'],
+        active: false,
+        note: 'Created note',
+        due: '2026-10-30',
+      },
+    );
+    ids.push(created);
+    const [row] = await client.read('project.task', created, [
+      'name',
+      'project_id',
+      'task_properties',
+    ]);
+    assert(row);
+    expect(row.name).toBe('Created with friendly properties');
+    expect(row.project_id).toEqual([projectId, 'Scope project A']);
+    expect(propertiesToWriteFormat(row.task_properties as PropertiesReadFormat)).toMatchObject({
+      priority_key: 'high_key',
+      effort_key: 0,
+      owner_key: partners[0],
+      watchers_key: partners,
+      labels_key: ['blocked_key'],
+      active_key: false,
+      note_key: 'Created note',
+      date_key: '2026-10-30',
+      default_key: 9,
+    });
+    expect((await tasks.read([created]))[0]?.properties).toEqual({
+      priority: 'high',
+      effort: 0,
+      reviewer: partners[0],
+      watchers: partners,
+      labels: ['blocked'],
+      active: false,
+      note: 'Created note',
+      due: '2026-10-30',
+    });
+    const defaults = await tasks.create({ name: 'Created with defaults', project_id: projectId });
+    ids.push(defaults);
+    expect(propertiesToWriteFormat(await raw(defaults)).default_key).toBe(9);
+    const cleared = await tasks.create(
+      { name: 'Created with clears' },
+      {
+        priority: null,
+        effort: null,
+        reviewer: null,
+        watchers: null,
+        labels: null,
+        active: false,
+        note: null,
+        due: null,
+      },
+    );
+    ids.push(cleared);
+    expect((await tasks.read([cleared]))[0]?.properties).toEqual({
+      priority: null,
+      effort: null,
+      reviewer: null,
+      watchers: null,
+      labels: null,
+      active: false,
+      note: null,
+      due: null,
+    });
+  });
+
+  it('preflights creation without inserting records for bad input or stale bindings', async () => {
+    const { tasks } = await binding();
+    const before = await client.searchCount('project.task', [['project_id', '=', projectId]]);
+    await expect(
+      tasks.create({ name: 'Wrong parent', project_id: otherProjectId }, { effort: 0 }),
+    ).rejects.toMatchObject({ code: 'wrong-parent' });
+    await expect(
+      tasks.create({ name: 'Raw conflict', task_properties: {} }, { effort: 0 }),
+    ).rejects.toMatchObject({ code: 'invalid-input' });
+    await expect(
+      tasks.create({ name: 'Bad alias' }, { priority: 'urgent' } as never),
+    ).rejects.toMatchObject({ code: 'invalid-input' });
+    await client.write('project.project', projectId, {
+      task_properties_definition: definitions.map((def) =>
+        def.name === 'effort_key' ? { ...def, type: 'char' } : def,
+      ),
+    });
+    await expect(tasks.create({ name: 'Stale binding' }, { effort: 0 })).rejects.toMatchObject({
+      code: 'stale-binding',
+    });
+    expect(await client.searchCount('project.task', [['project_id', '=', projectId]])).toBe(before);
+  });
+
+  it('does not replay creation after a response lost following a server commit', async () => {
+    let creates = 0;
+    const lost = new OdooNetworkError(
+      'Injected lost create response',
+      new Error('Response discarded'),
+    );
+    const observed: Pick<OdooCrudClient, 'call' | 'read' | 'write'> = {
+      call: async <T = unknown>(...args: Parameters<OdooCrudClient['call']>): Promise<T> => {
+        const result = await client.call<T>(...args);
+        if (args[1] === 'create') {
+          assert(typeof result === 'number');
+          ids.push(result);
+          creates++;
+          throw lost;
+        }
+        return result;
+      },
+      read: client.read.bind(client),
+      write: client.write.bind(client),
+    };
+    const scope = await createPropertiesScope(observed, 'project.task', 'task_properties', {
+      parentId: projectId,
+    });
+    const tasks = scope.bind(declarations);
+    await expect(
+      tasks.create({ name: 'Uncertain creation' }, { effort: 0, priority: 'low' }),
+    ).rejects.toBe(lost);
+    expect(creates).toBe(1);
+    const found = await client.search('project.task', [
+      ['project_id', '=', projectId],
+      ['name', '=', 'Uncertain creation'],
+    ]);
+    expect(found).toEqual([ids.at(-1)]);
+    expect(propertiesToWriteFormat(await raw(found[0])).priority_key).toBe('low_key');
+  });
+
   it('discovers parent metadata, validates aliases and returns task.properties with normalized relations', async () => {
     const { scope, tasks } = await binding();
     const rows = await tasks.read(ids);

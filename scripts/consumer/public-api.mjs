@@ -174,6 +174,33 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
       const counts = serviceScope.bind({ count: { id: 'count', type: 'integer' } });
       assert.equal((await counts.patch(taskIds[0], { count: null })).status, 'acknowledged');
       assert.equal((await counts.read([taskIds[0]]))[0].properties.count, null);
+      const created = await tasks.create(
+        { name: 'Installed friendly creation' },
+        {
+          priority: 'high',
+          count: 0,
+          reviewer: partner,
+        },
+      );
+      taskIds.push(created);
+      const [createdRaw] = await odoo.client.read('project.task', created, [
+        'name',
+        'project_id',
+        'task_properties',
+      ]);
+      assert.equal(createdRaw.name, 'Installed friendly creation');
+      assert.equal(createdRaw.project_id[0], project);
+      assert.deepEqual(propertiesToWriteFormat(createdRaw.task_properties), {
+        owner: partner,
+        watchers: false,
+        count: 0,
+        priority: 'high_id',
+      });
+      assert.deepEqual((await tasks.read([created]))[0].properties, {
+        priority: 'high',
+        count: 0,
+        reviewer: partner,
+      });
     } finally {
       if (taskIds.length) await odoo.client.unlink('project.task', taskIds);
       await odoo.client.unlink('project.project', project);

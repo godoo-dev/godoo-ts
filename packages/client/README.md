@@ -302,7 +302,7 @@ write. A preflight failure rejects the operation with zero writes. Merged
 payloads start with `propertiesToWriteFormat()` so supported unbound properties
 and untouched unmapped options survive. Unsupported or malformed raw values
 block replacement, including on the last record. Valid empty batches make zero
-RPCs. A normal nonempty mutation makes one parent definition read, one child
+RPCs. A normal nonempty patch makes one parent definition read, one child
 read and one write per record. Scope creation separately costs two metadata
 calls and one parent read. Reads and batches are not chunked.
 
@@ -321,6 +321,34 @@ to another parent after validation and before writing. No client lock,
 `write_date` check or readback guarantee is implied. Only server-visible values
 can be preserved; hidden stored JSON is inaccessible. Definition administration,
 tag add/remove operations and generated contracts are outside this API.
+
+Create records with the same binding:
+
+```typescript
+const newTaskId = await tasks.create(
+  { name: 'Review proposal' },
+  { priority: 'high', estimate: 0 },
+);
+const [createdTask] = await tasks.read([newTaskId]);
+```
+
+`create(values, properties = {})` creates one record and returns its positive
+record ID. `values` contains ordinary Odoo fields; `properties` uses the same
+aliases, types and clearing conventions as patches. The scope supplies its parent
+relation and context. An explicitly supplied parent must equal `parentId` as a
+numeric ID; conflicting parents and the raw scoped properties field in `values`
+are rejected. Omitted properties are left to Odoo's creation defaults.
+
+Creation validates inputs, refreshes the parent definitions and checks the bound
+IDs before sending one `create` RPC through the structural client's `call` method.
+It performs no child read or follow-up write. Existing clients implementing only
+`call`, `read` and `write` remain usable, including `OAuthProxyClient`; OdooClient
+safety guards still apply. Errors propagate unchanged; an invalid returned ID
+throws `OdooProtocolError`. The binding does not retry creation; the proxy
+transport retains its existing single token-refresh retry on HTTP401. A
+network/protocol failure may follow a committed creation, so reconcile the outcome
+before retrying. Server defaults and concurrent definition changes can affect
+stored values; use `read` for subsequent readback.
 
 The source property helpers normalize Odoo's many2one `[id, display_name]` values
 to IDs and many2many display pairs to ID arrays

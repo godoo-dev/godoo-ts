@@ -1,5 +1,16 @@
 # @godoo-dev/testcontainers
 
+## 1.0.0
+
+### Major Changes
+
+- Update the published client dependency and peer dependency to `@godoo-dev/client@0.8.0`. Changesets assigns this major version for the client minor peer update; this release introduces no separate testcontainers runtime API change.
+
+### Patch Changes
+
+- Updated dependencies [[`9bdb8c4`](https://github.com/godoo-dev/godoo-ts/commit/9bdb8c4c2f6a3728f1a2b96123e045787ce09e32), [`ac50f9b`](https://github.com/godoo-dev/godoo-ts/commit/ac50f9b8076d8f5cfd02b021645b9e8dbd72a031), [`e7156c2`](https://github.com/godoo-dev/godoo-ts/commit/e7156c273e000f5d32ddaf9f786f222d2c512c30)]:
+  - @godoo-dev/client@0.8.0
+
 ## 0.2.0
 
 ### Patch Changes

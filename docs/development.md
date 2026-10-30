@@ -116,7 +116,10 @@ removing existing test setup capabilities.
 
 ## Integration and release controls
 
-CI runs on all changes targeting/pushed to develop/main and manual validation.
+Main is the sole long-lived integration and release branch. Use temporary feature
+branches and target pull requests at `main`.
+
+CI runs on changes targeting/pushed to `main` and manual validation.
 Its stable `required` job accepts only explicit success from offline (Node22/24),
 package and Odoo18 jobs, rejecting skipped, cancelled, failed and missing results.
 Manual requested19 depends on successful package/Odoo18 proof for the same candidate;
@@ -148,3 +151,22 @@ downloaded bytes with the retained candidate. Matching archives are retained;
 only missing archives are uploaded. A collision or unavailable registry check
 halts the whole selected set before another upload. This recovery does not
 replace the main-line, same-run proof or publishing-access requirements.
+
+
+### Release finish and retained work
+
+After a release, assess this repository's local/remote branches and worktrees for
+safe retirement. Cleanup is a reviewed finish step, never automatic deletion on
+every release. Record the accepted source/candidate and preserve tags and required
+release evidence before cleanup.
+
+Fetch current refs, inspect open PRs, branch ancestry and unique commits, and
+confirm checkout status, linked thread activity/pins, processes and container
+mounts. Preserve the primary checkout, dirty or unique work, active/pinned/in-use
+checkouts and anything whose ownership or completion is uncertain. Patch
+equivalence alone does not establish that surrounding behavior was integrated.
+Retire only clean, completed, integrated disposable worktrees with
+`git worktree remove` (without force), and only branches covered by the cleanup
+authorization. Retain `main`. Re-read remaining registrations/refs and report actual
+removals, retained work and unresolved decisions. A release or this procedure does
+not itself grant publication, cleanup or thread-settlement authority.

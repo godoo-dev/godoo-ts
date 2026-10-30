@@ -98,6 +98,8 @@ export interface PropertiesChange<D extends PropertiesDeclarations> {
 export interface PropertiesBinding<D extends PropertiesDeclarations> {
   mapping(): PropertiesMapping<D>;
   read(ids: readonly number[]): Promise<BoundPropertiesRecord<D>[]>;
+  /** Create in this scope's parent. Errors propagate; the binding does not retry. */
+  create(values: Record<string, unknown>, properties?: PropertiesPatch<D>): Promise<number>;
   patch(id: number, changes: PropertiesPatch<D>): Promise<PropertiesWriteReceipt>;
   patchMany(ids: readonly number[], changes: PropertiesPatch<D>): Promise<PropertiesWriteReceipt[]>;
   patchEach(changes: readonly PropertiesChange<D>[]): Promise<PropertiesWriteReceipt[]>;

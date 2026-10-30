@@ -297,6 +297,36 @@ export async function createPropertiesScope(
       }
       return {
         mapping: () => copy(mapping),
+        async create(
+          values: Record<string, unknown>,
+          properties: PropertiesPatch<D> = {},
+        ): Promise<number> {
+          if (!object(values)) fail('invalid-input', 'Create values must be an object');
+          if (Object.hasOwn(values, field))
+            fail('invalid-input', `Supply ${field} through property aliases, not raw values`);
+          if (
+            Object.hasOwn(values, parent.relation) &&
+            values[parent.relation] !== settings.parentId
+          ) {
+            fail('wrong-parent', `Create requires parent ${settings.parentId}`, {
+              parentId: settings.parentId,
+              value: values[parent.relation],
+            });
+          }
+          // Detach all caller-owned data before refreshing definitions.
+          const payload = copy({
+            ...values,
+            [parent.relation]: settings.parentId,
+            [field]: validatePatch(properties),
+          });
+          checkSnapshot(await refreshSnapshot());
+          const id = await client.call<unknown>(model, 'create', [payload], {
+            context: copy(context),
+          });
+          if (!positiveId(id))
+            throw new OdooProtocolError('Create response must be a positive safe record ID');
+          return id;
+        },
         async read(requested: readonly number[]): Promise<BoundPropertiesRecord<D>[]> {
           validateIds(requested);
           const ids = [...requested];

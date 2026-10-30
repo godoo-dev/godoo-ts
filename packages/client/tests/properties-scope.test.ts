@@ -98,7 +98,8 @@ function fixture() {
     task_properties: raw(),
     project_id: [parentId, 'Project'],
   });
-  const call = vi.fn<PropertiesClient['call']>(async (_model, _method, args) => {
+  const call = vi.fn<PropertiesClient['call']>(async (_model, method, args) => {
+    if (method === 'create') return 41 as never;
     const fields = args?.[0] as string[];
     return (
       fields[0] === 'task_properties'
@@ -156,6 +157,218 @@ function deferred<T>() {
 }
 
 describe('parent-scoped properties', () => {
+  it('creates with scoped parent/context and encoded aliases without a child read or patch', async () => {
+    const f = fixture();
+    const binding = (await f.scope({ context: { lang: 'en_US' } })).bind(allDeclarations);
+    f.call.mockClear();
+    f.read.mockClear();
+    expect(
+      await binding.create(
+        { name: 'New task', project_id: 7, tag_ids: [[6, 0, [3]]] },
+        {
+          priority: 'low',
+          estimate: 0,
+          count: 0,
+          done: false,
+          text: '',
+          date: '2026-10-30',
+          time: '2026-10-30 12:00:00',
+          owner: 12,
+          people: [12, 13],
+          tags: ['red'],
+        },
+      ),
+    ).toBe(41);
+    expect(f.call).toHaveBeenCalledExactlyOnceWith(
+      'project.task',
+      'create',
+      [
+        {
+          name: 'New task',
+          project_id: 7,
+          tag_ids: [[6, 0, [3]]],
+          task_properties: {
+            p: 'lo',
+            n: 0,
+            i: 0,
+            b: false,
+            s: '',
+            d: '2026-10-30',
+            dt: '2026-10-30 12:00:00',
+            one: 12,
+            many: [12, 13],
+            t: ['red'],
+          },
+        },
+      ],
+      { context: { lang: 'en_US' } },
+    );
+    expect(f.read).toHaveBeenCalledExactlyOnceWith(
+      'project.project',
+      [7],
+      ['task_properties_definition'],
+      { lang: 'en_US' },
+    );
+    expect(f.write).not.toHaveBeenCalled();
+  });
+
+  it('encodes creation clears and leaves omitted properties to server defaults', async () => {
+    const f = fixture();
+    const binding = (await f.scope()).bind(allDeclarations);
+    f.call.mockClear();
+    await binding.create(
+      { name: 'Cleared' },
+      {
+        priority: null,
+        estimate: null,
+        count: null,
+        done: null,
+        text: null,
+        date: null,
+        time: null,
+        owner: null,
+        people: null,
+        tags: null,
+      },
+    );
+    expect(f.call.mock.calls[0]?.[2]).toEqual([
+      {
+        name: 'Cleared',
+        project_id: 7,
+        task_properties: {
+          p: false,
+          n: false,
+          i: false,
+          b: false,
+          s: false,
+          d: false,
+          dt: false,
+          one: false,
+          many: [],
+          t: [],
+        },
+      },
+    ]);
+    await binding.create({ name: 'Default' });
+    expect(f.call.mock.calls[1]?.[2]).toEqual([
+      { name: 'Default', project_id: 7, task_properties: {} },
+    ]);
+  });
+
+  it.each([
+    [null, {}],
+    [[], {}],
+    [{ task_properties: {} }, {}],
+    [{ project_id: 8 }, {}],
+    [{ project_id: false }, {}],
+    [{ project_id: [7, 'Project'] }, {}],
+    [{}, null],
+    [{}, []],
+    [{}, { unknown: 1 }],
+    [{}, { priority: 'urgent' }],
+    [{}, { tags: ['blue'] }],
+    [{}, { estimate: undefined }],
+    [{}, { owner: [12, 'Name'] }],
+    [{}, { people: [[12, 'Name']] }],
+    [{}, { count: 1.5 }],
+  ])('rejects invalid creation input before any RPC (%j, %j)', async (values, properties) => {
+    const f = fixture();
+    const binding = (await f.scope()).bind(allDeclarations);
+    f.call.mockClear();
+    f.read.mockClear();
+    await expect(
+      binding.create(values as Record<string, unknown>, properties as never),
+    ).rejects.toBeInstanceOf(PropertiesBindingError);
+    expect(f.call).not.toHaveBeenCalled();
+    expect(f.read).not.toHaveBeenCalled();
+    expect(f.write).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'id',
+    'type',
+    'comodel',
+    'option',
+  ] as const)('rejects %s drift before creating', async (drift) => {
+    const f = fixture();
+    const binding = (await f.scope()).bind(allDeclarations);
+    if (drift === 'id') required(f.defs[0]).name = 'replacement';
+    if (drift === 'type') required(f.defs[0]).type = 'char';
+    if (drift === 'comodel') required(f.defs[7]).comodel = 'res.users';
+    if (drift === 'option')
+      required(f.defs[0]).selection = [
+        ['replacement', 'High'],
+        ['lo', 'Low'],
+      ];
+    f.call.mockClear();
+    await expect(binding.create({ name: 'Blocked' }, { estimate: 0 })).rejects.toEqual(
+      errorCode('stale-binding'),
+    );
+    expect(f.call).not.toHaveBeenCalled();
+  });
+
+  it('detaches creation input before awaiting the fresh parent definitions', async () => {
+    const f = fixture();
+    const binding = (await f.scope()).bind(allDeclarations);
+    const gate = deferred<Record<string, unknown>[]>();
+    f.read.mockImplementationOnce(async () => (await gate.promise) as never);
+    f.call.mockClear();
+    const values = { name: 'Original', tag_ids: [[6, 0, [3]]] };
+    const properties = { people: [12], tags: ['red'] as 'red'[] };
+    const pending = binding.create(values, properties);
+    values.name = 'Changed';
+    values.tag_ids[0]?.push([4]);
+    properties.people.push(13);
+    properties.tags.length = 0;
+    gate.resolve([{ id: 7, task_properties_definition: f.defs }]);
+    await pending;
+    expect(f.call.mock.calls[0]?.[2]).toEqual([
+      {
+        name: 'Original',
+        tag_ids: [[6, 0, [3]]],
+        project_id: 7,
+        task_properties: { many: [12], t: ['red'] },
+      },
+    ]);
+  });
+
+  it.each([
+    new OdooRpcError('Rejected'),
+    new OdooSafetyError({
+      name: 'odoo.create',
+      level: 'WRITE',
+      model: 'project.task',
+      description: 'Create task',
+    }),
+    new OdooNetworkError('Lost response', new Error('Connection reset')),
+    new OdooProtocolError('Malformed response'),
+  ])('propagates creation failures unchanged without retries (%s)', async (error) => {
+    const f = fixture();
+    const binding = (await f.scope()).bind(declaration);
+    f.call.mockReset().mockRejectedValue(error);
+    await expect(binding.create({ name: 'New' }, { estimate: 0 })).rejects.toBe(error);
+    expect(f.call).toHaveBeenCalledTimes(1);
+    expect(f.write).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    false,
+    null,
+    undefined,
+    0,
+    -1,
+    1.5,
+    '41',
+    [41],
+    Number.MAX_SAFE_INTEGER + 1,
+  ])('rejects invalid create response %j without retries', async (result) => {
+    const f = fixture();
+    const binding = (await f.scope()).bind(declaration);
+    f.call.mockReset().mockResolvedValue(result as never);
+    await expect(binding.create({ name: 'New' })).rejects.toBeInstanceOf(OdooProtocolError);
+    expect(f.call).toHaveBeenCalledTimes(1);
+  });
+
   it('discovers metadata with exact context/projection, exposes detached raw snapshots and supports the accessor', async () => {
     const f = fixture();
     const context = { lang: 'en_US', allowed_company_ids: [1] };

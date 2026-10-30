@@ -99,6 +99,26 @@ export async function propertyBindingsConsumer(crud: OdooCrudClient) {
     { id: 1, changes: { effort: 0 } },
     { id: 2, changes: { reviewer: null } },
   ]);
+  const createdId: number = await tasks.create(
+    { name: 'New task' },
+    {
+      priority: 'high',
+      effort: 0,
+      labels: ['ready'],
+      reviewer: 2,
+      active: false,
+    },
+  );
+  await tasks.read([createdId]);
+  await tasks.create({ name: 'Default properties' });
+  // @ts-expect-error Creation retains the exact option alias union.
+  await tasks.create({ name: 'Invalid' }, { priority: 'urgent' });
+  // @ts-expect-error Creation rejects unknown property aliases.
+  await tasks.create({}, { unknown: 0 });
+  // @ts-expect-error Creation validates declared numeric types.
+  await tasks.create({}, { effort: 'zero' });
+  // @ts-expect-error Creation retains exact tags aliases.
+  await tasks.create({}, { labels: ['unmapped'] });
   // @ts-expect-error Selection aliases are inferred, not arbitrary strings.
   await tasks.patch(1, { priority: 'urgent' });
   // @ts-expect-error Tags use inferred option aliases.

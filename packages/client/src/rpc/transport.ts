@@ -14,6 +14,7 @@ import {
   OdooRpcError,
   OdooValidationError,
 } from '../types/errors';
+import { validateRpcResponse } from './response';
 import { type OdooServerInfo, parseServerInfo } from './server-info';
 import type { JsonRpcRequest, JsonRpcResponse, OdooSessionInfo, RpcArg } from './types';
 
@@ -149,18 +150,15 @@ export class JsonRpcTransport {
         );
       }
 
-      const data: JsonRpcResponse<T> = (await response.json()) as JsonRpcResponse<T>;
+      const data: unknown = await response.json();
+      validateRpcResponse<T>(data, request.id);
 
       // Handle JSON-RPC error response
       if (data.error) {
         throw this.categorizeError(data.error);
       }
 
-      if (data.result === undefined) {
-        throw new OdooRpcError('Invalid RPC response: missing result field');
-      }
-
-      return data.result;
+      return data.result as T;
     } catch (error) {
       if (error instanceof OdooRpcError || error instanceof OdooNetworkError) {
         throw error;

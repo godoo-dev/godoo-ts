@@ -7,11 +7,13 @@
 
 import type { OdooClient } from '../../client/odoo-client';
 import type { PropertiesWriteFormat } from '../../types/properties';
+import type { PropertiesScope, PropertiesScopeOptions } from './binding-types';
 import {
   getCurrentWriteFormat as _getCurrentWriteFormat,
   updateSafely as _updateSafely,
   updateSafelyBatch as _updateSafelyBatch,
 } from './functions';
+import { createPropertiesScope } from './scope';
 import type { PropertiesUpdate } from './types';
 
 /**
@@ -27,6 +29,11 @@ import type { PropertiesUpdate } from './types';
 export class PropertiesService {
   /** @internal */
   constructor(private client: OdooClient) {}
+
+  /** Discover one parent's definitions and bind application aliases to fixed IDs. */
+  scope(model: string, field: string, options: PropertiesScopeOptions): Promise<PropertiesScope> {
+    return createPropertiesScope(this.client, model, field, options);
+  }
 
   /**
    * Merge updates with supported server-returned properties on a record.

@@ -49,8 +49,10 @@ describe('OAuthProxyClient', () => {
   beforeEach(() => {
     fetchSpy = vi
       .fn()
-      .mockImplementation(() =>
-        Promise.resolve(mockJsonResponse({ jsonrpc: '2.0', id: 1, result: [] })),
+      .mockImplementation((_url: unknown, init: RequestInit) =>
+        Promise.resolve(
+          mockJsonResponse({ jsonrpc: '2.0', id: JSON.parse(init.body as string).id, result: [] }),
+        ),
       );
     vi.stubGlobal('fetch', fetchSpy);
     getAccessToken = vi.fn<() => Promise<string>>().mockResolvedValue('TEST_BEARER_TOKEN');

@@ -197,7 +197,7 @@ export class OdooClient implements OdooCrudClient {
   private _properties?: PropertiesService;
 
   /**
-   * Properties service — read/merge/write operations for Odoo properties fields.
+   * Properties service — parent-scoped bindings and read/merge/write helpers.
    *
    * Normalizes and preserves supported server-returned values while merging
    * updates. It cannot preserve hidden stored keys or prevent concurrent lost

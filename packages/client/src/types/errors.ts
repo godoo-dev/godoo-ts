@@ -4,6 +4,7 @@
  * Hierarchy:
  *   OdooError                    — base, has .toJSON()
  *   ├── OdooRpcError             — generic RPC (code, data)
+ *   │   ├── OdooProtocolError    — malformed responses, outcome uncertain
  *   │   ├── OdooAuthError        — AccessDenied, invalid credentials
  *   │   ├── OdooNetworkError     — connection issues
  *   │   │   └── OdooTimeoutError — request timeout
@@ -73,6 +74,19 @@ export class OdooRpcError extends OdooError {
       message: this.message,
       details: { code: this.code, data: this.data },
     };
+  }
+}
+
+/** A malformed RPC response cannot establish whether a write took effect. */
+export class OdooProtocolError extends OdooRpcError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'OdooProtocolError';
+    Object.setPrototypeOf(this, OdooProtocolError.prototype);
+  }
+
+  override toJSON(): ErrorJSON {
+    return { error: 'PROTOCOL_ERROR', message: this.message };
   }
 }
 

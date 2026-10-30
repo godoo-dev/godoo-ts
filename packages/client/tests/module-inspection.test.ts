@@ -41,10 +41,12 @@ function harness(
 ) {
   const requests: { service: string; method: string; args: unknown[] }[] = [];
   const fetchMock = vi.fn(async (_url: unknown, init?: RequestInit) => {
-    const { params } = JSON.parse(String(init?.body));
+    const { params, id } = JSON.parse(String(init?.body));
+    const respond = (body: Record<string, unknown>) =>
+      Response.json({ jsonrpc: '2.0', id, ...body });
     requests.push(params);
     if (params.service === 'common')
-      return Response.json({
+      return respond({
         result:
           params.method === 'login'
             ? 7
@@ -57,10 +59,9 @@ function harness(
       });
     const [, , , model, method, args, kwargs] = params.args;
     const error = options.error?.(model, method, kwargs);
-    if (error)
-      return Response.json({ error: { code: 200, message: 'Odoo Server Error', data: error } });
+    if (error) return respond({ error: { code: 200, message: 'Odoo Server Error', data: error } });
     if (method === 'fields_get')
-      return Response.json({
+      return respond({
         result: options.schemas?.[model] ?? (model === MODULE ? moduleSchema : dependencySchema),
       });
     if (method !== 'search_read') throw new Error(`Unexpected mutating/action method: ${method}`);
@@ -69,7 +70,7 @@ function harness(
       model === MODULE
         ? (options.modules ?? []).filter((row) => row[field] === value)
         : (options.edges ?? []).filter((row) => value.includes(row.id));
-    return Response.json({
+    return respond({
       result: result.map((row) =>
         Object.fromEntries(
           Object.entries(row).filter(([field]) => field === 'id' || kwargs.fields.includes(field)),
@@ -402,8 +403,8 @@ describe('read-only addon prerequisite inspection', () => {
   it('does not mistake a malformed metadata response for a missing addon', async () => {
     const { client, fetchMock } = harness();
     await client.authenticate();
-    fetchMock.mockResolvedValueOnce(Response.json({ result: moduleSchema }));
-    fetchMock.mockResolvedValueOnce(Response.json({ result: {} }));
+    fetchMock.mockResolvedValueOnce(Response.json({ jsonrpc: '2.0', id: 2, result: moduleSchema }));
+    fetchMock.mockResolvedValueOnce(Response.json({ jsonrpc: '2.0', id: 3, result: {} }));
     await expect(client.modules.inspectPrerequisites(['sale'])).rejects.toThrow(
       'Invalid search_read metadata',
     );

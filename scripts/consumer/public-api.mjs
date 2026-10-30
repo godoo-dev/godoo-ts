@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  createPropertiesScope,
   getPropertyValue,
   inspectModulePrerequisites,
   OdooClient,
@@ -102,6 +103,15 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
         { name: 'owner', string: 'Owner', type: 'many2one', comodel: 'res.partner' },
         { name: 'watchers', string: 'Watchers', type: 'many2many', comodel: 'res.partner' },
         { name: 'count', string: 'Count', type: 'integer' },
+        {
+          name: 'priority',
+          string: 'Priority',
+          type: 'selection',
+          selection: [
+            ['high_id', 'High'],
+            ['low_id', 'Low'],
+          ],
+        },
       ],
     });
     const taskIds = [];
@@ -111,7 +121,7 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
           await odoo.client.create('project.task', {
             name,
             project_id: project,
-            task_properties: { owner: partner, watchers: [partner], count: 0 },
+            task_properties: { owner: partner, watchers: [partner], count: 0, priority: 'low_id' },
           }),
         );
       }
@@ -128,8 +138,42 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
           owner: partner,
           watchers: [partner],
           count: 2,
+          priority: 'low_id',
         });
       }
+      const scope = await createPropertiesScope(odoo.client, 'project.task', 'task_properties', {
+        parentId: project,
+        context: { lang: 'en_US' },
+      });
+      const tasks = scope.bind({
+        priority: {
+          label: 'Priority',
+          type: 'selection',
+          options: { high: { label: 'High' }, low: { label: 'Low' } },
+        },
+        count: { label: 'Count', type: 'integer' },
+        reviewer: { label: 'Owner', type: 'many2one' },
+      });
+      const [before] = await tasks.read(taskIds);
+      assert.equal(before.properties.priority, 'low');
+      assert.equal(before.properties.reviewer, partner);
+      assert.equal(Object.hasOwn(before, 'values'), false);
+      const receipts = await tasks.patchEach(
+        taskIds.map((id) => ({ id, changes: { priority: 'high', count: 0 } })),
+      );
+      assert(receipts.every((receipt) => receipt.status === 'acknowledged'));
+      for (const row of await tasks.read(taskIds)) {
+        assert.equal(row.properties.priority, 'high');
+        assert.equal(row.properties.count, 0);
+        assert.equal(row.properties.reviewer, partner);
+        assert.deepEqual(propertiesToWriteFormat(row.raw).watchers, [partner]);
+      }
+      const serviceScope = await odoo.client.properties.scope('project.task', 'task_properties', {
+        parentId: project,
+      });
+      const counts = serviceScope.bind({ count: { id: 'count', type: 'integer' } });
+      assert.equal((await counts.patch(taskIds[0], { count: null })).status, 'acknowledged');
+      assert.equal((await counts.read([taskIds[0]]))[0].properties.count, null);
     } finally {
       if (taskIds.length) await odoo.client.unlink('project.task', taskIds);
       await odoo.client.unlink('project.project', project);

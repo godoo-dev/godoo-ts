@@ -164,9 +164,13 @@ describe('BearerJsonRpcTransport', () => {
   });
 
   it('calls getAccessToken once per .call() invocation (no client-side caching)', async () => {
-    // Each fetch must return a fresh Response (body is single-consumption).
-    fetchSpy.mockImplementation(() =>
-      Promise.resolve(mockResponse({ body: { jsonrpc: '2.0', id: 1, result: [] } })),
+    // Echo the request ID and return a fresh, single-consumption response.
+    fetchSpy.mockImplementation((_url: unknown, init: RequestInit) =>
+      Promise.resolve(
+        mockResponse({
+          body: { jsonrpc: '2.0', id: JSON.parse(init.body as string).id, result: [] },
+        }),
+      ),
     );
 
     const transport = new BearerJsonRpcTransport({

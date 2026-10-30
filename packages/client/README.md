@@ -221,6 +221,159 @@ packed artifacts; published client 0.6.1 does not contain this seam. Disposable
 Odoo acceptance is a separate check. The existing explicit `uninstallModule()`
 API is unchanged and is outside this installation/upgrade verification contract.
 
+### Properties
+
+Parent-scoped bindings are available in this source checkout, unreleased.
+Docker-free tests and declaration generation cover this API; installed-package
+and live Odoo18 qualification remain separate delivery gates.
+
+```typescript
+const scope = await client.properties.scope('project.task', 'task_properties', {
+  parentId: projectId,
+  context: { lang: 'en_US' },
+});
+const tasks = scope.bind({
+  priority: {
+    label: 'Priority', type: 'selection',
+    options: { high: { label: 'High' }, low: { label: 'Low' } },
+  },
+  estimate: { label: 'Estimated effort', type: 'float' },
+} as const);
+const [task] = await tasks.read([taskId]);
+task.properties.priority; // 'high' | 'low' | null
+console.log(scope.describe().definitions, tasks.mapping());
+const receipt = await tasks.patch(taskId, { priority: 'high', estimate: 0 });
+if (receipt.status !== 'acknowledged') console.log(receipt.status, receipt.error);
+```
+
+`createPropertiesScope(client, model, field, options)` is also exported and accepts
+`Pick<OdooCrudClient, 'call' | 'read' | 'write'>`, including `OAuthProxyClient`.
+Use IDs from records you are authorized to access. Discovery calls `fields_get`
+for the properties field's `type`, `definition_record` and
+`definition_record_field`, then the child relation's `type` and `relation`, and
+reads the parent's definitions. For custom metadata, supply
+`parent: { model, field, relation }`; `relation` must still be a child many2one to
+that parent model, and every child read must belong to `parentId`.
+
+Each scope fixes its parent, client and copied context. `describe()` returns a
+detached snapshot containing the parent relationship, raw metadata and definitions.
+`refresh()` reads the parent definitions again and returns a fresh description.
+There is no global cache. Reads use the scope's current snapshot and validate
+child-embedded definitions; mutations always refresh first. A refresh changes
+discovery without rebinding existing aliases.
+
+Each declaration uses exactly one selector, `{ label: 'Exact label' }` or
+`{ id: 'technical_id' }`, plus its `type`. Labels must match uniquely; errors
+include matching IDs and available IDs. Property aliases resolve once to unique
+IDs. Selection and tags declarations require an `options` alias map whose
+selectors follow the same rule. Relation declarations may assert `comodel`;
+`mapping()` records the actual comodel even when omitted. Supported kinds are
+`char`, `integer`, `float`, `boolean`, `date`, `datetime`, `many2one`, `many2many`,
+`selection` and `tags`; separators cannot bind.
+
+The returned object's exact keys and option aliases follow the validated
+literal declarations. Read rows expose `{ id, properties, raw }`; `raw` retains
+the server's properties array. Relation display tuples become IDs or ID arrays.
+Date and datetime values remain strings. Received `false`/`null` values become
+`null`, except boolean `false` stays `false`. Zero, empty strings and empty arrays
+are preserved when received. Unexpected unmapped options throw
+`PropertiesBindingError` with code `unmapped-option` and
+`details: { recordId, propertyId, optionId }` so callers can inspect raw IDs.
+
+Renames, reordering, colors and unrelated additions do not change resolved IDs.
+Missing IDs, incompatible types/comodels and removed mapped options throw
+`PropertiesBindingError` with code `stale-binding`; the API never silently
+resolves labels again. Deletion and recreation using an identical ID and
+compatible definition are indistinguishable. Application code must deliberately
+create a new binding when changing its contract.
+
+`patch(id, changes)` returns one receipt. `patchMany(ids, sameChanges)` and
+`patchEach([{ id, changes }])` return receipts in request order. Omitted keys
+stay untouched; explicit `undefined`, unknown aliases and invalid shapes are
+rejected. `null` clears a scalar with `false`, and clears tags/many2many with
+`[]`. Tags alias arrays replace that property. Outgoing `0`, `false`, `''` and
+`[]` retain their representations in the payload. Odoo18 can collapse empty
+characters, empty arrays and unset scalar/date values to `false` when flushing;
+this API does not promise those empty representations round-trip.
+
+The whole batch validates unique positive record IDs, declarations, record
+presence, parent membership, embedded definitions and every raw value before any
+write. A preflight failure rejects the operation with zero writes. Merged
+payloads start with `propertiesToWriteFormat()` so supported unbound properties
+and untouched unmapped options survive. Unsupported or malformed raw values
+block replacement, including on the last record. Valid empty batches make zero
+RPCs. A normal nonempty patch makes one parent definition read, one child
+read and one write per record. Scope creation separately costs two metadata
+calls and one parent read. Reads and batches are not chunked.
+
+Writes settle independently with bounded concurrency (`options.concurrency`,
+default `4`). `acknowledged` means the server returned exactly `true`.
+`failed` means an explicit RPC rejection or a local safety block. `unknown`
+covers network/timeout/protocol errors, unexpected results and unclassified
+exceptions. Failed/unknown receipts retain the original thrown value (or
+unexpected result) in `error`. Both transports expose malformed RPC envelopes
+as `OdooProtocolError`, including missing results and mismatched response IDs.
+The properties layer does not retry writes; an unknown receipt is not a safe
+retry signal.
+
+Read/merge/write is not atomic and can lose concurrent updates. A child may move
+to another parent after validation and before writing. No client lock,
+`write_date` check or readback guarantee is implied. Only server-visible values
+can be preserved; hidden stored JSON is inaccessible. Definition administration,
+tag add/remove operations and generated contracts are outside this API.
+
+Create records with the same binding:
+
+```typescript
+const newTaskId = await tasks.create(
+  { name: 'Review proposal' },
+  { priority: 'high', estimate: 0 },
+);
+const [createdTask] = await tasks.read([newTaskId]);
+```
+
+`create(values, properties = {})` creates one record and returns its positive
+record ID. `values` contains ordinary Odoo fields; `properties` uses the same
+aliases, types and clearing conventions as patches. The scope supplies its parent
+relation and context. An explicitly supplied parent must equal `parentId` as a
+numeric ID; conflicting parents and the raw scoped properties field in `values`
+are rejected. Omitted properties are left to Odoo's creation defaults.
+
+Creation validates inputs, refreshes the parent definitions and checks the bound
+IDs before sending one `create` RPC through the structural client's `call` method.
+It performs no child read or follow-up write. Existing clients implementing only
+`call`, `read` and `write` remain usable, including `OAuthProxyClient`; OdooClient
+safety guards still apply. Errors propagate unchanged; an invalid returned ID
+throws `OdooProtocolError`. The binding does not retry creation; the proxy
+transport retains its existing single token-refresh retry on HTTP401. A
+network/protocol failure may follow a committed creation, so reconcile the outcome
+before retrying. Server defaults and concurrent definition changes can affect
+stored values; use `read` for subsequent readback.
+
+The source property helpers normalize Odoo's many2one `[id, display_name]` values
+to IDs and many2many display pairs to ID arrays
+before writing. `getPropertyValue()` extracts the raw read value, including display
+tuples; `propertiesToWriteFormat()` produces normalized dictionary-write values.
+These changes are unreleased.
+
+```typescript
+// Keys and selection/tag values are Odoo technical identifiers.
+await client.properties.updateSafely('project.task', taskId, 'task_properties', {
+  priority_property_id: 'high_option_id',
+});
+
+const values = await client.properties.getCurrentWriteFormat(
+  'project.task', taskId, 'task_properties',
+);
+```
+
+These helpers read current values, merge the patch and replace the field. They
+preserve other supported values returned by Odoo, including relational properties.
+Odoo can hide stored values whose definitions were removed, and concurrent writers
+can overwrite each other's updates. The helpers do not make the operation atomic.
+The codec retains empty inputs and numeric zero; Odoo may normalize empty or unset
+values to `false` on readback.
+
 ## Advanced: Manual Client Construction
 
 For custom configurations, use `OdooClient` directly:

@@ -3,7 +3,13 @@ import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { inspectModulePrerequisites, OdooClient } from '@godoo-dev/client';
+import {
+  createPropertiesScope,
+  getPropertyValue,
+  inspectModulePrerequisites,
+  OdooClient,
+  propertiesToWriteFormat,
+} from '@godoo-dev/client';
 import { generateCompleteFile, Introspector } from '@godoo-dev/introspection';
 import { normaliseOdooVersion, startOdoo } from '@godoo-dev/testcontainers';
 
@@ -20,6 +26,30 @@ for (const name of ['client', 'introspection', 'testcontainers']) {
   origins[name] = resolved;
 }
 assert.equal(normaliseOdooVersion(undefined), '18.0');
+const propertyRead = [
+  { name: 'owner', type: 'many2one', value: [41, null] },
+  {
+    name: 'watchers',
+    type: 'many2many',
+    value: [
+      [42, 'B'],
+      [41, null],
+    ],
+  },
+  { name: 'zero', type: 'integer', value: 0 },
+  { name: 'clear', type: 'char', value: null },
+  { name: 'section', type: 'separator' },
+];
+assert.deepEqual(propertiesToWriteFormat(propertyRead), {
+  owner: 41,
+  watchers: [42, 41],
+  zero: 0,
+  clear: null,
+});
+assert.deepEqual(getPropertyValue(propertyRead, 'owner'), [41, null]);
+assert.throws(() =>
+  propertiesToWriteFormat([{ name: 'invalid', type: 'many2one', value: [41, 42] }]),
+);
 const metadata = {
   model: { id: 1, name: 'Contact', model: 'res.partner', transient: false },
   fields: [
@@ -49,7 +79,7 @@ assert.equal(
 );
 console.log('GODOO_INSTALLED_ORIGINS ' + JSON.stringify(origins));
 if (process.env.GODOO_INSTALLED_ODOO === 'true') {
-  const odoo = await startOdoo({ modules: ['base'], snapshot: false });
+  const odoo = await startOdoo({ modules: ['base', 'mail', 'project'], snapshot: false });
   try {
     const info = await odoo.client.getServerInfo();
     assert.equal(info.major, Number(process.env.ODOO_VERSION.split('.')[0]));
@@ -66,6 +96,116 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
     } finally {
       await odoo.client.unlink('res.partner', id);
     }
+    const partner = await odoo.client.create('res.partner', { name: 'Property codec proof' });
+    const project = await odoo.client.create('project.project', {
+      name: 'Installed property codec proof',
+      task_properties_definition: [
+        { name: 'owner', string: 'Owner', type: 'many2one', comodel: 'res.partner' },
+        { name: 'watchers', string: 'Watchers', type: 'many2many', comodel: 'res.partner' },
+        { name: 'count', string: 'Count', type: 'integer' },
+        {
+          name: 'priority',
+          string: 'Priority',
+          type: 'selection',
+          selection: [
+            ['high_id', 'High'],
+            ['low_id', 'Low'],
+          ],
+        },
+      ],
+    });
+    const taskIds = [];
+    try {
+      for (const name of ['First', 'Second']) {
+        taskIds.push(
+          await odoo.client.create('project.task', {
+            name,
+            project_id: project,
+            task_properties: { owner: partner, watchers: [partner], count: 0, priority: 'low_id' },
+          }),
+        );
+      }
+      await odoo.client.properties.updateSafely('project.task', taskIds[0], 'task_properties', {
+        count: 1,
+      });
+      await odoo.client.properties.updateSafelyBatch('project.task', taskIds, 'task_properties', {
+        count: 2,
+      });
+      const rows = await odoo.client.read('project.task', taskIds, ['task_properties']);
+      assert.equal(rows.length, 2);
+      for (const row of rows) {
+        assert.deepEqual(propertiesToWriteFormat(row.task_properties), {
+          owner: partner,
+          watchers: [partner],
+          count: 2,
+          priority: 'low_id',
+        });
+      }
+      const scope = await createPropertiesScope(odoo.client, 'project.task', 'task_properties', {
+        parentId: project,
+        context: { lang: 'en_US' },
+      });
+      const tasks = scope.bind({
+        priority: {
+          label: 'Priority',
+          type: 'selection',
+          options: { high: { label: 'High' }, low: { label: 'Low' } },
+        },
+        count: { label: 'Count', type: 'integer' },
+        reviewer: { label: 'Owner', type: 'many2one' },
+      });
+      const [before] = await tasks.read(taskIds);
+      assert.equal(before.properties.priority, 'low');
+      assert.equal(before.properties.reviewer, partner);
+      assert.equal(Object.hasOwn(before, 'values'), false);
+      const receipts = await tasks.patchEach(
+        taskIds.map((id) => ({ id, changes: { priority: 'high', count: 0 } })),
+      );
+      assert(receipts.every((receipt) => receipt.status === 'acknowledged'));
+      for (const row of await tasks.read(taskIds)) {
+        assert.equal(row.properties.priority, 'high');
+        assert.equal(row.properties.count, 0);
+        assert.equal(row.properties.reviewer, partner);
+        assert.deepEqual(propertiesToWriteFormat(row.raw).watchers, [partner]);
+      }
+      const serviceScope = await odoo.client.properties.scope('project.task', 'task_properties', {
+        parentId: project,
+      });
+      const counts = serviceScope.bind({ count: { id: 'count', type: 'integer' } });
+      assert.equal((await counts.patch(taskIds[0], { count: null })).status, 'acknowledged');
+      assert.equal((await counts.read([taskIds[0]]))[0].properties.count, null);
+      const created = await tasks.create(
+        { name: 'Installed friendly creation' },
+        {
+          priority: 'high',
+          count: 0,
+          reviewer: partner,
+        },
+      );
+      taskIds.push(created);
+      const [createdRaw] = await odoo.client.read('project.task', created, [
+        'name',
+        'project_id',
+        'task_properties',
+      ]);
+      assert.equal(createdRaw.name, 'Installed friendly creation');
+      assert.equal(createdRaw.project_id[0], project);
+      assert.deepEqual(propertiesToWriteFormat(createdRaw.task_properties), {
+        owner: partner,
+        watchers: false,
+        count: 0,
+        priority: 'high_id',
+      });
+      assert.deepEqual((await tasks.read([created]))[0].properties, {
+        priority: 'high',
+        count: 0,
+        reviewer: partner,
+      });
+    } finally {
+      if (taskIds.length) await odoo.client.unlink('project.task', taskIds);
+      await odoo.client.unlink('project.project', project);
+      await odoo.client.unlink('res.partner', partner);
+    }
     writeFileSync(
       'runtime-proof.json',
       JSON.stringify(
@@ -74,7 +214,7 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
           server: info,
           odooContainerId: odoo.odooContainer.getId(),
           postgresContainerId: odoo.postgresContainer.getId(),
-          modules: ['base'],
+          modules: ['base', 'mail', 'project'],
           origins,
         },
         null,

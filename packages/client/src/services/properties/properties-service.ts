@@ -7,31 +7,39 @@
 
 import type { OdooClient } from '../../client/odoo-client';
 import type { PropertiesWriteFormat } from '../../types/properties';
+import type { PropertiesScope, PropertiesScopeOptions } from './binding-types';
 import {
   getCurrentWriteFormat as _getCurrentWriteFormat,
   updateSafely as _updateSafely,
   updateSafelyBatch as _updateSafelyBatch,
 } from './functions';
+import { createPropertiesScope } from './scope';
 import type { PropertiesUpdate } from './types';
 
 /**
- * Properties service providing safe operations for Odoo properties fields.
+ * Properties service for read/merge/write updates of Odoo properties fields.
  *
  * Access via `client.properties` — never instantiate directly.
  *
- * Properties in Odoo use full-replacement semantics. When you write properties,
- * Odoo replaces ALL values. This service prevents data loss by automatically
- * reading current values, merging your changes, and writing everything back.
+ * Properties dictionary writes replace stored values. This service reads and
+ * normalizes supported server-returned properties, then merges changes and writes
+ * the result. It cannot preserve hidden stored keys or prevent concurrent lost
+ * updates. Reads and writes are not atomic, including across a batch.
  */
 export class PropertiesService {
   /** @internal */
   constructor(private client: OdooClient) {}
 
+  /** Discover one parent's definitions and bind application aliases to fixed IDs. */
+  scope(model: string, field: string, options: PropertiesScopeOptions): Promise<PropertiesScope> {
+    return createPropertiesScope(this.client, model, field, options);
+  }
+
   /**
-   * Safely update properties on a record by merging with existing values.
+   * Merge updates with supported server-returned properties on a record.
    *
-   * This prevents accidental data loss by automatically reading current
-   * properties, merging your changes, and writing back all properties.
+   * Relation display tuples are normalized to IDs. This read/merge/write
+   * operation is not atomic and only preserves values exposed by the read.
    *
    * @param model - Model name (e.g., 'crm.lead')
    * @param recordId - Record ID to update
@@ -41,7 +49,7 @@ export class PropertiesService {
    *
    * @example
    * ```typescript
-   * // Safe - only updates priority, preserves everything else
+   * // Update priority, preserving other supported server-returned values
    * await client.properties.updateSafely(
    *   'crm.lead',
    *   leadId,
@@ -60,10 +68,11 @@ export class PropertiesService {
   }
 
   /**
-   * Safely update properties on multiple records.
+   * Merge updates with supported server-returned properties on each record.
    *
    * Applies the same property updates to multiple records while preserving
-   * existing values on each record.
+   * values exposed by each read. Validates all read values and record IDs before
+   * starting writes; the independent writes are not atomic.
    *
    * @param model - Model name (e.g., 'crm.lead')
    * @param recordIds - Record IDs to update
@@ -94,7 +103,8 @@ export class PropertiesService {
   /**
    * Get current properties in write format for a record.
    *
-   * Useful when you need to inspect current values before updating.
+   * Normalizes relation display tuples to IDs and omits separators.
+   * Includes only supported properties exposed by the server read.
    *
    * @param model - Model name (e.g., 'crm.lead')
    * @param recordId - Record ID

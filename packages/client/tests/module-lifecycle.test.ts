@@ -45,17 +45,18 @@ function fixture(
   const requests: Request[] = [];
   let dispatched = 0;
   const fetchMock = vi.fn(async (_url: unknown, init?: RequestInit) => {
-    const { params } = JSON.parse(String(init?.body));
-    if (params.service === 'common') return Response.json({ result: 7 });
+    const { params, id } = JSON.parse(String(init?.body));
+    const respond = (body: Record<string, unknown>) =>
+      Response.json({ jsonrpc: '2.0', id, ...body });
+    if (params.service === 'common') return respond({ result: 7 });
     const [, , , model, method, args, kwargs] = params.args;
     const request = { model, method, args, kwargs };
     requests.push(request);
     if (method.startsWith('button_immediate_')) dispatched++;
     const error = options.error?.(request, dispatched);
-    if (error)
-      return Response.json({ error: { code: 200, message: 'Odoo Server Error', data: error } });
+    if (error) return respond({ error: { code: 200, message: 'Odoo Server Error', data: error } });
     if (method === 'fields_get')
-      return Response.json({
+      return respond({
         result:
           model === MODULE
             ? {
@@ -71,7 +72,7 @@ function fixture(
       const rows = (model === MODULE ? modules : edges).filter((row) =>
         operator === 'in' ? value.includes(row[field]) : row[field] === value,
       );
-      return Response.json({
+      return respond({
         result: rows.map((row) =>
           Object.fromEntries(Object.entries(row).filter(([key]) => kwargs.fields.includes(key))),
         ),
@@ -85,7 +86,7 @@ function fixture(
     if (options.mutate) options.mutate(request, modules, edges);
     else for (const module of modules) module.state = 'installed';
     // Odoo returns an action, not an installation success boolean.
-    return Response.json({
+    return respond({
       result:
         options.response === undefined
           ? { type: 'ir.actions.client', tag: 'reload' }

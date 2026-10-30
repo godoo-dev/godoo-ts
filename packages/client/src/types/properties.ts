@@ -116,10 +116,12 @@ export interface Many2manyPropertyDefinition extends PropertyDefinitionBase {
 /**
  * Tags property definition
  *
- * Free-form tags input.
+ * Tags selected by key from the definition metadata.
  */
 export interface TagsPropertyDefinition extends PropertyDefinitionBase {
   type: 'tags';
+  /** Available [key, label, color] options; optional for older callers. */
+  tags?: Array<[string, string, number]>;
 }
 
 /**
@@ -158,87 +160,80 @@ export interface PropertyValueBase extends PropertyDefinitionBase {
  */
 export interface CharPropertyValue extends PropertyValueBase {
   type: 'char';
-  value: string;
+  value: string | false | null;
 }
 
-/**
- * Integer property value (read format)
- */
+/** Integer property value (read format). */
 export interface IntegerPropertyValue extends PropertyValueBase {
   type: 'integer';
-  value: number;
+  value: number | false | null;
 }
 
-/**
- * Float property value (read format)
- */
+/** Float property value (read format). */
 export interface FloatPropertyValue extends PropertyValueBase {
   type: 'float';
-  value: number;
+  value: number | false | null;
 }
 
-/**
- * Boolean property value (read format)
- */
+/** Boolean property value (read format). */
 export interface BooleanPropertyValue extends PropertyValueBase {
   type: 'boolean';
-  value: boolean;
+  value: boolean | null;
 }
 
-/**
- * Date property value (read format)
- */
+/** Date property value (ISO date string, read format). */
 export interface DatePropertyValue extends PropertyValueBase {
   type: 'date';
-  value: string; // ISO date string
+  value: string | false | null;
 }
 
-/**
- * DateTime property value (read format)
- */
+/** DateTime property value (ISO datetime string, read format). */
 export interface DateTimePropertyValue extends PropertyValueBase {
   type: 'datetime';
-  value: string; // ISO datetime string
+  value: string | false | null;
 }
 
-/**
- * Selection property value (read format)
- */
+/** Selection property value (read format). */
 export interface SelectionPropertyValue extends PropertyValueBase {
   type: 'selection';
   selection: Array<[string, string]>;
-  value: string;
+  value: string | false | null;
 }
 
-/**
- * Many2one property value (read format)
- */
+/** A relation returned by RPC, including a possibly unavailable display name. */
+export type PropertyRelationTuple = [id: number, displayName: string | null];
+
+/** Many2one property value, including ID-only input supported by older callers. */
 export interface Many2onePropertyValue extends PropertyValueBase {
   type: 'many2one';
-  comodel: string;
-  value: number | false; // Record ID or false if not set
+  /** Odoo can return false when the comodel is unavailable. */
+  comodel: string | false;
+  value: PropertyRelationTuple | number | false | null;
 }
 
-/**
- * Many2many property value (read format)
- */
+/** Many2many property value, including ID-only input supported by older callers. */
 export interface Many2manyPropertyValue extends PropertyValueBase {
   type: 'many2many';
-  comodel: string;
-  value: number[]; // Array of record IDs
+  /** Odoo can return false when the comodel is unavailable. */
+  comodel: string | false;
+  value: PropertyRelationTuple[] | number[] | false | null;
 }
 
-/**
- * Tags property value (read format)
- */
+/** Tags property value (read format). */
 export interface TagsPropertyValue extends PropertyValueBase {
   type: 'tags';
-  value: string[]; // Array of tag strings
+  /** Available [key, label, color] options; optional for older callers. */
+  tags?: Array<[string, string, number]>;
+  value: string[] | false | null;
 }
 
-/**
- * Union type of all property values (read format)
- */
+/** A UI separator has no dictionary value and may omit value on RPC reads. */
+export interface SeparatorPropertyValue extends PropertyValueBase {
+  type: 'separator';
+  value?: false | null;
+}
+
+/** Union of supported properties returned by RPC. */
 export type PropertyValue =
   | CharPropertyValue
   | IntegerPropertyValue
@@ -249,61 +244,128 @@ export type PropertyValue =
   | SelectionPropertyValue
   | Many2onePropertyValue
   | Many2manyPropertyValue
-  | TagsPropertyValue;
+  | TagsPropertyValue
+  | SeparatorPropertyValue;
 
-/**
- * Array of property values (read format)
- *
- * This is what Odoo returns when reading a properties field.
- */
+/** Array returned when reading a properties field. */
 export type PropertiesReadFormat = PropertyValue[];
 
-/**
- * Properties write format
- *
- * When writing properties to Odoo, use a plain object with property names as keys.
- * Odoo accepts simple values without the full metadata.
- */
+/** Dictionary input accepted when writing a properties field. */
 export type PropertiesWriteFormat = Record<string, PropertyValueType>;
 
-/**
- * Type for property values when writing
- */
-export type PropertyValueType =
-  | string
-  | number
-  | boolean
-  | number[] // for many2many
-  | string[] // for tags
-  | false; // for many2one when not set
+/** Dictionary-write value alias; relation display tuples are read values only. */
+export type PropertyValueType = string | number | boolean | number[] | string[] | null;
+
+/** Raw RPC value, before relational display tuples are normalized for writing. */
+export type PropertyReadValueType = PropertyValue['value'];
 
 /**
- * Helper to extract property value by name from read format
- *
- * @param properties - Properties in read format (array)
- * @param propertyName - Name of the property to extract
- * @returns The property value, or undefined if not found
+ * Extract the raw RPC value by name, preserving relation display tuples.
+ * Returns undefined for an absent property or a separator without a value.
  */
 export function getPropertyValue(
   properties: PropertiesReadFormat,
   propertyName: string,
-): PropertyValueType | undefined {
+): PropertyReadValueType {
   const property = properties.find((p) => p.name === propertyName);
   return property ? property.value : undefined;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isRelationId(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+}
+
+function isRelationTuple(value: unknown): value is PropertyRelationTuple {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    isRelationId(value[0]) &&
+    (typeof value[1] === 'string' || value[1] === null)
+  );
+}
+
+function toWriteValue(type: string, value: unknown, context: string): PropertyValueType {
+  // Check the type even for unset values, so unknown types cannot pass silently.
+  switch (type) {
+    case 'char':
+    case 'date':
+    case 'datetime':
+    case 'selection':
+      if (value === null || value === false || typeof value === 'string') return value;
+      break;
+    case 'integer':
+    case 'float':
+      if (value === null || value === false) return value;
+      if (
+        typeof value === 'number' &&
+        Number.isFinite(value) &&
+        (type === 'float' || Number.isInteger(value))
+      )
+        return value;
+      break;
+    case 'boolean':
+      if (value === null || typeof value === 'boolean') return value;
+      break;
+    case 'tags':
+      if (value === null || value === false) return value;
+      if (Array.isArray(value)) {
+        const tags: unknown[] = Array.from(value);
+        if (tags.every((tag) => typeof tag === 'string')) return tags;
+      }
+      break;
+    case 'many2one':
+      if (value === null || value === false || isRelationId(value)) return value;
+      if (isRelationTuple(value)) return value[0];
+      throw new Error(
+        `${context}: expected a positive integer ID, [ID, string|null] tuple, false or null`,
+      );
+    case 'many2many':
+      if (value === null || value === false) return value;
+      if (Array.isArray(value)) {
+        const relations: unknown[] = Array.from(value);
+        if (relations.every(isRelationId)) return relations;
+        if (relations.every(isRelationTuple)) return relations.map((relation) => relation[0]);
+      }
+      throw new Error(
+        `${context}: expected positive integer IDs or [ID, string|null] tuples, false or null`,
+      );
+    default:
+      throw new Error(`${context}: unsupported property type "${type}"`);
+  }
+  throw new Error(`${context}: malformed ${type} value`);
+}
+
 /**
- * Helper to convert properties from read format to write format
- *
- * @param properties - Properties in read format (array)
- * @returns Properties in write format (object)
+ * Convert supported server-returned properties to dictionary-write values.
+ * Normalizes relational display tuples to IDs and omits separators without
+ * mutating the input. Rejects malformed entries instead of dropping values.
+ * This only preserves keys exposed by the server read.
  */
 export function propertiesToWriteFormat(properties: PropertiesReadFormat): PropertiesWriteFormat {
-  const result: PropertiesWriteFormat = {};
-  for (const property of properties) {
-    result[property.name] = property.value;
+  if (!Array.isArray(properties)) {
+    throw new Error('Properties read format must be an array');
   }
-  return result;
+  const entries: Array<[string, PropertyValueType]> = [];
+  for (const [index, property] of (properties as unknown[]).entries()) {
+    const context = `Property at index ${index}`;
+    if (!isRecord(property)) throw new Error(`${context}: expected an object`);
+    if (!Object.hasOwn(property, 'name') || typeof property.name !== 'string' || !property.name) {
+      throw new Error(`${context}: missing or invalid name`);
+    }
+    const namedContext = `${context} ("${property.name}")`;
+    if (!Object.hasOwn(property, 'type') || typeof property.type !== 'string') {
+      throw new Error(`${namedContext}: missing or invalid type`);
+    }
+    if (property.type === 'separator') continue;
+    if (!Object.hasOwn(property, 'value')) throw new Error(`${namedContext}: missing value`);
+    entries.push([property.name, toWriteValue(property.type, property.value, namedContext)]);
+  }
+  // fromEntries creates own data properties even for names such as __proto__.
+  return Object.fromEntries(entries);
 }
 
 /**

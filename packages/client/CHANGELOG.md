@@ -1,5 +1,21 @@
 # @godoo-dev/client
 
+## 0.8.0
+
+### Minor Changes
+
+- [#22](https://github.com/godoo-dev/godoo-ts/pull/22) [`9bdb8c4`](https://github.com/godoo-dev/godoo-ts/commit/9bdb8c4c2f6a3728f1a2b96123e045787ce09e32) Thanks [@marcfargas](https://github.com/marcfargas)! - Add creation to parent-scoped property bindings. Create records with typed property
+  and option aliases, scoped parent/context, and fresh definition validation in one
+  create RPC without adding retries.
+
+- [#17](https://github.com/godoo-dev/godoo-ts/pull/17) [`ac50f9b`](https://github.com/godoo-dev/godoo-ts/commit/ac50f9b8076d8f5cfd02b021645b9e8dbd72a031) Thanks [@marcfargas](https://github.com/marcfargas)! - Add parent-scoped property discovery, typed alias bindings, normalized reads and
+  validated merge patches with bounded batch concurrency and per-record write
+  receipts. Distinguish malformed RPC responses from explicit server rejections.
+
+### Patch Changes
+
+- [#16](https://github.com/godoo-dev/godoo-ts/pull/16) [`e7156c2`](https://github.com/godoo-dev/godoo-ts/commit/e7156c273e000f5d32ddaf9f786f222d2c512c30) Thanks [@marcfargas](https://github.com/marcfargas)! - Normalize properties relation display tuples to IDs before dictionary writes, preserving supported server-returned values during single and batch updates. Correct raw read and unset value types, omit separators, and reject malformed reads before launching batch writes. Read/merge/write remains non-atomic and cannot preserve hidden stored keys.
+
 ## 0.7.0
 
 ### Minor Changes

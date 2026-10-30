@@ -1,5 +1,12 @@
 # @godoo-dev/introspection
 
+## 0.2.4
+
+### Patch Changes
+
+- Updated dependencies [[`9bdb8c4`](https://github.com/godoo-dev/godoo-ts/commit/9bdb8c4c2f6a3728f1a2b96123e045787ce09e32), [`ac50f9b`](https://github.com/godoo-dev/godoo-ts/commit/ac50f9b8076d8f5cfd02b021645b9e8dbd72a031), [`e7156c2`](https://github.com/godoo-dev/godoo-ts/commit/e7156c273e000f5d32ddaf9f786f222d2c512c30)]:
+  - @godoo-dev/client@0.8.0
+
 ## 0.2.3
 
 ### Patch Changes

@@ -1,6 +1,16 @@
 import { dirname, resolve } from 'node:path';
 import { defineConfig } from 'tsdown';
 
+const sharedModules = new Map(
+  Object.entries({
+    'src/types/errors': '../errors.mjs',
+    'src/safety': '../safety.mjs',
+    'src/safety/index': '../safety.mjs',
+    'src/services/properties/binding-validation': '../binding-validation.mjs',
+    'src/services/modules/errors': '../module-errors.mjs',
+  }).map(([source, output]) => [resolve(source), output]),
+);
+
 export default defineConfig({
   entry: { index: './src/portable.ts' },
   outDir: './dist/portable',
@@ -18,18 +28,8 @@ export default defineConfig({
       resolveId(source, importer) {
         if (!importer || !source.startsWith('.')) return;
         const target = resolve(dirname(importer), source).replace(/\.(?:d\.)?[cm]?ts$/, '');
-        if (target === resolve('src/types/errors')) {
-          return { id: '../errors.mjs', external: true };
-        }
-        if (target === resolve('src/safety') || target === resolve('src/safety/index')) {
-          return { id: '../safety.mjs', external: true };
-        }
-        if (target === resolve('src/services/properties/binding-validation')) {
-          return { id: '../binding-validation.mjs', external: true };
-        }
-        if (target === resolve('src/services/modules/errors')) {
-          return { id: '../module-errors.mjs', external: true };
-        }
+        const shared = sharedModules.get(target);
+        if (shared) return { id: shared, external: true };
       },
     },
   ],

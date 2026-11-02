@@ -6,7 +6,6 @@ import {
   type OperationInfo,
   resolveSafetyContext,
   type SafetyContext,
-  type SafetyLevel,
 } from '../safety';
 import { AccountingService } from '../services/accounting/accounting-service';
 import { AttendanceService } from '../services/attendance/attendance-service';
@@ -17,7 +16,13 @@ import { PropertiesService } from '../services/properties/properties-service';
 import { TimesheetsService } from '../services/timesheets/timesheets-service';
 import { UrlService } from '../services/urls/url-service';
 import { OdooSafetyError } from '../types/errors';
-import type { ClientSession, ServiceClient } from './types';
+import type {
+  CallOptions,
+  ClientSession,
+  SearchOptions,
+  SearchReadOptions,
+  ServiceClient,
+} from './types';
 
 /** Portable SDK implementation shared by transport-specific clients. */
 export abstract class OdooClientCore implements ServiceClient {
@@ -274,7 +279,7 @@ export abstract class OdooClientCore implements ServiceClient {
     method: string,
     args: RpcArg[] = [],
     kwargs: Record<string, unknown> = {},
-    options?: { safetyLevel?: SafetyLevel },
+    options?: CallOptions,
   ): Promise<T> {
     this.assertReady();
 
@@ -300,16 +305,7 @@ export abstract class OdooClientCore implements ServiceClient {
    * @param options - Search options (offset, limit, order, etc)
    * @returns Array of record IDs
    */
-  async search(
-    model: string,
-    domain: Domain = [],
-    options: {
-      offset?: number;
-      limit?: number;
-      order?: string;
-      context?: Record<string, unknown>;
-    } = {},
-  ): Promise<number[]> {
+  async search(model: string, domain: Domain = [], options: SearchOptions = {}): Promise<number[]> {
     const kwargs: Record<string, unknown> = {};
     if (options.offset !== undefined) kwargs.offset = options.offset;
     if (options.limit !== undefined) kwargs.limit = options.limit;
@@ -350,13 +346,7 @@ export abstract class OdooClientCore implements ServiceClient {
   async searchRead<T extends object = Record<string, unknown>>(
     model: string,
     domain: Domain = [],
-    options: {
-      fields?: string[];
-      offset?: number;
-      limit?: number;
-      order?: string;
-      context?: Record<string, unknown>;
-    } = {},
+    options: SearchReadOptions = {},
   ): Promise<T[]> {
     const kwargs: Record<string, unknown> = {};
     if (options.fields !== undefined && options.fields.length > 0) {

@@ -21,16 +21,13 @@ export type EffectSet = readonly Effect[];
 
 /** Unknown is the conservative top: potentially destructive, external and schema-changing. */
 export function composeEffects(...sets: readonly EffectSet[]): EffectSet {
-  if (
-    sets.some(
-      (set) => !Array.isArray(set) || Array.from(set).some((effect) => !EFFECTS.includes(effect)),
-    )
-  ) {
-    return EFFECTS;
-  }
-  const union = new Set(sets.flat());
-  if ([...union].some((effect) => !EFFECTS.includes(effect)) || union.has('unknown')) {
-    return EFFECTS;
+  const union = new Set<Effect>();
+  for (const set of sets) {
+    if (!Array.isArray(set)) return EFFECTS;
+    for (const effect of set) {
+      if (!EFFECTS.includes(effect) || effect === 'unknown') return EFFECTS;
+      union.add(effect);
+    }
   }
   return Object.freeze(EFFECTS.filter((effect) => union.has(effect)));
 }

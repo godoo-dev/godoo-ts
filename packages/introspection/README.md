@@ -45,7 +45,7 @@ invalidate metadata after schema changes. The package's README and declarations
 are version-bound reference material; `@godoo-dev/client/reference` supplies a
 progressive index and `@godoo-dev/client/effects` declares introspection/formatter
 effects. Runtime introspection reads still require host declarations for the
-effective server implementations. See the [portable contract](../../docs/portable.md).
+effective server implementations. See the [portable contract](../client/README.md#portable-client).
 
 ## Quick Start
 

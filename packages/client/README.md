@@ -41,9 +41,9 @@ copies. Without identity, attendance helpers need an explicit employee ID.
 CRUD encodings and all eight services share the direct client's implementation:
 property scopes and bindings, caches, synchronous accessors and CDC async iterators
 retain their native behavior. `getServerInfo()` returns only the supplied snapshot
-or null. It performs no discovery. The portable and Node entrypoints share SDK error constructors and the legacy
-global safety context, preserving error classification when a bound RPC wraps a
-direct client. Direct Node consumers can also import `createBoundClient` from the
+or null. It performs no discovery. The portable and Node entrypoints share SDK
+error constructors and the legacy global safety context, preserving error
+classification when a bound RPC wraps a direct client. Direct Node consumers can also import `createBoundClient` from the
 package root.
 
 The portable bundle includes browser logging and excludes environment loaders,
@@ -59,8 +59,7 @@ This is a library boundary; it neither creates nor secures a sandbox.
 An empty set means no additional intrinsic effect. `rpc: 'dynamic'` still
 requires classifying each actual RPC; `rpc: 'none'` describes local computation
 or state. `unknown` expands to every effect. Composition unions sets without
-downgrading. Helper paths use service
-names such as `properties.binding.patch`; standalone aliases are also declared.
+downgrading. Helper paths use service names such as `properties.binding.patch`; standalone aliases are also declared.
 CDC feed effects apply when the iterator is consumed.
 
 On **each host RPC**, resolve the actual model and method with host-trusted input:
@@ -89,12 +88,21 @@ and are not forwarded as host authorization metadata. Combine helper effects and
 every actual RPC's effects at the host. Internal notes may notify, portal URLs may
 create/disclose tokens, and module hooks may destroy data or perform external work.
 
-`@godoo-dev/client/reference` exports `SDK_REFERENCE` (revision `portable-v1`)
-and `getSdkReference(section)` for progressive reference discovery across client
+`@godoo-dev/client/reference` exports `SDK_REFERENCE` and `getSdkReference(section)` for progressive reference discovery across client
 and introspection. The package README, effect declarations and each entrypoint's
 TypeScript declarations travel with the package bytes. Unknown reference sections
-return undefined; unknown helper paths remain conservative. See the repository's
-[portable contract](../../docs/portable.md) for the supplier/host boundary.
+return undefined; unknown helper paths remain conservative. The reference uses
+schema 1/revision `portable-v1`; exact package hashes identify delivered bytes.
+
+Portable introspection and pure formatters are available from
+`@godoo-dev/introspection/portable` and `@godoo-dev/introspection/formatters`;
+see the [introspection guide](../introspection/README.md#portable-runtime-and-formatters).
+Hosts must invalidate introspection metadata after schema changes.
+
+Source checks, installed tarball qualification, disposable Odoo18 behavior, target
+ACLs and consuming MCP acceptance are separate evidence. This SDK provides no MCP
+tools, policies, approvals or artifact receipts. Stateman is outside this contract.
+Publication and hosted MCP acceptance remain separate delivery steps.
 
 ## Quick Start
 

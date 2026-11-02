@@ -41,4 +41,4 @@ for capability intent and the public [Godoo organization profile](https://github
 for family orientation and [AGENTS.md](AGENTS.md) for agent guidance.
 
 Embedding an authorized SDK without credentials or Node filesystem access uses
-the [portable client, introspection and effect contracts](docs/portable.md).
+the [portable client, introspection and effect contracts](packages/client/README.md#portable-client).

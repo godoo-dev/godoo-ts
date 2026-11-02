@@ -7,10 +7,24 @@ import {
   createPropertiesScope,
   getPropertyValue,
   inspectModulePrerequisites,
+  ModuleLifecycleError,
+  OdooAccessError,
   OdooClient,
+  OdooRpcError,
+  PropertiesBindingError,
   propertiesToWriteFormat,
+  READ_METHODS,
+  setDefaultSafetyContext,
 } from '@godoo-dev/client';
-import { generateCompleteFile, Introspector } from '@godoo-dev/introspection';
+import {
+  createBoundClient,
+  PropertiesBindingError as PortableBindingError,
+  ModuleLifecycleError as PortableLifecycleError,
+  OdooRpcError as PortableRpcError,
+  READ_METHODS as portableReadMethods,
+} from '@godoo-dev/client/portable';
+import { generateCompleteFile as formatCompleteFile } from '@godoo-dev/introspection/formatters';
+import { Introspector } from '@godoo-dev/introspection/portable';
 import { normaliseOdooVersion, startOdoo } from '@godoo-dev/testcontainers';
 
 const require = createRequire(import.meta.url);
@@ -26,6 +40,58 @@ for (const name of ['client', 'introspection', 'testcontainers']) {
   origins[name] = resolved;
 }
 assert.equal(normaliseOdooVersion(undefined), '18.0');
+assert.equal(OdooRpcError, PortableRpcError);
+assert.equal(PropertiesBindingError, PortableBindingError);
+assert.equal(ModuleLifecycleError, PortableLifecycleError);
+assert.equal(READ_METHODS, portableReadMethods);
+assert(new OdooAccessError('denied by host') instanceof PortableRpcError);
+setDefaultSafetyContext({ confirm: async () => false });
+try {
+  await assert.rejects(
+    createBoundClient({
+      rpc: async () => {
+        throw new Error('Host must not be reached');
+      },
+    }).create('res.partner', {}),
+    { name: 'OdooSafetyError' },
+  );
+} finally {
+  setDefaultSafetyContext(null);
+}
+const definitions = [{ name: 'count', string: 'Count', type: 'integer' }];
+const hostErrorClient = createBoundClient({
+  async rpc(model, method, args) {
+    if (method === 'fields_get')
+      return args[0][0] === 'task_properties'
+        ? {
+            task_properties: {
+              type: 'properties',
+              definition_record: 'project_id',
+              definition_record_field: 'task_properties_definition',
+            },
+          }
+        : { project_id: { type: 'many2one', relation: 'project.project' } };
+    if (method === 'read')
+      return model === 'project.project'
+        ? [{ id: 7, task_properties_definition: definitions }]
+        : [
+            {
+              id: 3,
+              project_id: [7, 'Project'],
+              task_properties: [{ ...definitions[0], value: 2 }],
+            },
+          ];
+    throw new OdooAccessError('Denied by direct host client');
+  },
+});
+const hostErrorScope = await hostErrorClient.properties.scope('project.task', 'task_properties', {
+  parentId: 7,
+});
+assert.equal(
+  (await hostErrorScope.bind({ count: { id: 'count', type: 'integer' } }).patch(3, { count: 0 }))
+    .status,
+  'failed',
+);
 const propertyRead = [
   { name: 'owner', type: 'many2one', value: [41, null] },
   {
@@ -64,7 +130,7 @@ const metadata = {
     },
   ],
 };
-writeFileSync('generated.ts', generateCompleteFile([metadata]));
+writeFileSync('generated.ts', formatCompleteFile([metadata]));
 assert.equal(typeof inspectModulePrerequisites, 'function');
 assert.equal(
   typeof new Introspector(
@@ -81,23 +147,56 @@ console.log('GODOO_INSTALLED_ORIGINS ' + JSON.stringify(origins));
 if (process.env.GODOO_INSTALLED_ODOO === 'true') {
   const odoo = await startOdoo({ modules: ['base', 'mail', 'project'], snapshot: false });
   try {
-    const info = await odoo.client.getServerInfo();
+    const hostClient = odoo.client;
+    const client = createBoundClient({
+      rpc: (model, method, args, kwargs) => hostClient.call(model, method, args, kwargs),
+      session: { uid: hostClient.getSession().uid },
+    });
+    const info = await hostClient.getServerInfo();
     assert.equal(info.major, Number(process.env.ODOO_VERSION.split('.')[0]));
-    const result = await inspectModulePrerequisites(odoo.client, ['base']);
+    const restrictedLogin = 'installed-bound-acl-proof';
+    const restrictedPassword = 'disposable-acl-proof-password';
+    const restrictedUser = await hostClient.create('res.users', {
+      name: 'Disposable bound ACL proof',
+      login: restrictedLogin,
+      password: restrictedPassword,
+      groups_id: [[6, 0, []]],
+    });
+    const restrictedHost = new OdooClient({
+      url: odoo.url,
+      database: odoo.database,
+      username: restrictedLogin,
+      password: restrictedPassword,
+    });
+    try {
+      await restrictedHost.authenticate();
+      const restrictedBound = createBoundClient({
+        rpc: (model, method, args, kwargs) => restrictedHost.call(model, method, args, kwargs),
+        session: { uid: restrictedUser },
+      });
+      await assert.rejects(
+        restrictedBound.searchRead('ir.config_parameter', [], { fields: ['key'], limit: 1 }),
+        OdooAccessError,
+      );
+    } finally {
+      restrictedHost.logout();
+      await hostClient.unlink('res.users', restrictedUser);
+    }
+    const result = await inspectModulePrerequisites(client, ['base']);
     assert.equal(result.closureComplete, true);
-    const introspector = new Introspector(odoo.client);
+    const introspector = new Introspector(client);
     const live = await introspector.getModelMetadata('res.partner');
     assert.equal(live.fields.find((f) => f.name === 'name')?.ttype, 'char');
-    writeFileSync('generated.ts', generateCompleteFile([live]));
-    const id = await odoo.client.create('res.partner', { name: 'Owned installed-candidate proof' });
+    writeFileSync('generated.ts', formatCompleteFile([live]));
+    const id = await client.create('res.partner', { name: 'Owned installed-candidate proof' });
     try {
-      const [readback] = await odoo.client.read('res.partner', id, ['name']);
+      const [readback] = await client.read('res.partner', id, ['name']);
       assert.equal(readback?.name, 'Owned installed-candidate proof');
     } finally {
-      await odoo.client.unlink('res.partner', id);
+      await client.unlink('res.partner', id);
     }
-    const partner = await odoo.client.create('res.partner', { name: 'Property codec proof' });
-    const project = await odoo.client.create('project.project', {
+    const partner = await client.create('res.partner', { name: 'Property codec proof' });
+    const project = await client.create('project.project', {
       name: 'Installed property codec proof',
       task_properties_definition: [
         { name: 'owner', string: 'Owner', type: 'many2one', comodel: 'res.partner' },
@@ -118,20 +217,35 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
     try {
       for (const name of ['First', 'Second']) {
         taskIds.push(
-          await odoo.client.create('project.task', {
+          await client.create('project.task', {
             name,
             project_id: project,
             task_properties: { owner: partner, watchers: [partner], count: 0, priority: 'low_id' },
           }),
         );
       }
-      await odoo.client.properties.updateSafely('project.task', taskIds[0], 'task_properties', {
+      // Force real tracking events, then cross multiple nonempty pages through
+      // the installed bound SDK. An empty feed cannot satisfy this assertion.
+      for (const name of ['Tracked first', 'Tracked second', 'Tracked third']) {
+        await client.write('project.task', taskIds[0], { name });
+      }
+      const liveCdc = [];
+      for await (const event of client.cdc.getFeed('project.task', {
+        pageSize: 1,
+        domain: [['mail_message_id.res_id', '=', taskIds[0]]],
+      })) {
+        liveCdc.push(event);
+      }
+      assert(liveCdc.length >= 3, 'Expected nonempty multi-page tracking history');
+      assert(liveCdc.some((event) => event.field.name === 'name'));
+      assert(liveCdc.every((event, index) => index === 0 || event.id > liveCdc[index - 1].id));
+      await client.properties.updateSafely('project.task', taskIds[0], 'task_properties', {
         count: 1,
       });
-      await odoo.client.properties.updateSafelyBatch('project.task', taskIds, 'task_properties', {
+      await client.properties.updateSafelyBatch('project.task', taskIds, 'task_properties', {
         count: 2,
       });
-      const rows = await odoo.client.read('project.task', taskIds, ['task_properties']);
+      const rows = await client.read('project.task', taskIds, ['task_properties']);
       assert.equal(rows.length, 2);
       for (const row of rows) {
         assert.deepEqual(propertiesToWriteFormat(row.task_properties), {
@@ -141,7 +255,7 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
           priority: 'low_id',
         });
       }
-      const scope = await createPropertiesScope(odoo.client, 'project.task', 'task_properties', {
+      const scope = await createPropertiesScope(client, 'project.task', 'task_properties', {
         parentId: project,
         context: { lang: 'en_US' },
       });
@@ -168,7 +282,10 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
         assert.equal(row.properties.reviewer, partner);
         assert.deepEqual(propertiesToWriteFormat(row.raw).watchers, [partner]);
       }
-      const serviceScope = await odoo.client.properties.scope('project.task', 'task_properties', {
+      // Independent direct readback checks the bound client's writes.
+      const [independent] = await hostClient.read('project.task', taskIds[0], ['task_properties']);
+      assert.equal(propertiesToWriteFormat(independent.task_properties).count, 0);
+      const serviceScope = await client.properties.scope('project.task', 'task_properties', {
         parentId: project,
       });
       const counts = serviceScope.bind({ count: { id: 'count', type: 'integer' } });
@@ -183,7 +300,7 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
         },
       );
       taskIds.push(created);
-      const [createdRaw] = await odoo.client.read('project.task', created, [
+      const [createdRaw] = await client.read('project.task', created, [
         'name',
         'project_id',
         'task_properties',
@@ -202,9 +319,9 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
         reviewer: partner,
       });
     } finally {
-      if (taskIds.length) await odoo.client.unlink('project.task', taskIds);
-      await odoo.client.unlink('project.project', project);
-      await odoo.client.unlink('res.partner', partner);
+      if (taskIds.length) await client.unlink('project.task', taskIds);
+      await client.unlink('project.project', project);
+      await client.unlink('res.partner', partner);
     }
     writeFileSync(
       'runtime-proof.json',
@@ -215,6 +332,9 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
           odooContainerId: odoo.odooContainer.getId(),
           postgresContainerId: odoo.postgresContainer.getId(),
           modules: ['base', 'mail', 'project'],
+          boundClient: true,
+          restrictedUserAclDenied: true,
+          nonemptyBoundCdcPagination: true,
           origins,
         },
         null,

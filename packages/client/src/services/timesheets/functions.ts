@@ -16,7 +16,7 @@
  */
 
 import debug from 'debug';
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import type { Domain } from '../../rpc/types';
 import { OdooValidationError } from '../../types/errors';
 import { resolveEmployeeId } from '../attendance/functions';
@@ -59,14 +59,14 @@ function today(): string {
  * An entry with unit_amount = 0 represents a running clock.
  * Call stopTimer() to compute elapsed time and fill in the duration.
  *
- * @param client  - Authenticated OdooClient
+ * @param client  - Authenticated ServiceClient
  * @param options - Timer options (description, projectId, optional taskId/employeeId)
  * @returns The created timesheet entry (unit_amount = 0)
  *
  * @throws OdooValidationError if description or projectId missing
  */
 export async function startTimer(
-  client: OdooClient,
+  client: ServiceClient,
   options: TimerStartOptions,
 ): Promise<TimesheetEntry> {
   if (!options.description?.trim()) {
@@ -112,13 +112,16 @@ export async function startTimer(
  * Computes elapsed time from create_date to now and writes unit_amount.
  * After this call, the entry has unit_amount > 0 (closed).
  *
- * @param client      - Authenticated OdooClient
+ * @param client      - Authenticated ServiceClient
  * @param timesheetId - ID of the timesheet entry to stop (must have unit_amount = 0)
  * @returns The updated timesheet entry with duration filled in
  *
  * @throws OdooValidationError if the entry already has a duration
  */
-export async function stopTimer(client: OdooClient, timesheetId: number): Promise<TimesheetEntry> {
+export async function stopTimer(
+  client: ServiceClient,
+  timesheetId: number,
+): Promise<TimesheetEntry> {
   log('Stopping timer on entry %d', timesheetId);
 
   const [entry] = await client.read<TimesheetEntry>(
@@ -178,12 +181,12 @@ export async function stopTimer(client: OdooClient, timesheetId: number): Promis
  *
  * Running timers are timesheet entries with unit_amount = 0.
  *
- * @param client     - Authenticated OdooClient
+ * @param client     - Authenticated ServiceClient
  * @param employeeId - Employee ID (omit for current user's employee)
  * @returns Array of timesheet entries with unit_amount = 0
  */
 export async function getRunningTimers(
-  client: OdooClient,
+  client: ServiceClient,
   employeeId?: number,
 ): Promise<TimesheetEntry[]> {
   const empId = await resolveEmployeeId(client, employeeId);
@@ -208,14 +211,14 @@ export async function getRunningTimers(
  *
  * Creates an account.analytic.line with unit_amount already set.
  *
- * @param client  - Authenticated OdooClient
+ * @param client  - Authenticated ServiceClient
  * @param options - Time log options
  * @returns The created timesheet entry
  *
  * @throws OdooValidationError if required fields missing or hours <= 0
  */
 export async function logTime(
-  client: OdooClient,
+  client: ServiceClient,
   options: LogTimeOptions,
 ): Promise<TimesheetEntry> {
   if (!options.description?.trim()) {
@@ -259,12 +262,12 @@ export async function logTime(
 /**
  * List timesheet entries with optional filters.
  *
- * @param client  - Authenticated OdooClient
+ * @param client  - Authenticated ServiceClient
  * @param options - Filter and pagination options
  * @returns Array of timesheet entries
  */
 export async function listTimesheets(
-  client: OdooClient,
+  client: ServiceClient,
   options: TimesheetListOptions = {},
 ): Promise<TimesheetEntry[]> {
   const domain: Domain = [];

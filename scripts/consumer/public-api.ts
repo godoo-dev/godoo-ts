@@ -180,3 +180,22 @@ async function unionPropertyContract(
   await broad.patch(1, { invalid: {} });
 }
 void unionPropertyContract;
+
+import { type RpcEffectManifest, resolveRpcEffects } from '@godoo-dev/client/effects';
+// Installed portable declarations compile under NodeNext without concrete auth clients.
+import { createBoundClient, type ModelRpc, type ServiceClient } from '@godoo-dev/client/portable';
+import { getSdkReference } from '@godoo-dev/client/reference';
+import { generateModelInterface } from '@godoo-dev/introspection/formatters';
+import { Introspector as PortableIntrospector } from '@godoo-dev/introspection/portable';
+export function portableApiConsumer(rpc: ModelRpc, effective: RpcEffectManifest) {
+  const bound = createBoundClient({ rpc, session: { uid: 7 } });
+  const service: ServiceClient = bound;
+  const inspection = new PortableIntrospector(service);
+  return {
+    bound,
+    inspection,
+    generateModelInterface,
+    effects: resolveRpcEffects('res.partner', 'read', { effective }),
+    reference: getSdkReference('properties'),
+  };
+}

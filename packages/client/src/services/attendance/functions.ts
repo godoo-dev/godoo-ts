@@ -15,7 +15,7 @@
  */
 
 import debug from 'debug';
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import type { Domain } from '../../rpc/types';
 import { OdooValidationError } from '../../types/errors';
 import type { AttendanceListOptions, AttendanceRecord, AttendanceStatus } from './types';
@@ -33,7 +33,10 @@ const ATTENDANCE_FIELDS = ['employee_id', 'check_in', 'check_out', 'worked_hours
  *
  * @throws OdooValidationError if no employee record found for current user
  */
-export async function resolveEmployeeId(client: OdooClient, employeeId?: number): Promise<number> {
+export async function resolveEmployeeId(
+  client: ServiceClient,
+  employeeId?: number,
+): Promise<number> {
   if (employeeId) return employeeId;
 
   const session = client.getSession();
@@ -69,13 +72,16 @@ export async function resolveEmployeeId(client: OdooClient, employeeId?: number)
  * Creates an hr.attendance record with check_in = now (UTC).
  * Odoo's _check_validity constraint ensures no overlapping attendances.
  *
- * @param client     - Authenticated OdooClient
+ * @param client     - Authenticated ServiceClient
  * @param employeeId - Employee ID (omit to use current user's employee)
  * @returns The created attendance record
  *
  * @throws OdooValidationError if employee is already clocked in
  */
-export async function clockIn(client: OdooClient, employeeId?: number): Promise<AttendanceRecord> {
+export async function clockIn(
+  client: ServiceClient,
+  employeeId?: number,
+): Promise<AttendanceRecord> {
   const empId = await resolveEmployeeId(client, employeeId);
   log('Clocking in employee %d', empId);
 
@@ -116,13 +122,16 @@ export async function clockIn(client: OdooClient, employeeId?: number): Promise<
  * Finds the open attendance (check_out = false) for the employee
  * and sets check_out = now (UTC).
  *
- * @param client     - Authenticated OdooClient
+ * @param client     - Authenticated ServiceClient
  * @param employeeId - Employee ID (omit to use current user's employee)
  * @returns The updated attendance record (with worked_hours computed)
  *
  * @throws OdooValidationError if employee is not currently clocked in
  */
-export async function clockOut(client: OdooClient, employeeId?: number): Promise<AttendanceRecord> {
+export async function clockOut(
+  client: ServiceClient,
+  employeeId?: number,
+): Promise<AttendanceRecord> {
   const empId = await resolveEmployeeId(client, employeeId);
   log('Clocking out employee %d', empId);
 
@@ -160,12 +169,12 @@ export async function clockOut(client: OdooClient, employeeId?: number): Promise
  * Returns whether the employee is currently clocked in, and if so,
  * the open attendance record.
  *
- * @param client     - Authenticated OdooClient
+ * @param client     - Authenticated ServiceClient
  * @param employeeId - Employee ID (omit to use current user's employee)
  * @returns Attendance status
  */
 export async function getStatus(
-  client: OdooClient,
+  client: ServiceClient,
   employeeId?: number,
 ): Promise<AttendanceStatus> {
   const empId = await resolveEmployeeId(client, employeeId);
@@ -194,12 +203,12 @@ export async function getStatus(
 /**
  * List attendance records with optional filtering.
  *
- * @param client  - Authenticated OdooClient
+ * @param client  - Authenticated ServiceClient
  * @param options - Filter and pagination options
  * @returns Array of attendance records
  */
 export async function listAttendances(
-  client: OdooClient,
+  client: ServiceClient,
   options: AttendanceListOptions = {},
 ): Promise<AttendanceRecord[]> {
   const domain: Domain = [];

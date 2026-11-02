@@ -5,7 +5,7 @@
  * functions in functions.ts, binding the client reference.
  */
 
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import {
   postInternalNote as _postInternalNote,
   postOpenMessage as _postOpenMessage,
@@ -23,7 +23,7 @@ import type { PostMessageOptions } from './types';
  */
 export class MailService {
   /** @internal */
-  constructor(private client: OdooClient) {}
+  constructor(private client: ServiceClient) {}
 
   /**
    * Post an internal note on a record's chatter.

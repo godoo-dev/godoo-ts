@@ -5,7 +5,7 @@
  * Delegates to standalone functions in functions.ts.
  */
 
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import {
   getBaseUrl as _getBaseUrl,
   getPortalUrl as _getPortalUrl,
@@ -25,7 +25,7 @@ import type { PortalUrlOptions, PortalUrlResult } from './types';
  */
 export class UrlService {
   /** @internal */
-  constructor(private client: OdooClient) {}
+  constructor(private client: ServiceClient) {}
 
   /**
    * Get the base URL of the Odoo instance.

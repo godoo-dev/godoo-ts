@@ -18,6 +18,14 @@
     ".": {
       "import": "./dist/index.mjs",
       "types": "./dist/index.d.mts"
+    },
+    "./portable": {
+      "types": "./dist/portable.d.mts",
+      "import": "./dist/portable.mjs"
+    },
+    "./formatters": {
+      "types": "./dist/formatters.d.mts",
+      "import": "./dist/formatters.mjs"
     }
   },
   "bin": {

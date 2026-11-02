@@ -7,8 +7,13 @@
     "declarationMap": false,
     "paths": {
       "@godoo-dev/client": ["./packages/client/src/index.ts"],
+      "@godoo-dev/client/portable": ["./packages/client/src/portable.ts"],
+      "@godoo-dev/client/effects": ["./packages/client/src/effects.ts"],
+      "@godoo-dev/client/reference": ["./packages/client/src/reference.ts"],
       "@godoo-dev/testcontainers": ["./packages/testcontainers/src/index.ts"],
-      "@godoo-dev/introspection": ["./packages/introspection/src/index.ts"]
+      "@godoo-dev/introspection": ["./packages/introspection/src/index.ts"],
+      "@godoo-dev/introspection/portable": ["./packages/introspection/src/portable.ts"],
+      "@godoo-dev/introspection/formatters": ["./packages/introspection/src/formatters.ts"]
     },
     "module": "preserve",
     "moduleResolution": "bundler"

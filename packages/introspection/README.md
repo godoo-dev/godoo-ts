@@ -18,6 +18,35 @@ pnpm add @godoo-dev/introspection @godoo-dev/client
 
 **Prerequisites**: Node.js ≥ 22.18.0, an authorized Odoo18 instance.
 
+## Portable runtime and formatters
+
+Use the portable exports when the host supplies an authorized client capability:
+
+```ts
+import { type IntrospectionClient, Introspector } from '@godoo-dev/introspection/portable';
+import { generateModelInterface } from '@godoo-dev/introspection/formatters';
+
+export async function describeContacts(client: IntrospectionClient) {
+  const introspector = new Introspector(client);
+  return generateModelInterface(await introspector.getModelMetadata('res.partner'));
+}
+```
+
+`IntrospectionClient` requires only `call` and `searchRead`. It accepts the native
+bound client, direct client and structurally compatible clients. `/portable`
+exports `Introspector`, `IntrospectionCache`, types and runtime field mapping;
+`/formatters` exports pure string generators and type mappers. Both ship their own
+declarations and exclude filesystem generators, CLI, Node builtins and transports.
+Existing package-root generation and CLI APIs retain their Node behavior.
+
+Maps, synchronous cache accessors, cached object identity and explicit model/full
+invalidation retain their native behavior. Hosts own target authorization and must
+invalidate metadata after schema changes. The package's README and declarations
+are version-bound reference material; `@godoo-dev/client/reference` supplies a
+progressive index and `@godoo-dev/client/effects` declares introspection/formatter
+effects. Runtime introspection reads still require host declarations for the
+effective server implementations. See the [portable contract](../client/README.md#portable-client).
+
 ## Quick Start
 
 ### Programmatic Usage

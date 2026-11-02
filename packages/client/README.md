@@ -19,6 +19,89 @@ pnpm add @godoo-dev/client
 
 **Prerequisites**: Node.js ≥ 22.18.0, an authorized Odoo18 instance.
 
+## Portable client
+
+Embed the native SDK over a host-provided model RPC capability:
+
+```ts
+import { createBoundClient, type ModelRpc } from '@godoo-dev/client/portable';
+
+export function bindSdk(rpc: ModelRpc) {
+  return createBoundClient({ rpc, session: { uid: 7 } });
+}
+```
+
+`rpc<T>(model, method, args, kwargs): Promise<T>` executes one model method. The
+host owns target selection, authentication, authorization, cancellation and
+resource limits. The bound client has no login, credentials or network settings.
+Its optional `session` projects only `uid`; `serverInfo` accepts public version
+facts and excludes raw transport responses. Snapshot getters return detached
+copies. Without identity, attendance helpers need an explicit employee ID.
+
+CRUD encodings and all eight services share the direct client's implementation:
+property scopes and bindings, caches, synchronous accessors and CDC async iterators
+retain their native behavior. `getServerInfo()` returns only the supplied snapshot
+or null. It performs no discovery. The portable and Node entrypoints share SDK
+error constructors and the legacy global safety context, preserving error
+classification when a bound RPC wraps a direct client. Direct Node consumers can also import `createBoundClient` from the
+package root.
+
+The portable bundle includes browser logging and excludes environment loaders,
+network transports and Node builtins. Helpers require standard ES2022 globals,
+`structuredClone` (properties), `URLSearchParams` (URLs) and timers (module retries).
+This is a library boundary; it neither creates nor secures a sandbox.
+
+### Versioned effects and reference
+
+`@godoo-dev/client/effects` exports contract version 1, `HELPER_EFFECTS`,
+`getHelperEffects`, `composeEffects` and `resolveRpcEffects`. Effect sets use
+`read`, `mutate`, `destructive`, `external`, `schema`, `disclose` and `unknown`.
+An empty set means no additional intrinsic effect. `rpc: 'dynamic'` still
+requires classifying each actual RPC; `rpc: 'none'` describes local computation
+or state. `unknown` expands to every effect. Composition unions sets without
+downgrading. Helper paths use service names such as `properties.binding.patch`; standalone aliases are also declared.
+CDC feed effects apply when the iterator is consumed.
+
+On **each host RPC**, resolve the actual model and method with host-trusted input:
+
+```ts
+import { resolveRpcEffects, type RpcEffectManifest } from '@godoo-dev/client/effects';
+
+export function classifyRead(effective: RpcEffectManifest, addons: RpcEffectManifest[]) {
+  return resolveRpcEffects('res.partner', 'read', { effective, addons });
+}
+```
+
+A manifest has `schemaVersion: 1`, a nonempty provenance `source`, and
+`declarations: [{ model, method, effects }]`. Names match exactly; wildcards are
+invalid. `effective` is the host's attestation covering the current implementation,
+including installed overrides. Addon manifests only add effects. An unreviewed
+override declares `unknown`; an absent effective match, unsupported version or
+malformed declaration resolves to unknown. The host must refresh attestations
+when target implementations change. Never accept these attestations from guests.
+
+Library declarations describe potential helper behavior and conservative minima
+for recognized RPCs. They do not certify server overrides. Generic/custom methods
+and familiar names such as `read` stay unknown without effective host coverage.
+Legacy `safetyLevel`, safety callbacks and `READ_METHODS` do not grant authority
+and are not forwarded as host authorization metadata. Combine helper effects and
+every actual RPC's effects at the host. Internal notes may notify, portal URLs may
+create/disclose tokens, and module hooks may destroy data or perform external work.
+
+`@godoo-dev/client/reference` exports `SDK_REFERENCE` and `getSdkReference(section)` for progressive reference discovery across client
+and introspection. The package README, effect declarations and each entrypoint's
+TypeScript declarations travel with the package bytes. Unknown reference sections
+return undefined; unknown helper paths remain conservative. The reference uses
+schema 1/revision `portable-v1`; exact package hashes identify delivered bytes.
+
+Portable introspection and pure formatters are available from
+`@godoo-dev/introspection/portable` and `@godoo-dev/introspection/formatters`;
+see the [introspection guide](../introspection/README.md#portable-runtime-and-formatters).
+Hosts must invalidate introspection metadata after schema changes.
+
+This SDK provides no MCP tools, policies, approvals or artifact receipts.
+Stateman is outside this contract.
+
 ## Quick Start
 
 ```typescript

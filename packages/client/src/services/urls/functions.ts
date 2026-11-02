@@ -16,7 +16,7 @@
  */
 
 import debug from 'debug';
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import type { PortalUrlOptions, PortalUrlResult } from './types';
 
 const log = debug('odoo-client:urls');
@@ -25,7 +25,7 @@ const log = debug('odoo-client:urls');
  * Cache for web.base.url — it rarely changes during a session.
  * Key: client instance (via WeakMap), Value: base URL string.
  */
-const baseUrlCache = new WeakMap<OdooClient, string>();
+const baseUrlCache = new WeakMap<ServiceClient, string>();
 
 /**
  * Get the base URL of the Odoo instance.
@@ -37,13 +37,13 @@ const baseUrlCache = new WeakMap<OdooClient, string>();
  * Result is cached per client instance — call with `forceRefresh: true`
  * to bypass the cache.
  *
- * @param client - Authenticated OdooClient instance
+ * @param client - Authenticated ServiceClient instance
  * @param forceRefresh - Bypass cache and re-read from Odoo
  * @returns Base URL string (e.g., 'https://mycompany.odoo.com')
  *
  * @see https://github.com/odoo/odoo/blob/17.0/odoo/addons/base/models/ir_config_parameter.py
  */
-export async function getBaseUrl(client: OdooClient, forceRefresh = false): Promise<string> {
+export async function getBaseUrl(client: ServiceClient, forceRefresh = false): Promise<string> {
   if (!forceRefresh) {
     const cached = baseUrlCache.get(client);
     if (cached) {
@@ -87,7 +87,7 @@ export async function getBaseUrl(client: OdooClient, forceRefresh = false): Prom
  * This works across ALL Odoo versions (14+) regardless of whether
  * the web client uses hash-based (#) or path-based (/odoo/) URLs.
  *
- * @param client - Authenticated OdooClient instance
+ * @param client - Authenticated ServiceClient instance
  * @param model  - Odoo model name (e.g., 'crm.lead', 'sale.order')
  * @param resId  - Record ID
  * @returns Full URL string (e.g., 'https://mycompany.odoo.com/mail/view?model=crm.lead&res_id=42')
@@ -101,7 +101,7 @@ export async function getBaseUrl(client: OdooClient, forceRefresh = false): Prom
  * @see https://github.com/odoo/odoo/blob/17.0/addons/mail/controllers/mail.py — mail_action_view
  */
 export async function getRecordUrl(
-  client: OdooClient,
+  client: ServiceClient,
   model: string,
   resId: number,
 ): Promise<string> {
@@ -129,7 +129,7 @@ export async function getRecordUrl(
  * Throws if the model doesn't have `access_url` / `access_token` fields
  * (i.e., doesn't inherit from portal.mixin).
  *
- * @param client - Authenticated OdooClient instance
+ * @param client - Authenticated ServiceClient instance
  * @param model  - Odoo model that inherits portal.mixin
  * @param resId  - Record ID
  * @param options - Optional: suffix, report type, download flag
@@ -151,7 +151,7 @@ export async function getRecordUrl(
  * @see https://github.com/odoo/odoo/blob/17.0/addons/portal/models/portal_mixin.py — get_portal_url
  */
 export async function getPortalUrl(
-  client: OdooClient,
+  client: ServiceClient,
   model: string,
   resId: number,
   options?: PortalUrlOptions,

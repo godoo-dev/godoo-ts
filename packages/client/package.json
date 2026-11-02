@@ -17,6 +17,18 @@
     ".": {
       "import": "./dist/index.mjs",
       "types": "./dist/index.d.mts"
+    },
+    "./portable": {
+      "types": "./dist/portable/index.d.mts",
+      "import": "./dist/portable/index.mjs"
+    },
+    "./effects": {
+      "types": "./dist/effects.d.mts",
+      "import": "./dist/effects.mjs"
+    },
+    "./reference": {
+      "types": "./dist/reference.d.mts",
+      "import": "./dist/reference.mjs"
     }
   },
   "files": [
@@ -25,7 +37,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && tsdown --config tsdown.portable.config.ts",
     "dev": "tsdown --watch",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts"

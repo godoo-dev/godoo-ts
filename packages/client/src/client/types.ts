@@ -115,3 +115,13 @@ export interface OdooCrudClient {
    */
   searchCount(model: string, domain?: Domain, context?: Record<string, unknown>): Promise<number>;
 }
+
+/** Public identity sufficient for helpers that resolve the current employee. */
+export interface ClientSession {
+  uid: number;
+}
+
+/** Shared structural interface used by native SDK services. */
+export interface ServiceClient extends OdooCrudClient {
+  getSession(): ClientSession | null;
+}

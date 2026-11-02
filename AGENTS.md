@@ -24,8 +24,8 @@ configuration and private evidence stay outside tracked public content.
 Preserve unrelated edits. Check status, branch, worktree ownership and active users
 before changes; do not switch/reset the primary branch or alter another worker's
 checkout. Use owner-paths for notes and evidence outside source. Work directly for
-Marc in the current conversation. Do not contact agents or coordinators, launch
-delegates, poll mailboxes or use files, issues, Slack or email as message relays.
+Marc in the current conversation. Do not contact unrelated project agents or coordinators, poll their mailboxes,
+or use files, issues, Slack or email as cross-project message relays.
 Report dependencies and ownership/resource conflicts to Marc here. Existing grants
 and holdings survive; recording work does not transfer them.
 

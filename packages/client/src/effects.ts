@@ -126,12 +126,11 @@ export function resolveRpcEffects(
   if (!effective || !Array.isArray(addons)) return EFFECTS;
   const manifests: readonly RpcEffectManifest[] = [effective, ...addons];
   if (!manifests.every(validManifest)) return EFFECTS;
-  if (!effective.declarations.some((item) => item.model === model && item.method === method)) {
-    return EFFECTS;
-  }
-  const declarations = manifests.flatMap((manifest) =>
+  const matches = manifests.map((manifest) =>
     manifest.declarations.filter((item) => item.model === model && item.method === method),
   );
+  if (!matches[0]?.length) return EFFECTS;
+  const declarations = matches.flat();
   return composeEffects(rpcMinimum(model, method), ...declarations.map((item) => item.effects));
 }
 
@@ -142,9 +141,14 @@ export interface HelperEffectDeclaration {
 }
 
 const helperEffects: Record<string, HelperEffectDeclaration> = Object.create(null);
-function declare(paths: readonly string[], effects: EffectSet, rpc: 'none' | 'dynamic'): void {
+function declare(
+  paths: readonly string[],
+  effects: EffectSet,
+  rpc: 'none' | 'dynamic',
+): HelperEffectDeclaration {
   const declaration = Object.freeze({ effects: composeEffects(effects), rpc });
   for (const path of paths) helperEffects[path] = declaration;
+  return declaration;
 }
 
 declare(
@@ -258,18 +262,19 @@ declare(
   [],
   'none',
 );
-declare(
-  [
-    'mapOdooFieldTypeToTypeScript',
-    'modelNameToInterfaceName',
-    'generateModelInterface',
-    'generateCompleteFile',
-    'generateHelperTypes',
-    'mapFieldType',
-    'getFieldTypeExpression',
-    'isWritableField',
-    'generateFieldJSDoc',
-  ].map((method) => `formatters.${method}`),
+const formatterNames = [
+  'mapOdooFieldTypeToTypeScript',
+  'modelNameToInterfaceName',
+  'generateModelInterface',
+  'generateCompleteFile',
+  'generateHelperTypes',
+  'mapFieldType',
+  'getFieldTypeExpression',
+  'isWritableField',
+  'generateFieldJSDoc',
+];
+const formatterDeclaration = declare(
+  formatterNames.map((method) => `formatters.${method}`),
   [],
   'none',
 );
@@ -325,7 +330,7 @@ declare(
   [],
   'none',
 );
-declare(
+const propertyDeclaration = declare(
   [
     'getPropertyValue',
     'propertiesToWriteFormat',
@@ -339,13 +344,10 @@ declare(
   [],
   'none',
 );
-for (const [path, declaration] of Object.entries(helperEffects)) {
-  if (path.startsWith('formatters.')) helperEffects[path.slice('formatters.'.length)] = declaration;
-}
-for (const name of ['getPropertyValue', 'propertiesToWriteFormat', 'getPropertyDefinition']) {
-  const declaration = helperEffects[name];
-  if (declaration) helperEffects[`propertyCodecs.${name}`] = declaration;
-}
+for (const name of formatterNames) helperEffects[name] = formatterDeclaration;
+helperEffects['propertyCodecs.getPropertyValue'] = propertyDeclaration;
+helperEffects['propertyCodecs.propertiesToWriteFormat'] = propertyDeclaration;
+helperEffects['propertyCodecs.getPropertyDefinition'] = propertyDeclaration;
 
 export const HELPER_EFFECTS: Readonly<Record<string, HelperEffectDeclaration>> =
   Object.freeze(helperEffects);

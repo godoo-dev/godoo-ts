@@ -99,10 +99,8 @@ Portable introspection and pure formatters are available from
 see the [introspection guide](../introspection/README.md#portable-runtime-and-formatters).
 Hosts must invalidate introspection metadata after schema changes.
 
-Source checks, installed tarball qualification, disposable Odoo18 behavior, target
-ACLs and consuming MCP acceptance are separate evidence. This SDK provides no MCP
-tools, policies, approvals or artifact receipts. Stateman is outside this contract.
-Publication and hosted MCP acceptance remain separate delivery steps.
+This SDK provides no MCP tools, policies, approvals or artifact receipts.
+Stateman is outside this contract.
 
 ## Quick Start
 

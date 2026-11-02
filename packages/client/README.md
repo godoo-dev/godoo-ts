@@ -56,8 +56,10 @@ This is a library boundary; it neither creates nor secures a sandbox.
 `@godoo-dev/client/effects` exports contract version 1, `HELPER_EFFECTS`,
 `getHelperEffects`, `composeEffects` and `resolveRpcEffects`. Effect sets use
 `read`, `mutate`, `destructive`, `external`, `schema`, `disclose` and `unknown`.
-An empty set means local computation/state only; `unknown` expands to every
-effect. Composition unions sets without downgrading. Helper paths use service
+An empty set means no additional intrinsic effect. `rpc: 'dynamic'` still
+requires classifying each actual RPC; `rpc: 'none'` describes local computation
+or state. `unknown` expands to every effect. Composition unions sets without
+downgrading. Helper paths use service
 names such as `properties.binding.patch`; standalone aliases are also declared.
 CDC feed effects apply when the iterator is consumed.
 

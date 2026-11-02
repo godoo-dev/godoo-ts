@@ -217,7 +217,9 @@ declare(
   ['read', 'mutate', 'destructive', 'external', 'schema'],
   'dynamic',
 );
-declare(['client.call'], ['unknown'], 'dynamic');
+// The wrapper contributes no intrinsic effect. Its actual RPC must be resolved
+// at the host; missing effective coverage still produces the unknown top.
+declare(['client.call'], [], 'dynamic');
 declare(
   [
     'client.getSession',
@@ -351,7 +353,10 @@ for (const name of ['getPropertyValue', 'propertiesToWriteFormat', 'getPropertyD
 export const HELPER_EFFECTS: Readonly<Record<string, HelperEffectDeclaration>> =
   Object.freeze(helperEffects);
 
-/** Unlisted helpers are unknown. An empty set denotes a declared local/pure operation. */
+/**
+ * Unlisted helpers are unknown. Empty means no additional intrinsic effect;
+ * dynamic RPC still requires host classification of every actual call.
+ */
 export function getHelperEffects(path: string): HelperEffectDeclaration {
   return HELPER_EFFECTS[path] ?? Object.freeze({ effects: EFFECTS, rpc: 'dynamic' });
 }

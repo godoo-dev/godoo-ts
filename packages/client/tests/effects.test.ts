@@ -92,6 +92,39 @@ describe('host effect boundary', () => {
     expect(composeEffects(Array(1))).toEqual(EFFECTS);
   });
 
+  it('classifies raw calls through effective RPC facts without bypassing unknown overrides', () => {
+    const raw = getHelperEffects('client.call');
+    expect(raw.rpc).toBe('dynamic');
+    expect(
+      composeEffects(
+        raw.effects,
+        resolveRpcEffects('res.partner', 'read', {
+          effective: manifest(['read']),
+        }),
+      ),
+    ).toEqual(['read']);
+    expect(
+      composeEffects(
+        raw.effects,
+        resolveRpcEffects('res.partner', 'custom', {
+          effective: manifest(['mutate'], 'res.partner', 'custom'),
+        }),
+      ),
+    ).toEqual(['mutate']);
+    expect(composeEffects(raw.effects, resolveRpcEffects('res.partner', 'custom'))).toEqual(
+      EFFECTS,
+    );
+    expect(
+      composeEffects(
+        raw.effects,
+        resolveRpcEffects('res.partner', 'read', {
+          effective: manifest(['read']),
+          addons: [manifest(['unknown'])],
+        }),
+      ),
+    ).toEqual(EFFECTS);
+  });
+
   it('retains library minima even when a host declaration understates a known operation', () => {
     expect(
       resolveRpcEffects('res.partner', 'unlink', {

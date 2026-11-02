@@ -22,7 +22,7 @@ import type { Domain } from '../../rpc/types';
  */
 
 import debug from 'debug';
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import { type CachedFieldMeta, FieldMetaCache } from './field-cache';
 import { type RawTrackingRow, resolveValues } from './resolver';
 import type {
@@ -70,7 +70,7 @@ const FIELD_META_FIELDS = ['id', 'name', 'ttype', 'field_description'];
  * Uses cache; fetches missing IDs from Odoo.
  */
 async function resolveFieldMeta(
-  client: OdooClient,
+  client: ServiceClient,
   fieldIds: number[],
   cache: FieldMetaCache,
 ): Promise<Map<number, CachedFieldMeta>> {
@@ -165,7 +165,7 @@ function buildEvent(
  *
  * RPCs: 2 (ir.model.fields + mail.tracking.value count)
  */
-export async function check(client: OdooClient, model: string): Promise<CdcCheckResult> {
+export async function check(client: ServiceClient, model: string): Promise<CdcCheckResult> {
   log('check %s', model);
 
   // RPC 1: model fields — detect mail.thread + count tracked fields
@@ -201,7 +201,7 @@ export async function check(client: OdooClient, model: string): Promise<CdcCheck
  * RPCs: 2 (mail.tracking.value + ir.model.fields)
  */
 export async function getHistory(
-  client: OdooClient,
+  client: ServiceClient,
   model: string,
   id: number,
   opts: GetHistoryOptions = {},
@@ -297,7 +297,7 @@ export async function getHistory(
  * ```
  */
 export async function* getFeed(
-  client: OdooClient,
+  client: ServiceClient,
   model: string,
   opts: GetFeedOptions = {},
 ): AsyncIterable<TrackingEvent> {

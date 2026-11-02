@@ -22,13 +22,13 @@
  * - `getHistoryWithChildren(...)` — parent + child record history merged
  */
 
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import { check as _check, getFeed as _getFeed, getHistory as _getHistory } from './functions';
 import type { CdcCheckResult, GetFeedOptions, GetHistoryOptions, TrackingEvent } from './types';
 
 export class CdcService {
   /** @internal */
-  constructor(private client: OdooClient) {}
+  constructor(private client: ServiceClient) {}
 
   /**
    * Check if a model supports CDC and report its tracking coverage.

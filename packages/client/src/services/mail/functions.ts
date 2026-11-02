@@ -27,7 +27,7 @@
  * @see https://github.com/odoo/odoo/blob/17.0/addons/mail/models/mail_thread.py — message_post
  */
 
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import { OdooValidationError } from '../../types/errors';
 import type { PostMessageOptions } from './types';
 
@@ -73,7 +73,7 @@ export function ensureHtmlBody(body: string): string {
  * @returns Created mail.message ID
  */
 async function callMessagePost(
-  client: OdooClient,
+  client: ServiceClient,
   model: string,
   resId: number,
   body: string,
@@ -134,7 +134,7 @@ async function callMessagePost(
  * The target model MUST inherit from mail.thread (most business models do:
  * res.partner, crm.lead, sale.order, account.move, project.task, etc.)
  *
- * @param client - Authenticated OdooClient instance
+ * @param client - Authenticated ServiceClient instance
  * @param model  - Odoo model name (e.g. 'res.partner', 'crm.lead')
  * @param resId  - ID of the record to post on
  * @param body   - Message content. HTML string or plain text (auto-wrapped in <p>).
@@ -145,7 +145,7 @@ async function callMessagePost(
  * @returns Created mail.message ID
  */
 export async function postInternalNote(
-  client: OdooClient,
+  client: ServiceClient,
   model: string,
   resId: number,
   body: string,
@@ -163,7 +163,7 @@ export async function postInternalNote(
  *
  * The target model MUST inherit from mail.thread.
  *
- * @param client - Authenticated OdooClient instance
+ * @param client - Authenticated ServiceClient instance
  * @param model  - Odoo model name (e.g. 'res.partner', 'crm.lead')
  * @param resId  - ID of the record to post on
  * @param body   - Message content. HTML string or plain text (auto-wrapped in <p>).
@@ -174,7 +174,7 @@ export async function postInternalNote(
  * @returns Created mail.message ID
  */
 export async function postOpenMessage(
-  client: OdooClient,
+  client: ServiceClient,
   model: string,
   resId: number,
   body: string,

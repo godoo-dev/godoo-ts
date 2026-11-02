@@ -5,7 +5,7 @@
  * functions in functions.ts, binding the client reference.
  */
 
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import type { PropertiesWriteFormat } from '../../types/properties';
 import type { PropertiesScope, PropertiesScopeOptions } from './binding-types';
 import {
@@ -28,7 +28,7 @@ import type { PropertiesUpdate } from './types';
  */
 export class PropertiesService {
   /** @internal */
-  constructor(private client: OdooClient) {}
+  constructor(private client: ServiceClient) {}
 
   /** Discover one parent's definitions and bind application aliases to fixed IDs. */
   scope(model: string, field: string, options: PropertiesScopeOptions): Promise<PropertiesScope> {

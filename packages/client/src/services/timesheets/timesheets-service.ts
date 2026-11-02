@@ -11,7 +11,7 @@
  * @see https://github.com/odoo/odoo/blob/17.0/addons/hr_timesheet/models/account_analytic_line.py
  */
 
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import {
   getRunningTimers as _getRunningTimers,
   listTimesheets as _listTimesheets,
@@ -40,7 +40,7 @@ import type {
  */
 export class TimesheetsService {
   /** @internal */
-  constructor(private client: OdooClient) {}
+  constructor(private client: ServiceClient) {}
 
   /**
    * Start a timesheet timer.

@@ -1,11 +1,14 @@
 import type { OdooCrudClient } from '../../client/types';
-import { type ErrorJSON, OdooError, OdooValidationError } from '../../types/errors';
+import { OdooValidationError } from '../../types/errors';
+import { ModuleLifecycleError } from './errors';
 import {
   inspectModulePrerequisites,
   type ModuleInspectionOptions,
   type ModulePrerequisiteInspection,
 } from './inspection';
 import type { ModuleInfo } from './module-types';
+
+export { ModuleLifecycleError } from './errors';
 
 export interface ModuleOperationOptions extends ModuleInspectionOptions {
   /** Total attempts, including the first. Integer 1–5; default 3. */
@@ -21,32 +24,6 @@ export interface ModuleOperationResult extends ModuleInfo {
   schemaInvalidated: boolean;
   attempts: number;
   prerequisites: ModulePrerequisiteInspection;
-}
-
-/** Refusal/incomplete verification, distinct from unchanged propagated RPC errors. */
-export class ModuleLifecycleError extends OdooError {
-  constructor(
-    message: string,
-    public readonly phase: 'prerequisite' | 'stale' | 'postcondition',
-    public readonly inspection: ModulePrerequisiteInspection,
-    public readonly schemaInvalidated: boolean,
-  ) {
-    super(message);
-    this.name = 'ModuleLifecycleError';
-    Object.setPrototypeOf(this, ModuleLifecycleError.prototype);
-  }
-
-  override toJSON(): ErrorJSON {
-    return {
-      error: 'MODULE_LIFECYCLE_ERROR',
-      message: this.message,
-      details: {
-        phase: this.phase,
-        inspection: this.inspection,
-        schemaInvalidated: this.schemaInvalidated,
-      },
-    };
-  }
 }
 
 // Odoo 17 ir_module._button_immediate_function raises this UserError before

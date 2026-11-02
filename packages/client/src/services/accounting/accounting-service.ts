@@ -13,7 +13,7 @@
  * Access via `client.accounting` — never instantiate directly.
  */
 
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import type { Domain } from '../../rpc/types';
 import {
   calculateDaysToPay as _calculateDaysToPay,
@@ -31,7 +31,7 @@ import type { CashAccount, DaysToPayResult, ReconciliationTrace, ResolvedPartner
 
 export class AccountingService {
   /** @internal */
-  constructor(private client: OdooClient) {}
+  constructor(private client: ServiceClient) {}
 
   /**
    * Discover cash and bank accounts from Odoo journal configuration.

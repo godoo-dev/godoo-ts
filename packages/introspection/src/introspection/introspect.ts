@@ -9,7 +9,7 @@
  * @see https://github.com/odoo/odoo/blob/17.0/odoo/addons/base/models/ir_model_fields.py
  */
 
-import type { Domain, OdooClient } from '@godoo-dev/client';
+import type { Domain, OdooCrudClient } from '@godoo-dev/client';
 import { IntrospectionCache } from './cache.js';
 import type { IntrospectionOptions, ModelMetadata, OdooField, OdooModel } from './types.js';
 
@@ -77,6 +77,9 @@ export function mapOdooFieldTypeToTypeScript(odooType: string): string {
   return typeMap[odooType] || 'any';
 }
 
+/** The model-RPC subset required by runtime introspection. */
+export type IntrospectionClient = Pick<OdooCrudClient, 'call' | 'searchRead'>;
+
 /**
  * Introspection service for querying Odoo model metadata.
  *
@@ -87,7 +90,7 @@ export function mapOdooFieldTypeToTypeScript(odooType: string): string {
 export class Introspector {
   private cache: IntrospectionCache;
 
-  constructor(private client: OdooClient) {
+  constructor(private client: IntrospectionClient) {
     this.cache = new IntrospectionCache();
   }
 

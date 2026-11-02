@@ -12,7 +12,7 @@
  */
 
 import debug from 'debug';
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import type { Domain } from '../../rpc/types';
 import type {
   CashAccount,
@@ -76,12 +76,12 @@ interface MoveLineRecord {
  * actual cash/bank accounts — more robust than matching by account code
  * prefix (e.g. 57x), which may miss unusual accounts or match loan accounts.
  *
- * @param client - Authenticated OdooClient
+ * @param client - Authenticated ServiceClient
  * @returns Array of cash/bank accounts with their journal info
  *
  * @see https://github.com/odoo/odoo/blob/17.0/addons/account/models/account_journal.py
  */
-export async function discoverCashAccounts(client: OdooClient): Promise<CashAccount[]> {
+export async function discoverCashAccounts(client: ServiceClient): Promise<CashAccount[]> {
   log('discovering cash/bank accounts from journals');
 
   const journals = await client.searchRead<JournalRecord>(
@@ -118,7 +118,7 @@ export async function discoverCashAccounts(client: OdooClient): Promise<CashAcco
  * Get just the account IDs for cash/bank accounts.
  * Convenience wrapper around discoverCashAccounts().
  */
-export async function getCashAccountIds(client: OdooClient): Promise<number[]> {
+export async function getCashAccountIds(client: ServiceClient): Promise<number[]> {
   const accounts = await discoverCashAccounts(client);
   return accounts.map((a) => a.accountId);
 }
@@ -135,12 +135,12 @@ export async function getCashAccountIds(client: OdooClient): Promise<number[]> {
  * - Understanding batch payment breakdowns
  * - Tracing the real economic origin of a bank movement
  *
- * @param client - Authenticated OdooClient
+ * @param client - Authenticated ServiceClient
  * @param fullReconcileId - The full_reconcile_id to trace
  * @returns All lines and move IDs in the reconciliation group
  */
 export async function traceReconciliation(
-  client: OdooClient,
+  client: ServiceClient,
   fullReconcileId: number,
 ): Promise<ReconciliationTrace> {
   log('tracing reconciliation id=%d', fullReconcileId);
@@ -191,13 +191,13 @@ export async function traceReconciliation(
  * For batch payments (one bank line, multiple supplier payable lines),
  * returns the largest counterpart's partner and flags isBatchPayment=true.
  *
- * @param client - Authenticated OdooClient
+ * @param client - Authenticated ServiceClient
  * @param moveId - The account.move ID (bank statement entry)
  * @param cashAccountIds - Account IDs for cash/bank accounts (from getCashAccountIds)
  * @returns Resolved partner info with source indication
  */
 export async function resolvePartnerFromMove(
-  client: OdooClient,
+  client: ServiceClient,
   moveId: number,
   cashAccountIds: number[],
 ): Promise<ResolvedPartner> {
@@ -273,11 +273,11 @@ export async function resolvePartnerFromMove(
  * to close PnL accounts to the balance sheet. These should be excluded from
  * operational PnL analysis.
  *
- * @param client - Authenticated OdooClient
+ * @param client - Authenticated ServiceClient
  * @param moveId - The account.move ID to check
  * @returns true if any line uses a 129x account (closing entry)
  */
-export async function isClosingEntry(client: OdooClient, moveId: number): Promise<boolean> {
+export async function isClosingEntry(client: ServiceClient, moveId: number): Promise<boolean> {
   const lines = await client.searchRead<MoveLineRecord>(
     'account.move.line',
     [['move_id', '=', moveId]],
@@ -317,12 +317,12 @@ export function isClosingEntryFromLines(lines: Array<{ account_id?: Many2OneValu
  * The payment date is the latest date among all lines sharing the same
  * reconciliation group.
  *
- * @param client - Authenticated OdooClient
+ * @param client - Authenticated ServiceClient
  * @param invoiceId - The account.move ID of the invoice
  * @returns Days-to-pay result, or null if the invoice is not yet reconciled
  */
 export async function calculateDaysToPay(
-  client: OdooClient,
+  client: ServiceClient,
   invoiceId: number,
 ): Promise<DaysToPayResult | null> {
   log('calculating days-to-pay for invoice id=%d', invoiceId);
@@ -392,14 +392,14 @@ export async function calculateDaysToPay(
  * including the given date. This includes opening balances — unlike
  * summing movements in a period, which would miss prior history.
  *
- * @param client - Authenticated OdooClient
+ * @param client - Authenticated ServiceClient
  * @param cashAccountIds - Account IDs for cash/bank accounts (from getCashAccountIds)
  * @param asOfDate - Date string (YYYY-MM-DD) to calculate balance as of
  * @param options - Optional: company_ids for multi-company, context
  * @returns Total cash balance as a number
  */
 export async function getCashBalance(
-  client: OdooClient,
+  client: ServiceClient,
   cashAccountIds: number[],
   asOfDate: string,
   options?: { companyIds?: number[] },
@@ -436,7 +436,7 @@ export async function getCashBalance(
  * Convenience wrapper that prevents the most common accounting query mistake:
  * forgetting to filter out draft/cancelled entries.
  *
- * @param client - Authenticated OdooClient
+ * @param client - Authenticated ServiceClient
  * @param domain - Additional domain filters (parent_state is added automatically)
  * @param options - Standard searchRead options (fields, limit, order, etc.)
  * @returns Array of posted journal entry lines
@@ -444,7 +444,7 @@ export async function getCashBalance(
 export async function getPostedMoveLines<
   T extends Record<string, unknown> = Record<string, unknown>,
 >(
-  client: OdooClient,
+  client: ServiceClient,
   domain: Domain = [],
   options: {
     fields?: string[];

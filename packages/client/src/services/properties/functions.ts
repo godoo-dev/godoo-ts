@@ -2,7 +2,7 @@
  * Properties functions — implementation for the properties service
  */
 
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import {
   type PropertiesReadFormat,
   type PropertiesWriteFormat,
@@ -36,7 +36,7 @@ function asReadFormat(value: unknown): PropertiesReadFormat {
  * @returns Promise that resolves when update is complete
  */
 export async function updateSafely(
-  client: OdooClient,
+  client: ServiceClient,
   model: string,
   recordId: number,
   propertiesField: string,
@@ -73,7 +73,7 @@ export async function updateSafely(
  * @returns Promise that resolves when all updates are complete
  */
 export async function updateSafelyBatch(
-  client: OdooClient,
+  client: ServiceClient,
   model: string,
   recordIds: number[],
   propertiesField: string,
@@ -118,7 +118,7 @@ export async function updateSafelyBatch(
  * @returns Current properties in write format
  */
 export async function getCurrentWriteFormat(
-  client: OdooClient,
+  client: ServiceClient,
   model: string,
   recordId: number,
   propertiesField: string,

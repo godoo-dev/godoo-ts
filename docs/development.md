@@ -27,6 +27,13 @@ candidate is never rebuilt. The consumer lock is prepared once, retained and the
 installed frozen; internal dependencies always use the explicit candidate files.
 Third-party packages still need registry/network availability on a cold cache.
 
+It also loads the installed portable client, introspection, formatters, effects
+and reference graphs in an isolated JavaScript VM with no Node globals or network.
+The VM rejects external module imports and exercises bound CRUD, native cache/Map
+behavior and nonempty CDC pagination. This checks the portable package boundary,
+not sandbox containment. Installed Odoo proof routes native property bindings,
+CRUD and introspection through the bound RPC API against its disposable server.
+
 `pnpm test` stays Docker-free. The11 skipped legacy example-file checks refer to
 absent tutorial files and are reported separately. `pnpm test:integration:list`
 proves selection across all three packages without Docker. `check:odoo18` requires

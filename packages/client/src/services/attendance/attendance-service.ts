@@ -9,7 +9,7 @@
  * @see https://github.com/odoo/odoo/blob/17.0/addons/hr_attendance/models/hr_attendance.py
  */
 
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import {
   clockIn as _clockIn,
   clockOut as _clockOut,
@@ -33,7 +33,7 @@ import type { AttendanceListOptions, AttendanceRecord, AttendanceStatus } from '
  */
 export class AttendanceService {
   /** @internal */
-  constructor(private client: OdooClient) {}
+  constructor(private client: ServiceClient) {}
 
   /**
    * Clock in — create an open attendance record.

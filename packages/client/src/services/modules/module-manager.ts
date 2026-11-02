@@ -7,7 +7,7 @@
  */
 
 import debug from 'debug';
-import type { OdooClient } from '../../client/odoo-client';
+import type { ServiceClient } from '../../client/types';
 import type { Domain } from '../../rpc/types';
 import {
   inspectModulePrerequisites,
@@ -32,9 +32,9 @@ const log = debug('odoo-client:module-manager');
  * Handles installation, uninstallation, upgrades, and listing of Odoo modules.
  */
 export class ModuleManager {
-  private client: OdooClient;
+  private client: ServiceClient;
 
-  constructor(client: OdooClient) {
+  constructor(client: ServiceClient) {
     this.client = client;
   }
 

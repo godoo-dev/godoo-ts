@@ -61,6 +61,7 @@ try {
   cpSync(join(root, 'scripts/consumer'), consumer, { recursive: true });
   const env = { ...process.env, ODOO_VERSION: `${major ?? 18}.0` };
   run(process.execPath, ['public-api.mjs'], { cwd: consumer, env });
+  run(process.execPath, ['--experimental-vm-modules', 'portable.mjs'], { cwd: consumer, env });
   run(
     'pnpm',
     [

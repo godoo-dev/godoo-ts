@@ -149,12 +149,13 @@ branches and target pull requests at `main`.
 CI runs on changes targeting/pushed to `main` and manual validation. A newer
 push to a pull request cancels that pull request's earlier run; runs on `main`,
 manual runs and release validation are never cancelled by another run.
-The packages are built once per run for later jobs: the Node 24 `offline` job
-uploads `packages/*/dist` after `pnpm check`, and `package`, `odoo18` and
-`odoo19` download it instead of building again. The Node 22 job keeps its own
-build to cover that toolchain.
-Its stable `required` job accepts only explicit success from offline (Node22/24),
-package and Odoo18 jobs, rejecting skipped, cancelled, failed and missing results.
+The packages are built once per run: after `pnpm check`, the Node 24 `offline`
+job packs the candidate from that build, runs `check:package` and uploads the
+candidate and `packages/*/dist`. `odoo18` and `odoo19` download them instead of
+building again. The Node 22 job keeps its own build to cover that toolchain.
+Its stable `required` job accepts only explicit success from offline (Node22/24,
+including the package proof) and Odoo18 jobs, rejecting skipped, cancelled,
+failed and missing results.
 Manual requested19 depends on successful package/Odoo18 proof for the same candidate;
 `required` also waits for19 and requires success when requested, allowing its
 explicit skipped result only when unrequested.

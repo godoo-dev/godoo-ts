@@ -18,9 +18,9 @@ pnpm check
 `pnpm check` runs Biome, strict `tsc` over all package source and tests, tsdown
 builds, the Docker-free Vitest suite and the CI/release control tests. Its exit
 status and output are the result. CI runs it on every PR to `main` on
-GitHub-hosted Ubuntu with Node 22.18.0 and 24.22.1, then the package and Odoo18
-tiers on the Node 24 build artifact; the `required` job aggregates them. Run the full check locally once only
-when no CI run will happen.
+GitHub-hosted Ubuntu with Node 22.18.0 and 24.22.1. The Node 24 job also runs
+the package tier, and the Odoo18 tier reuses its build; the `required` job
+aggregates them. Run the full check locally once only when no CI run will happen.
 
 Focused commands while iterating:
 

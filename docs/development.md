@@ -61,10 +61,11 @@ knowledge routing, `godoo-ts-docs` for this documentation, and
 
 Temporary working files go in `.scratch/` at the checkout root; it is git-ignored,
 and Biome reads the ignore file. Claude Code enables the official
-`typescript-lsp` plugin through `.claude/settings.json`; it starts the
-`typescript-language-server` dev dependency installed by `pnpm install`. Install
-the plugin once with
+`typescript-lsp` plugin through `.claude/settings.json`. Install it once with
 `claude plugin install typescript-lsp@claude-plugins-official --scope project`.
+The plugin runs `typescript-language-server` from `PATH`; `pnpm install` provides
+it in `node_modules/.bin`, so start Claude Code with that directory on `PATH`,
+for example `PATH="$PWD/node_modules/.bin:$PATH" claude`.
 Dependabot covers the npm workspace and the pinned workflow actions; the Odoo and
 Postgres image tags chosen at runtime by testcontainers are outside its reach.
 

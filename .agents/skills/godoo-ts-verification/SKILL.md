@@ -75,7 +75,7 @@ supported and is rejected.
 Provisioning creates a uniquely named Docker network and labelled Odoo and
 Postgres containers on ephemeral loopback ports, and removes them in teardown.
 If a run is killed, remove only that run's containers and network by their
-labels or recorded IDs (printed when `GODOO_ODOO_PROOF` is set). Never prune
+labels or the IDs on the run's `GODOO_ODOO_PROOF` log line. Never prune
 Docker globally or stop unrelated containers. Delete the `CANDIDATE_DIR` when
 done.
 

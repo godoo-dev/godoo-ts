@@ -51,10 +51,11 @@ jobs:
       - if: matrix.node == '24.22.1'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ts-dist-${{ github.sha }}-${{ github.run_attempt }}
+          name: ts-dist-${{ github.sha }}
           path: packages/*/dist
           if-no-files-found: error
-          retention-days: 1
+          overwrite: true
+          retention-days: 14
   package:
     needs: offline
     runs-on: ubuntu-latest
@@ -74,7 +75,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: ts-dist-${{ github.sha }}-${{ github.run_attempt }}
+          name: ts-dist-${{ github.sha }}
           path: packages
       - run: node scripts/candidate.mjs pack "$CANDIDATE_DIR"
       - run: pnpm check:package
@@ -104,7 +105,7 @@ jobs:
       # Source suites import built workspace packages. These are not promotion artifacts.
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: ts-dist-${{ github.sha }}-${{ github.run_attempt }}
+          name: ts-dist-${{ github.sha }}
           path: packages
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -155,7 +156,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: ts-dist-${{ github.sha }}-${{ github.run_attempt }}
+          name: ts-dist-${{ github.sha }}
           path: packages
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:

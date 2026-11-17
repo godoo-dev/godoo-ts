@@ -156,7 +156,8 @@ building again. The Node 22 job keeps its own build to cover that toolchain.
 Its stable `required` job accepts only explicit success from offline (Node22/24,
 including the package proof) and Odoo18 jobs, rejecting skipped, cancelled,
 failed and missing results.
-Manual requested19 depends on successful package/Odoo18 proof for the same candidate;
+Manual requested19 depends on successful offline (including the package proof) and Odoo18
+results for the same candidate;
 `required` also waits for19 and requires success when requested, allowing its
 explicit skipped result only when unrequested.
 Prepared YAML and local predicate trials do not prove hosted execution or applied

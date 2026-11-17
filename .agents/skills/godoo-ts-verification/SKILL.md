@@ -31,9 +31,10 @@ pnpm exec vitest run packages/client/tests/FILE.test.ts
 pnpm check:controls    # CI and release control scripts
 ```
 
-There is no blocking complexity rule yet; adding one is tracked as an owner
-decision in the GitHub issues. Until then, keep new functions small and
-refactor ones you make harder to follow.
+Biome's `noExcessiveCognitiveComplexity` is an error at its default limit (15).
+Refactor a new violation (extract helpers, early returns, lookup tables). If one
+cannot be fixed safely, take it to Marc; an approved exception is the narrowest
+`biome-ignore` with its reason and "owner-approved".
 
 ## Slow tiers
 

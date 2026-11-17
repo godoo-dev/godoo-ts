@@ -16,6 +16,7 @@ pnpm check:odoo18
 using bundler resolution to match tsdown, then builds declarations and runs units
 and gate regressions. `tsconfig.check.json` includes production, tests and configs;
 package configs own declaration builds. No baseline diagnostics are accepted.
+Biome rejects functions above its default cognitive-complexity limit (15).
 The source packages have a development-only client/testcontainers cycle; the
 all-source check does not depend on cyclic project-reference builds.
 

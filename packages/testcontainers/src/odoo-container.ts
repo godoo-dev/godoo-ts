@@ -16,6 +16,7 @@ import {
   type StartedTestContainer,
   Wait,
 } from 'testcontainers';
+import { postgresImage } from './postgres-image.js';
 import {
   createSnapshotCache,
   ensureSnapshotDir,
@@ -43,8 +44,6 @@ class LoopbackPostgresContainer extends PostgreSqlContainer {
     bindLoopback(this.hostConfig);
   }
 }
-
-const POSTGRES_IMAGE = 'postgres:15-alpine';
 
 /** Remove only this invocation's labeled containers and exact newly created network. */
 async function cleanupOwnedRun(
@@ -153,9 +152,10 @@ export class OdooTestContainer {
    */
   async start(): Promise<StartedOdooContainer> {
     const odooVer = normaliseOdooVersion(process.env.ODOO_VERSION);
+    const pgImage = postgresImage();
     const snapshot = createSnapshotCache(this.options.snapshot, {
       odooVersion: odooVer,
-      postgresImage: POSTGRES_IMAGE,
+      postgresImage: pgImage,
       modules: this.options.modules,
       addonsPath: this.options.addonsPath,
       database: this.options.database,
@@ -191,7 +191,7 @@ export class OdooTestContainer {
       const pgPassword = 'odoo';
 
       const postgresContainer: StartedPostgreSqlContainer | StartedTestContainer =
-        await new LoopbackPostgresContainer(POSTGRES_IMAGE)
+        await new LoopbackPostgresContainer(pgImage)
           .withLabels(labels)
           .withDatabase(this.options.database)
           .withUsername(pgUser)

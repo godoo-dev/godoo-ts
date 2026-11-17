@@ -49,7 +49,24 @@ logs exact image/container/module identity and cleans only its own resources.
 Tests use disposable databases and temporary addon directories; evidence survives
 teardown outside the checkout. Do not log credentials or load private connections.
 See the [verification skill](../.agents/skills/godoo-ts-verification/SKILL.md) for
-failure trials and cleanup checks.
+cleanup checks.
+
+## Working in this repository
+
+Work, open decisions and remaining acceptance live in
+[GitHub issues](https://github.com/godoo-dev/godoo-ts/issues). Project skills in
+`.agents/skills` hold the maintainer procedures: `godoo-ts-capture` for issues and
+knowledge routing, `godoo-ts-docs` for this documentation, and
+`godoo-ts-verification` for checks. There is no `AGENTS.md` or `CLAUDE.md`.
+
+Temporary working files go in `.scratch/` at the checkout root; it is git-ignored,
+and Biome reads the ignore file. Claude Code enables the official
+`typescript-lsp` plugin through `.claude/settings.json`; it starts the
+`typescript-language-server` dev dependency installed by `pnpm install`. Install
+the plugin once with
+`claude plugin install typescript-lsp@claude-plugins-official --scope project`.
+Dependabot covers the npm workspace and the pinned workflow actions; the Odoo and
+Postgres image tags chosen at runtime by testcontainers are outside its reach.
 
 ## Package structure and constraints
 
@@ -126,7 +143,9 @@ removing existing test setup capabilities.
 Main is the sole long-lived integration and release branch. Use temporary feature
 branches and target pull requests at `main`.
 
-CI runs on changes targeting/pushed to `main` and manual validation.
+CI runs on changes targeting/pushed to `main` and manual validation. A newer
+push to a pull request cancels that pull request's earlier run; runs on `main`,
+manual runs and release validation are never cancelled by another run.
 Its stable `required` job accepts only explicit success from offline (Node22/24),
 package and Odoo18 jobs, rejecting skipped, cancelled, failed and missing results.
 Manual requested19 depends on successful package/Odoo18 proof for the same candidate;

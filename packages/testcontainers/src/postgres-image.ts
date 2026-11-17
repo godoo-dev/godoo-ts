@@ -13,7 +13,7 @@ export function parseFromImage(dockerfile: string): string {
   throw new Error('postgres.Dockerfile has no FROM image');
 }
 
-/** The Postgres image pinned in the package's `postgres.Dockerfile`, which Dependabot updates. */
+/** The Postgres image pinned in the package's `postgres.Dockerfile`. */
 export function postgresImage(): string {
   return parseFromImage(readFileSync(DOCKERFILE, 'utf8'));
 }

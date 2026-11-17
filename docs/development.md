@@ -67,9 +67,11 @@ and Biome reads the ignore file. Claude Code enables the official
 The plugin runs `typescript-language-server` from `PATH`; `pnpm install` provides
 it in `node_modules/.bin`, so start Claude Code with that directory on `PATH`,
 for example `PATH="$PWD/node_modules/.bin:$PATH" claude`.
-Dependabot covers the npm workspace, the pinned workflow actions and the
-testcontainers Postgres image in `packages/testcontainers/postgres.Dockerfile`.
-The Odoo image follows the requested `ODOO_VERSION` and is not pinned.
+This repository has no Dependabot configuration; dependency updates for Godoo
+components are managed centrally. The testcontainers Postgres image is pinned in
+`packages/testcontainers/postgres.Dockerfile`, where Dockerfile-aware update
+tools can find it. The Odoo image follows the requested `ODOO_VERSION` and is
+not pinned.
 
 ## Package structure and constraints
 

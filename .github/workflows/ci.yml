@@ -47,6 +47,14 @@ jobs:
       - if: inputs.release_candidate == true
         run: node scripts/release-guard.mjs
       - run: pnpm check
+      # Later jobs reuse the Node 24 build instead of building again.
+      - if: matrix.node == '24.22.1'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ts-dist-${{ github.sha }}-${{ github.run_attempt }}
+          path: packages/*/dist
+          if-no-files-found: error
+          retention-days: 1
   package:
     needs: offline
     runs-on: ubuntu-latest
@@ -64,7 +72,10 @@ jobs:
           node-version: '24.22.1'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ts-dist-${{ github.sha }}-${{ github.run_attempt }}
+          path: packages
       - run: node scripts/candidate.mjs pack "$CANDIDATE_DIR"
       - run: pnpm check:package
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -91,7 +102,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # Source suites import built workspace packages. These are not promotion artifacts.
-      - run: pnpm build
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ts-dist-${{ github.sha }}-${{ github.run_attempt }}
+          path: packages
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ts-candidate-${{ github.sha }}
@@ -139,7 +153,10 @@ jobs:
           node-version: '24.22.1'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ts-dist-${{ github.sha }}-${{ github.run_attempt }}
+          path: packages
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ts-qualified-${{ github.sha }}

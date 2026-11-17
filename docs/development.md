@@ -66,8 +66,9 @@ and Biome reads the ignore file. Claude Code enables the official
 The plugin runs `typescript-language-server` from `PATH`; `pnpm install` provides
 it in `node_modules/.bin`, so start Claude Code with that directory on `PATH`,
 for example `PATH="$PWD/node_modules/.bin:$PATH" claude`.
-Dependabot covers the npm workspace and the pinned workflow actions; the Odoo and
-Postgres image tags chosen at runtime by testcontainers are outside its reach.
+Dependabot covers the npm workspace, the pinned workflow actions and the
+testcontainers Postgres image in `packages/testcontainers/postgres.Dockerfile`.
+The Odoo image follows the requested `ODOO_VERSION` and is not pinned.
 
 ## Package structure and constraints
 
@@ -147,6 +148,10 @@ branches and target pull requests at `main`.
 CI runs on changes targeting/pushed to `main` and manual validation. A newer
 push to a pull request cancels that pull request's earlier run; runs on `main`,
 manual runs and release validation are never cancelled by another run.
+The packages are built once per run for later jobs: the Node 24 `offline` job
+uploads `packages/*/dist` after `pnpm check`, and `package`, `odoo18` and
+`odoo19` download it instead of building again. The Node 22 job keeps its own
+build to cover that toolchain.
 Its stable `required` job accepts only explicit success from offline (Node22/24),
 package and Odoo18 jobs, rejecting skipped, cancelled, failed and missing results.
 Manual requested19 depends on successful package/Odoo18 proof for the same candidate;

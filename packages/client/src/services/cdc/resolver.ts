@@ -54,6 +54,81 @@ function num(v: number | false): number | null {
   return v === false ? null : v;
 }
 
+function pair(o: TypedValue, n: TypedValue): { old: TypedValue; new: TypedValue } {
+  return { old: o, new: n };
+}
+
+function plain(v: string | null): TypedValue {
+  return { raw: v, display: v };
+}
+
+function numeric(v: number | null): TypedValue {
+  return { raw: v, display: v !== null ? String(v) : null };
+}
+
+function toBool(v: number | false): boolean | null {
+  return v === false ? null : v !== 0;
+}
+
+function boolean(v: boolean | null): TypedValue {
+  return { raw: v, display: v !== null ? (v ? 'Yes' : 'No') : null };
+}
+
+function monetary(v: number | null, currency: [number, string] | undefined): TypedValue {
+  return { raw: v, display: v !== null ? String(v) : null, ...(currency && { currency }) };
+}
+
+function toDate(s: string | false): string | null {
+  const v = str(s);
+  return v ? (v.split(' ')[0] ?? null) : null;
+}
+
+function many2one(id: number | null, name: string | null): TypedValue {
+  return { raw: id, display: name, ...(id !== null && { id }) };
+}
+
+function selection(v: string | null): TypedValue {
+  return { raw: v, display: v, isTranslated: true };
+}
+
+type Resolver = (row: RawTrackingRow) => { old: TypedValue; new: TypedValue };
+
+const charResolver: Resolver = (row) =>
+  pair(plain(str(row.old_value_char)), plain(str(row.new_value_char)));
+
+// Odoo uses old_value_text for long strings, falls back to old_value_char
+const textResolver: Resolver = (row) =>
+  pair(
+    plain(str(row.old_value_text) ?? str(row.old_value_char)),
+    plain(str(row.new_value_text) ?? str(row.new_value_char)),
+  );
+
+const RESOLVERS: Partial<Record<OdooFieldType, Resolver>> = {
+  char: charResolver,
+  binary: charResolver,
+  text: textResolver,
+  html: textResolver,
+  integer: (row) => pair(numeric(num(row.old_value_integer)), numeric(num(row.new_value_integer))),
+  boolean: (row) =>
+    pair(boolean(toBool(row.old_value_integer)), boolean(toBool(row.new_value_integer))),
+  float: (row) => pair(numeric(num(row.old_value_float)), numeric(num(row.new_value_float))),
+  monetary: (row) => {
+    const currency = row.currency_id === false ? undefined : row.currency_id;
+    return pair(
+      monetary(num(row.old_value_float), currency),
+      monetary(num(row.new_value_float), currency),
+    );
+  },
+  datetime: (row) => pair(plain(str(row.old_value_datetime)), plain(str(row.new_value_datetime))),
+  date: (row) => pair(plain(toDate(row.old_value_datetime)), plain(toDate(row.new_value_datetime))),
+  selection: (row) => pair(selection(str(row.old_value_char)), selection(str(row.new_value_char))),
+  many2one: (row) =>
+    pair(
+      many2one(num(row.old_value_integer), str(row.old_value_char)),
+      many2one(num(row.new_value_integer), str(row.new_value_char)),
+    ),
+};
+
 // ── Main resolver ─────────────────────────────────────────────────────────────
 
 /**
@@ -65,99 +140,10 @@ export function resolveValues(
   row: RawTrackingRow,
   ttype: OdooFieldType,
 ): { old: TypedValue; new: TypedValue } {
-  switch (ttype) {
-    case 'char':
-    case 'binary': {
-      const o = str(row.old_value_char);
-      const n = str(row.new_value_char);
-      return { old: { raw: o, display: o }, new: { raw: n, display: n } };
-    }
-
-    case 'text':
-    case 'html': {
-      // Odoo uses old_value_text for long strings, falls back to old_value_char
-      const o = str(row.old_value_text) ?? str(row.old_value_char);
-      const n = str(row.new_value_text) ?? str(row.new_value_char);
-      return { old: { raw: o, display: o }, new: { raw: n, display: n } };
-    }
-
-    case 'integer': {
-      const o = num(row.old_value_integer);
-      const n = num(row.new_value_integer);
-      return {
-        old: { raw: o, display: o !== null ? String(o) : null },
-        new: { raw: n, display: n !== null ? String(n) : null },
-      };
-    }
-
-    case 'boolean': {
-      const toBool = (v: number | false): boolean | null => (v === false ? null : v !== 0);
-      const o = toBool(row.old_value_integer);
-      const n = toBool(row.new_value_integer);
-      return {
-        old: { raw: o, display: o !== null ? (o ? 'Yes' : 'No') : null },
-        new: { raw: n, display: n !== null ? (n ? 'Yes' : 'No') : null },
-      };
-    }
-
-    case 'float': {
-      const o = num(row.old_value_float);
-      const n = num(row.new_value_float);
-      return {
-        old: { raw: o, display: o !== null ? String(o) : null },
-        new: { raw: n, display: n !== null ? String(n) : null },
-      };
-    }
-
-    case 'monetary': {
-      const o = num(row.old_value_float);
-      const n = num(row.new_value_float);
-      const currency = row.currency_id === false ? undefined : row.currency_id;
-      return {
-        old: { raw: o, display: o !== null ? String(o) : null, ...(currency && { currency }) },
-        new: { raw: n, display: n !== null ? String(n) : null, ...(currency && { currency }) },
-      };
-    }
-
-    case 'datetime': {
-      const o = str(row.old_value_datetime);
-      const n = str(row.new_value_datetime);
-      return { old: { raw: o, display: o }, new: { raw: n, display: n } };
-    }
-
-    case 'date': {
-      const toDate = (s: string | false): string | null => {
-        const v = str(s);
-        return v ? (v.split(' ')[0] ?? null) : null;
-      };
-      const o = toDate(row.old_value_datetime);
-      const n = toDate(row.new_value_datetime);
-      return { old: { raw: o, display: o }, new: { raw: n, display: n } };
-    }
-
-    case 'selection': {
-      const o = str(row.old_value_char);
-      const n = str(row.new_value_char);
-      return {
-        old: { raw: o, display: o, isTranslated: true },
-        new: { raw: n, display: n, isTranslated: true },
-      };
-    }
-
-    case 'many2one': {
-      const oId = num(row.old_value_integer);
-      const nId = num(row.new_value_integer);
-      const oName = str(row.old_value_char);
-      const nName = str(row.new_value_char);
-      return {
-        old: { raw: oId, display: oName, ...(oId !== null && { id: oId }) },
-        new: { raw: nId, display: nName, ...(nId !== null && { id: nId }) },
-      };
-    }
-    default:
-      return {
-        old: { raw: null, display: null },
-        new: { raw: null, display: null },
-      };
-  }
+  const resolver = Object.hasOwn(RESOLVERS, ttype) ? RESOLVERS[ttype] : undefined;
+  if (resolver) return resolver(row);
+  return {
+    old: { raw: null, display: null },
+    new: { raw: null, display: null },
+  };
 }

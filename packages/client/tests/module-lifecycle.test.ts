@@ -29,17 +29,55 @@ function firstRow(rows: Row[]): Row {
 function edge(id: number, name: string, owner: number) {
   return { id, name, module_id: [owner, 'display name'] };
 }
-function fixture(
-  options: {
-    modules?: Row[];
-    edges?: Row[];
-    mutate?: (request: Request, modules: Row[], edges: Row[]) => void;
-    beforeRead?: (request: Request, modules: Row[], edges: Row[], dispatched: number) => void;
-    error?: (request: Request, dispatched: number) => Row | undefined;
-    allow?: boolean;
-    response?: unknown;
-  } = {},
-) {
+interface FixtureOptions {
+  modules?: Row[];
+  edges?: Row[];
+  mutate?: (request: Request, modules: Row[], edges: Row[]) => void;
+  beforeRead?: (request: Request, modules: Row[], edges: Row[], dispatched: number) => void;
+  error?: (request: Request, dispatched: number) => Row | undefined;
+  allow?: boolean;
+  response?: unknown;
+}
+function schemaFor(model: string): Row {
+  return model === MODULE
+    ? {
+        name: { type: 'char' },
+        state: { type: 'selection' },
+        dependencies_id: { type: 'one2many', relation: DEPENDENCY },
+      }
+    : { name: { type: 'char' }, module_id: { type: 'many2one', relation: MODULE } };
+}
+function searchRows(
+  source: Row[],
+  [field, operator, value]: [string, string, unknown],
+  fields: string[],
+): Row[] {
+  const rows = source.filter((row) =>
+    operator === 'in' ? (value as unknown[]).includes(row[field]) : row[field] === value,
+  );
+  return rows.map((row) =>
+    Object.fromEntries(Object.entries(row).filter(([key]) => fields.includes(key))),
+  );
+}
+function dispatchResult(
+  request: Request,
+  options: FixtureOptions,
+  modules: Row[],
+  edges: Row[],
+): unknown {
+  if (
+    request.model !== MODULE ||
+    !['button_immediate_install', 'button_immediate_upgrade'].includes(request.method)
+  )
+    throw new Error(`Unexpected RPC ${request.model}.${request.method}`);
+  if (options.mutate) options.mutate(request, modules, edges);
+  else for (const module of modules) module.state = 'installed';
+  // Odoo returns an action, not an installation success boolean.
+  return options.response === undefined
+    ? { type: 'ir.actions.client', tag: 'reload' }
+    : options.response;
+}
+function fixture(options: FixtureOptions = {}) {
   const modules = options.modules ?? [addon(1, 'sale')];
   const edges = options.edges ?? [];
   const requests: Request[] = [];
@@ -55,43 +93,14 @@ function fixture(
     if (method.startsWith('button_immediate_')) dispatched++;
     const error = options.error?.(request, dispatched);
     if (error) return respond({ error: { code: 200, message: 'Odoo Server Error', data: error } });
-    if (method === 'fields_get')
-      return respond({
-        result:
-          model === MODULE
-            ? {
-                name: { type: 'char' },
-                state: { type: 'selection' },
-                dependencies_id: { type: 'one2many', relation: DEPENDENCY },
-              }
-            : { name: { type: 'char' }, module_id: { type: 'many2one', relation: MODULE } },
-      });
+    if (method === 'fields_get') return respond({ result: schemaFor(model) });
     if (method === 'search_read') {
       options.beforeRead?.(request, modules, edges, dispatched);
-      const [field, operator, value] = args[0][0];
-      const rows = (model === MODULE ? modules : edges).filter((row) =>
-        operator === 'in' ? value.includes(row[field]) : row[field] === value,
-      );
       return respond({
-        result: rows.map((row) =>
-          Object.fromEntries(Object.entries(row).filter(([key]) => kwargs.fields.includes(key))),
-        ),
+        result: searchRows(model === MODULE ? modules : edges, args[0][0], kwargs.fields),
       });
     }
-    if (
-      model !== MODULE ||
-      !['button_immediate_install', 'button_immediate_upgrade'].includes(method)
-    )
-      throw new Error(`Unexpected RPC ${model}.${method}`);
-    if (options.mutate) options.mutate(request, modules, edges);
-    else for (const module of modules) module.state = 'installed';
-    // Odoo returns an action, not an installation success boolean.
-    return respond({
-      result:
-        options.response === undefined
-          ? { type: 'ir.actions.client', tag: 'reload' }
-          : options.response,
-    });
+    return respond({ result: dispatchResult(request, options, modules, edges) });
   });
   vi.stubGlobal('fetch', fetchMock);
   const confirm = vi.fn(async () => options.allow !== false);

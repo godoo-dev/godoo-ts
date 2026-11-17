@@ -19,6 +19,9 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "error"
+      },
       "correctness": {
         "noUnusedVariables": "error"
       },

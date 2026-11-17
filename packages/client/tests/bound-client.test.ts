@@ -15,6 +15,41 @@ function mockRpc(implementation: ModelRpc) {
   return vi.fn(implementation) as ModelRpc & ReturnType<typeof vi.fn<ModelRpc>>;
 }
 
+function propertyFieldsGet(fields: string[]): unknown {
+  return fields[0] === 'task_properties'
+    ? {
+        task_properties: {
+          type: 'properties',
+          definition_record: 'project_id',
+          definition_record_field: 'task_properties_definition',
+        },
+      }
+    : { project_id: { type: 'many2one', relation: 'project.project' } };
+}
+
+function propertyRead(model: string, definitions: Array<Record<string, unknown>>): unknown {
+  return model === 'project.project'
+    ? [{ id: 7, task_properties_definition: definitions }]
+    : [
+        {
+          id: 3,
+          project_id: [7, 'Project'],
+          task_properties: [{ ...definitions[0], value: 2 }],
+        },
+      ];
+}
+
+/** RPC double serving one project's task property definitions. */
+function propertyScopeRpc(definitions: Array<Record<string, unknown>>): ModelRpc {
+  return async (model, method, args) => {
+    if (method === 'fields_get') return propertyFieldsGet(args[0] as string[]) as never;
+    if (method === 'read') return propertyRead(model, definitions) as never;
+    if (method === 'write') return true as never;
+    if (method === 'create') return 41 as never;
+    throw new Error(`Unexpected ${model}.${method}`);
+  };
+}
+
 describe('credential-free native bound client', () => {
   it('preserves native CRUD encodings and returns capability results without forwarding safety options', async () => {
     const rpc = mockRpc(async () => 42 as never);
@@ -134,37 +169,7 @@ describe('credential-free native bound client', () => {
 
   it('runs native property scope/binding/read/patch/create through the model capability', async () => {
     const definitions = [{ name: 'count', string: 'Count', type: 'integer' }];
-    const rpc = mockRpc(async (model, method, args) => {
-      if (method === 'fields_get') {
-        return (
-          (args[0] as string[])[0] === 'task_properties'
-            ? {
-                task_properties: {
-                  type: 'properties',
-                  definition_record: 'project_id',
-                  definition_record_field: 'task_properties_definition',
-                },
-              }
-            : { project_id: { type: 'many2one', relation: 'project.project' } }
-        ) as never;
-      }
-      if (method === 'read') {
-        return (
-          model === 'project.project'
-            ? [{ id: 7, task_properties_definition: definitions }]
-            : [
-                {
-                  id: 3,
-                  project_id: [7, 'Project'],
-                  task_properties: [{ ...definitions[0], value: 2 }],
-                },
-              ]
-        ) as never;
-      }
-      if (method === 'write') return true as never;
-      if (method === 'create') return 41 as never;
-      throw new Error(`Unexpected ${model}.${method}`);
-    });
+    const rpc = mockRpc(propertyScopeRpc(definitions));
     const client = createBoundClient({ rpc });
     const scope = await client.properties.scope('project.task', 'task_properties', {
       parentId: 7,

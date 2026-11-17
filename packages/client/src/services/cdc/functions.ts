@@ -284,6 +284,23 @@ export async function getHistory(
   return events;
 }
 
+/** Build the tracking-value domain for one getFeed page. */
+function buildFeedDomain(model: string, cursor: number, opts: GetFeedOptions): Domain {
+  const domain: Domain = [['mail_message_id.model', '=', model]];
+
+  if (cursor === 0 && opts.since) {
+    // Initial filter: start from since date
+    domain.push(['create_date', '>=', opts.since]);
+  } else {
+    // Continuation: id-only cursor (avoids sub-second datetime precision issues)
+    domain.push(['id', '>', cursor]);
+  }
+
+  if (opts.until) domain.push(['create_date', '<', opts.until]);
+  if (opts.domain && opts.domain.length > 0) domain.push(...opts.domain);
+  return domain;
+}
+
 /**
  * Paginated feed of all tracked changes for a model.
  * Returns an AsyncIterable — iterate with `for await`.
@@ -311,19 +328,7 @@ export async function* getFeed(
   while (true) {
     page++;
 
-    // Build domain
-    const domain: Domain = [['mail_message_id.model', '=', model]];
-
-    if (cursor === 0 && opts.since) {
-      // Initial filter: start from since date
-      domain.push(['create_date', '>=', opts.since]);
-    } else {
-      // Continuation: id-only cursor (avoids sub-second datetime precision issues)
-      domain.push(['id', '>', cursor]);
-    }
-
-    if (opts.until) domain.push(['create_date', '<', opts.until]);
-    if (opts.domain && opts.domain.length > 0) domain.push(...opts.domain);
+    const domain = buildFeedDomain(model, cursor, opts);
 
     log('page %d: cursor=%d domain=%j', page, cursor, domain);
 

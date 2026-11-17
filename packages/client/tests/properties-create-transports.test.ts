@@ -1,6 +1,34 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createPropertiesScope, OAuthProxyClient, OdooClient, OdooSafetyError } from '../src/index';
 
+function objectResult(method: string, args: unknown[]): unknown {
+  if (method === 'fields_get')
+    return (args[5] as string[][])[0]?.[0] === 'task_properties'
+      ? {
+          task_properties: {
+            type: 'properties',
+            definition_record: 'project_id',
+            definition_record_field: 'task_properties_definition',
+          },
+        }
+      : { project_id: { type: 'many2one', relation: 'project.project' } };
+  if (method === 'read')
+    return [
+      {
+        id: 7,
+        task_properties_definition: [
+          {
+            name: 'p',
+            string: 'Priority',
+            type: 'selection',
+            selection: [['hi', 'High']],
+          },
+        ],
+      },
+    ];
+  return 41;
+}
+
 describe('friendly property creation through client transports', () => {
   afterEach(() => vi.unstubAllGlobals());
 
@@ -9,34 +37,7 @@ describe('friendly property creation through client transports', () => {
       const request = JSON.parse(init.body as string);
       const args = request.params.args;
       const method = args[4];
-      const result =
-        request.params.service === 'common'
-          ? 1
-          : method === 'fields_get'
-            ? args[5][0][0] === 'task_properties'
-              ? {
-                  task_properties: {
-                    type: 'properties',
-                    definition_record: 'project_id',
-                    definition_record_field: 'task_properties_definition',
-                  },
-                }
-              : { project_id: { type: 'many2one', relation: 'project.project' } }
-            : method === 'read'
-              ? [
-                  {
-                    id: 7,
-                    task_properties_definition: [
-                      {
-                        name: 'p',
-                        string: 'Priority',
-                        type: 'selection',
-                        selection: [['hi', 'High']],
-                      },
-                    ],
-                  },
-                ]
-              : 41;
+      const result = request.params.service === 'common' ? 1 : objectResult(method, args);
       return new Response(JSON.stringify({ jsonrpc: '2.0', id: request.id, result }), {
         status: 200,
       });

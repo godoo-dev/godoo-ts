@@ -145,6 +145,34 @@ function fixture() {
     },
   };
 }
+type LastRowProblem =
+  | 'missing'
+  | 'duplicate'
+  | 'unexpected'
+  | 'moved'
+  | 'embedded'
+  | 'duplicate-property'
+  | 'unsupported'
+  | 'malformed';
+/** Read rows for two records with `problem` introduced in the last row. */
+function lastRowProblemRows(f: ReturnType<typeof fixture>, problem: LastRowProblem): unknown[] {
+  const first = f.row(1);
+  const last = f.row(2);
+  let rows: unknown[] = [first, last];
+  if (problem === 'missing') rows = [first];
+  if (problem === 'duplicate') rows = [first, first];
+  if (problem === 'unexpected') last.id = 3;
+  if (problem === 'moved') last.project_id = [8, 'Other'];
+  if (problem === 'embedded') required(last.task_properties[0]).type = 'char';
+  if (problem === 'duplicate-property')
+    last.task_properties.push(required(last.task_properties[0]));
+  if (problem === 'unsupported') {
+    f.defs.push({ name: 'new', string: 'New', type: 'binary' });
+    last.task_properties.push({ name: 'new', string: 'New', type: 'binary', value: false });
+  }
+  if (problem === 'malformed') required(last.task_properties[8]).value = [[12, 'A'], 13];
+  return rows;
+}
 function errorCode(code: string) {
   return expect.objectContaining({ name: 'PropertiesBindingError', code });
 }
@@ -788,21 +816,7 @@ describe('parent-scoped properties', () => {
   ] as const)('blocks the entire batch for %s data in the last row', async (problem) => {
     const f = fixture();
     const binding = (await f.scope()).bind(declaration);
-    const first = f.row(1);
-    const last = f.row(2);
-    let rows: unknown[] = [first, last];
-    if (problem === 'missing') rows = [first];
-    if (problem === 'duplicate') rows = [first, first];
-    if (problem === 'unexpected') last.id = 3;
-    if (problem === 'moved') last.project_id = [8, 'Other'];
-    if (problem === 'embedded') required(last.task_properties[0]).type = 'char';
-    if (problem === 'duplicate-property')
-      last.task_properties.push(required(last.task_properties[0]));
-    if (problem === 'unsupported') {
-      f.defs.push({ name: 'new', string: 'New', type: 'binary' });
-      last.task_properties.push({ name: 'new', string: 'New', type: 'binary', value: false });
-    }
-    if (problem === 'malformed') required(last.task_properties[8]).value = [[12, 'A'], 13];
+    const rows = lastRowProblemRows(f, problem);
     f.read
       .mockImplementationOnce(async () => [{ id: 7, task_properties_definition: f.defs }] as never)
       .mockResolvedValueOnce(rows as never);

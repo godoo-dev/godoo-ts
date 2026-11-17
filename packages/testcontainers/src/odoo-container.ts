@@ -22,6 +22,7 @@ import {
   ensureSnapshotDir,
   hasSnapshot,
   restoreSnapshot,
+  type SnapshotCache,
   type SnapshotCacheOptions,
   saveSnapshot,
   snapshotBindMount,
@@ -125,6 +126,35 @@ export interface StartedOdooContainer {
   cleanup: () => Promise<void>;
 }
 
+/** Prepare the snapshot directory when caching and log how this start will proceed. */
+function announceStart(snapshot: SnapshotCache, snapshotHit: boolean, modules: string[]): void {
+  if (snapshot.enabled) {
+    ensureSnapshotDir(snapshot);
+    console.log(
+      snapshotHit
+        ? `⚡ Starting Odoo testcontainer from snapshot ${snapshot.key}`
+        : `🚀 Starting Odoo testcontainer cold; will save snapshot ${snapshot.key}`,
+    );
+  } else {
+    console.log(`🚀 Starting Odoo testcontainer with modules: ${modules.join(', ')}`);
+  }
+}
+
+function odooStartCommand(database: string, snapshotHit: boolean): string[] {
+  return snapshotHit
+    ? ['--database', database, '--without-demo', 'all', '--max-cron-threads', '0']
+    : [
+        '--database',
+        database,
+        '--init',
+        'base',
+        '--without-demo',
+        'all',
+        '--max-cron-threads',
+        '0',
+      ];
+}
+
 export class OdooTestContainer {
   private options: Required<Omit<OdooTestContainerOptions, 'addonsPath' | 'env' | 'snapshot'>> & {
     addonsPath?: string | AddonsMount[];
@@ -164,18 +194,7 @@ export class OdooTestContainer {
     });
     const snapshotHit = hasSnapshot(snapshot);
 
-    if (snapshot.enabled) {
-      ensureSnapshotDir(snapshot);
-      console.log(
-        snapshotHit
-          ? `⚡ Starting Odoo testcontainer from snapshot ${snapshot.key}`
-          : `🚀 Starting Odoo testcontainer cold; will save snapshot ${snapshot.key}`,
-      );
-    } else {
-      console.log(
-        `🚀 Starting Odoo testcontainer with modules: ${this.options.modules.join(', ')}`,
-      );
-    }
+    announceStart(snapshot, snapshotHit, this.options.modules);
 
     // Create a network for container communication
     const runId = randomUUID();
@@ -221,18 +240,7 @@ export class OdooTestContainer {
       //
       // Snapshot hit: no --init (database already exists + modules installed).
       // Snapshot miss: --init base creates the database structure.
-      const odooCommand = snapshotHit
-        ? ['--database', this.options.database, '--without-demo', 'all', '--max-cron-threads', '0']
-        : [
-            '--database',
-            this.options.database,
-            '--init',
-            'base',
-            '--without-demo',
-            'all',
-            '--max-cron-threads',
-            '0',
-          ];
+      const odooCommand = odooStartCommand(this.options.database, snapshotHit);
 
       let odooContainer = new LoopbackOdooContainer(`odoo:${odooVer}`)
         .withLabels(labels)

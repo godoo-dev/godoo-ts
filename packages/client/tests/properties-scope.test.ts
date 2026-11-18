@@ -312,28 +312,26 @@ describe('parent-scoped properties', () => {
     expect(f.write).not.toHaveBeenCalled();
   });
 
-  it.each([
-    'id',
-    'type',
-    'comodel',
-    'option',
-  ] as const)('rejects %s drift before creating', async (drift) => {
-    const f = fixture();
-    const binding = (await f.scope()).bind(allDeclarations);
-    if (drift === 'id') required(f.defs[0]).name = 'replacement';
-    if (drift === 'type') required(f.defs[0]).type = 'char';
-    if (drift === 'comodel') required(f.defs[7]).comodel = 'res.users';
-    if (drift === 'option')
-      required(f.defs[0]).selection = [
-        ['replacement', 'High'],
-        ['lo', 'Low'],
-      ];
-    f.call.mockClear();
-    await expect(binding.create({ name: 'Blocked' }, { estimate: 0 })).rejects.toEqual(
-      errorCode('stale-binding'),
-    );
-    expect(f.call).not.toHaveBeenCalled();
-  });
+  it.each(['id', 'type', 'comodel', 'option'] as const)(
+    'rejects %s drift before creating',
+    async (drift) => {
+      const f = fixture();
+      const binding = (await f.scope()).bind(allDeclarations);
+      if (drift === 'id') required(f.defs[0]).name = 'replacement';
+      if (drift === 'type') required(f.defs[0]).type = 'char';
+      if (drift === 'comodel') required(f.defs[7]).comodel = 'res.users';
+      if (drift === 'option')
+        required(f.defs[0]).selection = [
+          ['replacement', 'High'],
+          ['lo', 'Low'],
+        ];
+      f.call.mockClear();
+      await expect(binding.create({ name: 'Blocked' }, { estimate: 0 })).rejects.toEqual(
+        errorCode('stale-binding'),
+      );
+      expect(f.call).not.toHaveBeenCalled();
+    },
+  );
 
   it('detaches creation input before awaiting the fresh parent definitions', async () => {
     const f = fixture();
@@ -379,23 +377,16 @@ describe('parent-scoped properties', () => {
     expect(f.write).not.toHaveBeenCalled();
   });
 
-  it.each([
-    false,
-    null,
-    undefined,
-    0,
-    -1,
-    1.5,
-    '41',
-    [41],
-    Number.MAX_SAFE_INTEGER + 1,
-  ])('rejects invalid create response %j without retries', async (result) => {
-    const f = fixture();
-    const binding = (await f.scope()).bind(declaration);
-    f.call.mockReset().mockResolvedValue(result as never);
-    await expect(binding.create({ name: 'New' })).rejects.toBeInstanceOf(OdooProtocolError);
-    expect(f.call).toHaveBeenCalledTimes(1);
-  });
+  it.each([false, null, undefined, 0, -1, 1.5, '41', [41], Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid create response %j without retries',
+    async (result) => {
+      const f = fixture();
+      const binding = (await f.scope()).bind(declaration);
+      f.call.mockReset().mockResolvedValue(result as never);
+      await expect(binding.create({ name: 'New' })).rejects.toBeInstanceOf(OdooProtocolError);
+      expect(f.call).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('discovers metadata with exact context/projection, exposes detached raw snapshots and supports the accessor', async () => {
     const f = fixture();
@@ -466,7 +457,7 @@ describe('parent-scoped properties', () => {
     const f = fixture();
     f.call.mockImplementation(
       async (_m, _method, args) =>
-        ((args?.[0] as string[])[0] === 'task_properties'
+        ((args?.[0] as string[] | undefined)?.[0] === 'task_properties'
           ? { task_properties: { type: 'properties' } }
           : { project_id: { type: 'many2one', relation: 'project.project' } }) as never,
     );
@@ -568,27 +559,25 @@ describe('parent-scoped properties', () => {
     expect(() => scope.bind(declaration)).toThrow('matched 0');
   });
 
-  it.each([
-    'id',
-    'type',
-    'comodel',
-    'option',
-  ] as const)('rejects %s drift without writing or rebinding labels', async (drift) => {
-    const f = fixture();
-    const scope = await f.scope();
-    const binding = scope.bind(allDeclarations);
-    if (drift === 'id') required(f.defs[0]).name = 'replacement';
-    if (drift === 'type') required(f.defs[0]).type = 'char';
-    if (drift === 'comodel') required(f.defs[7]).comodel = 'res.users';
-    if (drift === 'option')
-      required(f.defs[0]).selection = [
-        ['replacement', 'High'],
-        ['lo', 'Low'],
-      ];
-    await expect(binding.patch(1, { estimate: 1 })).rejects.toEqual(errorCode('stale-binding'));
-    expect(f.write).not.toHaveBeenCalled();
-    expect(binding.mapping().priority.id).toBe('p');
-  });
+  it.each(['id', 'type', 'comodel', 'option'] as const)(
+    'rejects %s drift without writing or rebinding labels',
+    async (drift) => {
+      const f = fixture();
+      const scope = await f.scope();
+      const binding = scope.bind(allDeclarations);
+      if (drift === 'id') required(f.defs[0]).name = 'replacement';
+      if (drift === 'type') required(f.defs[0]).type = 'char';
+      if (drift === 'comodel') required(f.defs[7]).comodel = 'res.users';
+      if (drift === 'option')
+        required(f.defs[0]).selection = [
+          ['replacement', 'High'],
+          ['lo', 'Low'],
+        ];
+      await expect(binding.patch(1, { estimate: 1 })).rejects.toEqual(errorCode('stale-binding'));
+      expect(f.write).not.toHaveBeenCalled();
+      expect(binding.mapping().priority.id).toBe('p');
+    },
+  );
 
   it('normalizes tuples and falsy values, preserves dates as strings, returns requested order and detached raw data', async () => {
     const f = fixture();
@@ -948,38 +937,34 @@ describe('parent-scoped properties', () => {
     expect(await pending).toHaveLength(5);
   });
 
-  it.each([
-    null,
-    undefined,
-    { unexpected: true },
-    'unexpected',
-  ])('keeps unexpected write results %j unknown', async (value) => {
-    const f = fixture();
-    const binding = (await f.scope()).bind(declaration);
-    f.write.mockResolvedValueOnce(value as unknown as boolean);
-    expect(await binding.patch(1, { estimate: 0 })).toEqual({
-      id: 1,
-      status: 'unknown',
-      error: value,
-    });
-  });
+  it.each([null, undefined, { unexpected: true }, 'unexpected'])(
+    'keeps unexpected write results %j unknown',
+    async (value) => {
+      const f = fixture();
+      const binding = (await f.scope()).bind(declaration);
+      f.write.mockResolvedValueOnce(value as unknown as boolean);
+      expect(await binding.patch(1, { estimate: 0 })).toEqual({
+        id: 1,
+        status: 'unknown',
+        error: value,
+      });
+    },
+  );
 
-  it.each([
-    new Error('unclassified'),
-    undefined,
-    null,
-    'thrown',
-  ])('preserves unclassified thrown values %j', async (error) => {
-    const f = fixture();
-    const binding = (await f.scope()).bind(declaration);
-    f.write.mockImplementationOnce(async () => {
-      throw error;
-    });
-    const receipt = await binding.patch(1, { estimate: 0 });
-    expect(receipt.status).toBe('unknown');
-    assert(receipt.status !== 'acknowledged');
-    expect(receipt.error).toBe(error);
-  });
+  it.each([new Error('unclassified'), undefined, null, 'thrown'])(
+    'preserves unclassified thrown values %j',
+    async (error) => {
+      const f = fixture();
+      const binding = (await f.scope()).bind(declaration);
+      f.write.mockImplementationOnce(async () => {
+        throw error;
+      });
+      const receipt = await binding.patch(1, { estimate: 0 });
+      expect(receipt.status).toBe('unknown');
+      assert(receipt.status !== 'acknowledged');
+      expect(receipt.error).toBe(error);
+    },
+  );
 
   it('keeps internal mappings detached from validation error diagnostics', async () => {
     const f = fixture();
@@ -1001,19 +986,19 @@ describe('parent-scoped properties', () => {
     expect(await binding.patch(1, { estimate: 1 })).toEqual({ id: 1, status: 'acknowledged' });
   });
 
-  it.each([
-    'property',
-    'option',
-  ] as const)('rejects duplicate technical %s IDs in discovered definitions', async (kind) => {
-    const f = fixture();
-    if (kind === 'property') f.defs.push({ ...f.defs[0] });
-    else
-      required(f.defs[0]).selection = [
-        ['hi', 'First'],
-        ['hi', 'Second'],
-      ];
-    await expect(f.scope()).rejects.toEqual(errorCode('invalid-definitions'));
-  });
+  it.each(['property', 'option'] as const)(
+    'rejects duplicate technical %s IDs in discovered definitions',
+    async (kind) => {
+      const f = fixture();
+      if (kind === 'property') f.defs.push({ ...f.defs[0] });
+      else
+        required(f.defs[0]).selection = [
+          ['hi', 'First'],
+          ['hi', 'Second'],
+        ];
+      await expect(f.scope()).rejects.toEqual(errorCode('invalid-definitions'));
+    },
+  );
 
   it('does not share parent definitions across scopes', async () => {
     const f = fixture();

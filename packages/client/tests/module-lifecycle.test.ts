@@ -207,28 +207,26 @@ describe('explicit module lifecycle', () => {
     expect(mutations().map((request) => request.method)).toEqual(['button_immediate_upgrade']);
   });
 
-  it.each([
-    'uninstalled',
-    'uninstallable',
-    'to install',
-    'to upgrade',
-    'to remove',
-    'future',
-  ])('never reports success for a post-dispatch %s root', async (state) => {
-    const { client, mutations } = fixture({
-      mutate: (_request, modules) => {
-        firstRow(modules).state = state;
-      },
-    });
-    await client.authenticate();
-    await expect(client.modules.installModule('sale', { retryDelayMs: 0 })).rejects.toMatchObject({
-      name: 'ModuleLifecycleError',
-      phase: 'postcondition',
-      schemaInvalidated: true,
-    });
-    expect(mutations()).toHaveLength(1);
-    expect(client.modules.catalogRevision).toBe(1);
-  });
+  it.each(['uninstalled', 'uninstallable', 'to install', 'to upgrade', 'to remove', 'future'])(
+    'never reports success for a post-dispatch %s root',
+    async (state) => {
+      const { client, mutations } = fixture({
+        mutate: (_request, modules) => {
+          firstRow(modules).state = state;
+        },
+      });
+      await client.authenticate();
+      await expect(client.modules.installModule('sale', { retryDelayMs: 0 })).rejects.toMatchObject(
+        {
+          name: 'ModuleLifecycleError',
+          phase: 'postcondition',
+          schemaInvalidated: true,
+        },
+      );
+      expect(mutations()).toHaveLength(1);
+      expect(client.modules.catalogRevision).toBe(1);
+    },
+  );
 
   it('fails when a dependency remains uninstalled despite an installed root', async () => {
     const { client } = fixture({
@@ -269,32 +267,31 @@ describe('explicit module lifecycle', () => {
     await expect(client.modules.installModule('sale')).rejects.toThrow('changed identity');
   });
 
-  it.each([
-    'uninstallable',
-    'to install',
-    'to upgrade',
-    'to remove',
-    'future',
-  ])('refuses %s prerequisites before dispatch', async (state) => {
-    const { client, mutations } = fixture({ modules: [addon(1, 'sale', state)] });
-    await client.authenticate();
-    await expect(client.modules.installModule('sale')).rejects.toMatchObject({
-      phase: 'prerequisite',
-      schemaInvalidated: false,
-    });
-    expect(mutations()).toEqual([]);
-    expect(client.modules.catalogRevision).toBe(0);
-  });
+  it.each(['uninstallable', 'to install', 'to upgrade', 'to remove', 'future'])(
+    'refuses %s prerequisites before dispatch',
+    async (state) => {
+      const { client, mutations } = fixture({ modules: [addon(1, 'sale', state)] });
+      await client.authenticate();
+      await expect(client.modules.installModule('sale')).rejects.toMatchObject({
+        phase: 'prerequisite',
+        schemaInvalidated: false,
+      });
+      expect(mutations()).toEqual([]);
+      expect(client.modules.catalogRevision).toBe(0);
+    },
+  );
 
-  it.each([
-    { modules: [] },
-    { modules: [addon(1, 'sale'), addon(2, 'sale')] },
-  ])('refuses missing or duplicate roots', async ({ modules }) => {
-    const { client, mutations } = fixture({ modules });
-    await client.authenticate();
-    await expect(client.modules.installModule('sale')).rejects.toBeInstanceOf(ModuleLifecycleError);
-    expect(mutations()).toEqual([]);
-  });
+  it.each([{ modules: [] }, { modules: [addon(1, 'sale'), addon(2, 'sale')] }])(
+    'refuses missing or duplicate roots',
+    async ({ modules }) => {
+      const { client, mutations } = fixture({ modules });
+      await client.authenticate();
+      await expect(client.modules.installModule('sale')).rejects.toBeInstanceOf(
+        ModuleLifecycleError,
+      );
+      expect(mutations()).toEqual([]);
+    },
+  );
 
   it('refuses incomplete dependency rows instead of treating them as an empty closure', async () => {
     const { client, mutations } = fixture({ modules: [addon(1, 'sale', 'uninstalled', [10])] });
@@ -346,20 +343,18 @@ describe('explicit module lifecycle', () => {
     expect(second.mutations()).toEqual([]);
   });
 
-  it.each([
-    false,
-    null,
-    true,
-    [],
-  ])('rejects refusal/malformed lifecycle response %j even with installed state', async (response) => {
-    const { client, mutations } = fixture({ modules: [addon(1, 'sale', 'installed')], response });
-    await client.authenticate();
-    await expect(client.modules.upgradeModule('sale')).rejects.toMatchObject({
-      phase: 'postcondition',
-      schemaInvalidated: true,
-    });
-    expect(mutations()).toHaveLength(1);
-  });
+  it.each([false, null, true, []])(
+    'rejects refusal/malformed lifecycle response %j even with installed state',
+    async (response) => {
+      const { client, mutations } = fixture({ modules: [addon(1, 'sale', 'installed')], response });
+      await client.authenticate();
+      await expect(client.modules.upgradeModule('sale')).rejects.toMatchObject({
+        phase: 'postcondition',
+        schemaInvalidated: true,
+      });
+      expect(mutations()).toHaveLength(1);
+    },
+  );
 
   it.each([
     {
@@ -451,17 +446,22 @@ describe('explicit module lifecycle', () => {
       context: { disable_log: true },
     },
     { arbitrary: 'object' },
-  ])('rejects deferred/refusal/unsupported object response %j without retry even for installed upgrades', async (response) => {
-    const { client, mutations } = fixture({ modules: [addon(1, 'sale', 'installed')], response });
-    await client.authenticate();
-    await expect(client.modules.upgradeModule('sale', { retryDelayMs: 0 })).rejects.toMatchObject({
-      name: 'ModuleLifecycleError',
-      phase: 'postcondition',
-      schemaInvalidated: true,
-    });
-    expect(mutations()).toHaveLength(1);
-    expect(client.modules.catalogRevision).toBe(1);
-  });
+  ])(
+    'rejects deferred/refusal/unsupported object response %j without retry even for installed upgrades',
+    async (response) => {
+      const { client, mutations } = fixture({ modules: [addon(1, 'sale', 'installed')], response });
+      await client.authenticate();
+      await expect(client.modules.upgradeModule('sale', { retryDelayMs: 0 })).rejects.toMatchObject(
+        {
+          name: 'ModuleLifecycleError',
+          phase: 'postcondition',
+          schemaInvalidated: true,
+        },
+      );
+      expect(mutations()).toHaveLength(1);
+      expect(client.modules.catalogRevision).toBe(1);
+    },
+  );
 
   it.each([
     {},
@@ -484,39 +484,42 @@ describe('explicit module lifecycle', () => {
       view_mode: 'tree,form',
       context: { disable_log: true, res_id: 1 },
     },
-  ])('preserves supported Odoo17 completion/configuration response %j without requiring version change', async (response) => {
-    const { client, mutations } = fixture({ modules: [addon(1, 'sale', 'installed')], response });
-    await client.authenticate();
-    await expect(client.modules.upgradeModule('sale')).resolves.toMatchObject({
-      operation: 'upgrade',
-      installed_version: '17.0.1.0',
-      state: 'installed',
-      changed: true,
-    });
-    expect(mutations()).toHaveLength(1);
-  });
+  ])(
+    'preserves supported Odoo17 completion/configuration response %j without requiring version change',
+    async (response) => {
+      const { client, mutations } = fixture({ modules: [addon(1, 'sale', 'installed')], response });
+      await client.authenticate();
+      await expect(client.modules.upgradeModule('sale')).resolves.toMatchObject({
+        operation: 'upgrade',
+        installed_version: '17.0.1.0',
+        state: 'installed',
+        changed: true,
+      });
+      expect(mutations()).toHaveLength(1);
+    },
+  );
 
-  it.each([
-    'install',
-    'upgrade',
-  ] as const)('accepts the exact Odoo18 self redirect for %s after verifying installed closure', async (operation) => {
-    const { client, mutations } = fixture({
-      modules: [addon(1, 'sale', operation === 'upgrade' ? 'installed' : 'uninstalled')],
-      response: { type: 'ir.actions.act_url', target: 'self', url: '/odoo' },
-    });
-    await client.authenticate();
-    const result =
-      operation === 'install'
-        ? await client.modules.installModule('sale')
-        : await client.modules.upgradeModule('sale');
-    expect(result).toMatchObject({
-      operation,
-      state: 'installed',
-      changed: true,
-      schemaInvalidated: true,
-    });
-    expect(mutations()).toHaveLength(1);
-  });
+  it.each(['install', 'upgrade'] as const)(
+    'accepts the exact Odoo18 self redirect for %s after verifying installed closure',
+    async (operation) => {
+      const { client, mutations } = fixture({
+        modules: [addon(1, 'sale', operation === 'upgrade' ? 'installed' : 'uninstalled')],
+        response: { type: 'ir.actions.act_url', target: 'self', url: '/odoo' },
+      });
+      await client.authenticate();
+      const result =
+        operation === 'install'
+          ? await client.modules.installModule('sale')
+          : await client.modules.upgradeModule('sale');
+      expect(result).toMatchObject({
+        operation,
+        state: 'installed',
+        changed: true,
+        schemaInvalidated: true,
+      });
+      expect(mutations()).toHaveLength(1);
+    },
+  );
 
   it('still rejects incomplete installed closure after the Odoo18 redirect', async () => {
     const { client } = fixture({
@@ -557,35 +560,35 @@ describe('explicit module lifecycle', () => {
     expect(mutations()).toEqual([]);
   });
 
-  it.each([
-    'install',
-    'upgrade',
-  ] as const)('retries only classified cron contention for %s with a bounded delay', async (operation) => {
-    vi.useFakeTimers();
-    const { client, mutations } = fixture({
-      modules: [addon(1, 'sale', operation === 'upgrade' ? 'installed' : 'uninstalled')],
-      error: (request, attempt) =>
-        request.method.startsWith('button_') && attempt < 3
-          ? { name: 'odoo.exceptions.UserError', message: CRON_LOCK }
-          : undefined,
-    });
-    await client.authenticate();
-    const pending =
-      operation === 'install'
-        ? client.modules.installModule('sale')
-        : client.modules.upgradeModule('sale');
-    const resolved = expect(pending).resolves.toMatchObject({ attempts: 3, state: 'installed' });
-    await vi.advanceTimersByTimeAsync(0);
-    expect(mutations()).toHaveLength(1);
-    await vi.advanceTimersByTimeAsync(4999);
-    expect(mutations()).toHaveLength(1);
-    await vi.advanceTimersByTimeAsync(1);
-    expect(mutations()).toHaveLength(2);
-    await vi.advanceTimersByTimeAsync(5000);
-    await resolved;
-    expect(mutations()).toHaveLength(3);
-    expect(client.modules.catalogRevision).toBe(3);
-  });
+  it.each(['install', 'upgrade'] as const)(
+    'retries only classified cron contention for %s with a bounded delay',
+    async (operation) => {
+      vi.useFakeTimers();
+      const { client, mutations } = fixture({
+        modules: [addon(1, 'sale', operation === 'upgrade' ? 'installed' : 'uninstalled')],
+        error: (request, attempt) =>
+          request.method.startsWith('button_') && attempt < 3
+            ? { name: 'odoo.exceptions.UserError', message: CRON_LOCK }
+            : undefined,
+      });
+      await client.authenticate();
+      const pending =
+        operation === 'install'
+          ? client.modules.installModule('sale')
+          : client.modules.upgradeModule('sale');
+      const resolved = expect(pending).resolves.toMatchObject({ attempts: 3, state: 'installed' });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mutations()).toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(4999);
+      expect(mutations()).toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(mutations()).toHaveLength(2);
+      await vi.advanceTimersByTimeAsync(5000);
+      await resolved;
+      expect(mutations()).toHaveLength(3);
+      expect(client.modules.catalogRevision).toBe(3);
+    },
+  );
 
   it('propagates the final classified lock and never exceeds maxAttempts', async () => {
     const { client, mutations } = fixture({

@@ -111,10 +111,9 @@ import { createClient } from '@godoo-dev/client';
 const client = await createClient();
 
 // Search
-const partners = await client.searchRead('res.partner',
-  [['name', 'ilike', 'John']],
-  { fields: ['name', 'email'] }
-);
+const partners = await client.searchRead('res.partner', [['name', 'ilike', 'John']], {
+  fields: ['name', 'email'],
+});
 
 // Create
 const newId = await client.create('res.partner', { name: 'Acme Corp' });
@@ -317,7 +316,8 @@ const scope = await client.properties.scope('project.task', 'task_properties', {
 });
 const tasks = scope.bind({
   priority: {
-    label: 'Priority', type: 'selection',
+    label: 'Priority',
+    type: 'selection',
     options: { high: { label: 'High' }, low: { label: 'Low' } },
   },
   estimate: { label: 'Estimated effort', type: 'float' },
@@ -446,7 +446,9 @@ await client.properties.updateSafely('project.task', taskId, 'task_properties', 
 });
 
 const values = await client.properties.getCurrentWriteFormat(
-  'project.task', taskId, 'task_properties',
+  'project.task',
+  taskId,
+  'task_properties',
 );
 ```
 

@@ -189,7 +189,6 @@ only missing archives are uploaded. A collision or unavailable registry check
 halts the whole selected set before another upload. This recovery does not
 replace the main-line, same-run proof or publishing-access requirements.
 
-
 ### Release finish and retained work
 
 After a release, assess this repository's local/remote branches and worktrees for

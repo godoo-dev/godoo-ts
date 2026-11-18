@@ -27,13 +27,13 @@
     "test:integration:list": "node scripts/check-odoo.mjs 18 --list"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.15",
-    "@changesets/changelog-github": "0.7.0",
+    "@biomejs/biome": "2.6.7",
+    "@changesets/changelog-github": "1.0.1",
     "@changesets/cli": "2.31.0",
-    "@tsconfig/node22": "22.0.5",
+    "@tsconfig/node22": "22.0.7",
     "@types/node": "25.9.1",
-    "lefthook": "2.1.6",
-    "tsdown": "0.22.0",
+    "lefthook": "2.2.2",
+    "tsdown": "0.23.7",
     "typescript": "6.0.3",
     "typescript-language-server": "6.1.0",
     "vitest": "4.1.6"

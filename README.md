@@ -4,11 +4,11 @@ TypeScript libraries for automating Odoo through RPC, inspecting instance schema
 and running disposable Odoo test environments. LGPL-3.0; this monorepo is their
 canonical source home.
 
-| Package | Purpose | Guide |
-| --- | --- | --- |
-| `@godoo-dev/client` | RPC client, CRUD, safety guards and services | [Client](packages/client/README.md) |
-| `@godoo-dev/introspection` | Model/field discovery, caching and type generation | [Introspection](packages/introspection/README.md) |
-| `@godoo-dev/testcontainers` | Disposable Odoo/Postgres and test harness | [Testcontainers](packages/testcontainers/README.md) |
+| Package                     | Purpose                                            | Guide                                               |
+| --------------------------- | -------------------------------------------------- | --------------------------------------------------- |
+| `@godoo-dev/client`         | RPC client, CRUD, safety guards and services       | [Client](packages/client/README.md)                 |
+| `@godoo-dev/introspection`  | Model/field discovery, caching and type generation | [Introspection](packages/introspection/README.md)   |
+| `@godoo-dev/testcontainers` | Disposable Odoo/Postgres and test harness          | [Testcontainers](packages/testcontainers/README.md) |
 
 Install the packages needed by your application, for example:
 

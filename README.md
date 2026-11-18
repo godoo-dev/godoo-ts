@@ -38,7 +38,8 @@ For contributors, start with [development](docs/development.md). The libraries
 provide reusable Odoo operations; standalone desired-state reconciliation belongs
 to godoo-stateman. See [library targets](docs/libraries.md)
 for capability intent and the public [Godoo organization profile](https://github.com/godoo-dev/.github/blob/main/profile/README.md)
-for family orientation and [AGENTS.md](AGENTS.md) for agent guidance.
+for family orientation. Maintainer procedures for agents live in
+[`.agents/skills`](.agents/skills): capture, docs and verification.
 
 Embedding an authorized SDK without credentials or Node filesystem access uses
 the [portable client, introspection and effect contracts](packages/client/README.md#portable-client).

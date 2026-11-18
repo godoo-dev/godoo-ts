@@ -20,6 +20,63 @@ export interface ProjectProvisionResult {
   tasks: Record<string, number>;
 }
 
+async function createStages(
+  client: ProvisionerClient,
+  config: ProjectConfig,
+  projectId: number,
+): Promise<Record<string, number>> {
+  const stageRefs: Record<string, number> = {};
+  if (!config.stages || config.stages.length === 0) return stageRefs;
+
+  log('Creating %d stage(s) for project "%s"', config.stages.length, config.name);
+
+  for (const [i, stageName] of config.stages.entries()) {
+    const stageId = await client.create('project.task.type', {
+      name: stageName,
+      // Many2many: link stage to this project without replacing others
+      project_ids: [[4, projectId]],
+      sequence: (i + 1) * 10,
+    });
+    log('  Created stage "%s" → id=%d (seq=%d)', stageName, stageId, (i + 1) * 10);
+    stageRefs[stageName] = stageId;
+  }
+  return stageRefs;
+}
+
+async function createTasks(
+  client: ProvisionerClient,
+  config: ProjectConfig,
+  projectId: number,
+  stageRefs: Record<string, number>,
+  tasks: Record<string, number>,
+): Promise<void> {
+  if (!config.tasks || config.tasks.length === 0) return;
+
+  log('Creating %d task(s) for project "%s"', config.tasks.length, config.name);
+
+  for (const taskConfig of config.tasks) {
+    const taskValues: Record<string, unknown> = {
+      name: taskConfig.name,
+      project_id: projectId,
+    };
+
+    if (taskConfig.stage) {
+      const stageId = stageRefs[taskConfig.stage];
+      if (stageId === undefined) {
+        throw new Error(
+          `Task "${taskConfig.name}" references unknown stage "${taskConfig.stage}" ` +
+            `in project "${config.name}". Make sure the stage is in the stages array.`,
+        );
+      }
+      taskValues.stage_id = stageId;
+    }
+
+    const taskId = await client.create('project.task', taskValues);
+    log('  Created task "%s" → id=%d', taskConfig.name, taskId);
+    tasks[taskConfig.name] = taskId;
+  }
+}
+
 /**
  * Create projects with their stages and tasks.
  *
@@ -48,49 +105,10 @@ export async function provisionProjects(
     projects[config.name] = projectId;
 
     // Create stages and build name→ID map for task resolution
-    const stageRefs: Record<string, number> = {};
-
-    if (config.stages && config.stages.length > 0) {
-      log('Creating %d stage(s) for project "%s"', config.stages.length, config.name);
-
-      for (const [i, stageName] of config.stages.entries()) {
-        const stageId = await client.create('project.task.type', {
-          name: stageName,
-          // Many2many: link stage to this project without replacing others
-          project_ids: [[4, projectId]],
-          sequence: (i + 1) * 10,
-        });
-        log('  Created stage "%s" → id=%d (seq=%d)', stageName, stageId, (i + 1) * 10);
-        stageRefs[stageName] = stageId;
-      }
-    }
+    const stageRefs = await createStages(client, config, projectId);
 
     // Create tasks
-    if (config.tasks && config.tasks.length > 0) {
-      log('Creating %d task(s) for project "%s"', config.tasks.length, config.name);
-
-      for (const taskConfig of config.tasks) {
-        const taskValues: Record<string, unknown> = {
-          name: taskConfig.name,
-          project_id: projectId,
-        };
-
-        if (taskConfig.stage) {
-          const stageId = stageRefs[taskConfig.stage];
-          if (stageId === undefined) {
-            throw new Error(
-              `Task "${taskConfig.name}" references unknown stage "${taskConfig.stage}" ` +
-                `in project "${config.name}". Make sure the stage is in the stages array.`,
-            );
-          }
-          taskValues.stage_id = stageId;
-        }
-
-        const taskId = await client.create('project.task', taskValues);
-        log('  Created task "%s" → id=%d', taskConfig.name, taskId);
-        tasks[taskConfig.name] = taskId;
-      }
-    }
+    await createTasks(client, config, projectId, stageRefs, tasks);
   }
 
   return { projects, tasks };

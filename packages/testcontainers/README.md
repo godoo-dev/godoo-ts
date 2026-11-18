@@ -16,6 +16,11 @@ Odoo18 is the default provisioned version and the required verification baseline
 The verifier rejects17 before provisioning;19 qualification is manual after18 on
 the same candidate. Published Odoo/Postgres ports bind only127.0.0.1.
 
+The Odoo image is `odoo:<version>`, chosen by `ODOO_VERSION` (default `18.0`); it
+is a caller choice, not a pinned dependency. The Postgres image comes from the
+package's `postgres.Dockerfile`, where Dockerfile-aware update tools can find it. A Postgres major
+bump changes snapshot keys, so it is reviewed like any other dependency update.
+
 ## Installation
 
 ```bash

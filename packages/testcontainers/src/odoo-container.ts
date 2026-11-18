@@ -16,11 +16,13 @@ import {
   type StartedTestContainer,
   Wait,
 } from 'testcontainers';
+import { postgresImage } from './postgres-image.js';
 import {
   createSnapshotCache,
   ensureSnapshotDir,
   hasSnapshot,
   restoreSnapshot,
+  type SnapshotCache,
   type SnapshotCacheOptions,
   saveSnapshot,
   snapshotBindMount,
@@ -43,8 +45,6 @@ class LoopbackPostgresContainer extends PostgreSqlContainer {
     bindLoopback(this.hostConfig);
   }
 }
-
-const POSTGRES_IMAGE = 'postgres:15-alpine';
 
 /** Remove only this invocation's labeled containers and exact newly created network. */
 async function cleanupOwnedRun(
@@ -126,6 +126,35 @@ export interface StartedOdooContainer {
   cleanup: () => Promise<void>;
 }
 
+/** Prepare the snapshot directory when caching and log how this start will proceed. */
+function announceStart(snapshot: SnapshotCache, snapshotHit: boolean, modules: string[]): void {
+  if (snapshot.enabled) {
+    ensureSnapshotDir(snapshot);
+    console.log(
+      snapshotHit
+        ? `⚡ Starting Odoo testcontainer from snapshot ${snapshot.key}`
+        : `🚀 Starting Odoo testcontainer cold; will save snapshot ${snapshot.key}`,
+    );
+  } else {
+    console.log(`🚀 Starting Odoo testcontainer with modules: ${modules.join(', ')}`);
+  }
+}
+
+function odooStartCommand(database: string, snapshotHit: boolean): string[] {
+  return snapshotHit
+    ? ['--database', database, '--without-demo', 'all', '--max-cron-threads', '0']
+    : [
+        '--database',
+        database,
+        '--init',
+        'base',
+        '--without-demo',
+        'all',
+        '--max-cron-threads',
+        '0',
+      ];
+}
+
 export class OdooTestContainer {
   private options: Required<Omit<OdooTestContainerOptions, 'addonsPath' | 'env' | 'snapshot'>> & {
     addonsPath?: string | AddonsMount[];
@@ -153,9 +182,10 @@ export class OdooTestContainer {
    */
   async start(): Promise<StartedOdooContainer> {
     const odooVer = normaliseOdooVersion(process.env.ODOO_VERSION);
+    const pgImage = postgresImage();
     const snapshot = createSnapshotCache(this.options.snapshot, {
       odooVersion: odooVer,
-      postgresImage: POSTGRES_IMAGE,
+      postgresImage: pgImage,
       modules: this.options.modules,
       addonsPath: this.options.addonsPath,
       database: this.options.database,
@@ -164,18 +194,7 @@ export class OdooTestContainer {
     });
     const snapshotHit = hasSnapshot(snapshot);
 
-    if (snapshot.enabled) {
-      ensureSnapshotDir(snapshot);
-      console.log(
-        snapshotHit
-          ? `⚡ Starting Odoo testcontainer from snapshot ${snapshot.key}`
-          : `🚀 Starting Odoo testcontainer cold; will save snapshot ${snapshot.key}`,
-      );
-    } else {
-      console.log(
-        `🚀 Starting Odoo testcontainer with modules: ${this.options.modules.join(', ')}`,
-      );
-    }
+    announceStart(snapshot, snapshotHit, this.options.modules);
 
     // Create a network for container communication
     const runId = randomUUID();
@@ -191,7 +210,7 @@ export class OdooTestContainer {
       const pgPassword = 'odoo';
 
       const postgresContainer: StartedPostgreSqlContainer | StartedTestContainer =
-        await new LoopbackPostgresContainer(POSTGRES_IMAGE)
+        await new LoopbackPostgresContainer(pgImage)
           .withLabels(labels)
           .withDatabase(this.options.database)
           .withUsername(pgUser)
@@ -221,18 +240,7 @@ export class OdooTestContainer {
       //
       // Snapshot hit: no --init (database already exists + modules installed).
       // Snapshot miss: --init base creates the database structure.
-      const odooCommand = snapshotHit
-        ? ['--database', this.options.database, '--without-demo', 'all', '--max-cron-threads', '0']
-        : [
-            '--database',
-            this.options.database,
-            '--init',
-            'base',
-            '--without-demo',
-            'all',
-            '--max-cron-threads',
-            '0',
-          ];
+      const odooCommand = odooStartCommand(this.options.database, snapshotHit);
 
       let odooContainer = new LoopbackOdooContainer(`odoo:${odooVer}`)
         .withLabels(labels)

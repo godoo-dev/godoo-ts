@@ -26,19 +26,47 @@ const dependencySchema = {
   module_id: { type: 'many2one', relation: MODULE },
 };
 
-function harness(
-  options: {
-    modules?: Row[];
-    edges?: Row[];
-    schemas?: Record<string, unknown>;
-    version?: unknown;
-    error?: (
-      model: string,
-      method: string,
-      kwargs: Record<string, unknown>,
-    ) => Record<string, unknown> | undefined;
-  } = {},
-) {
+interface HarnessOptions {
+  modules?: Row[];
+  edges?: Row[];
+  schemas?: Record<string, unknown>;
+  version?: unknown;
+  error?: (
+    model: string,
+    method: string,
+    kwargs: Record<string, unknown>,
+  ) => Record<string, unknown> | undefined;
+}
+
+function commonResult(method: string, options: HarnessOptions): unknown {
+  return method === 'login'
+    ? 7
+    : (options.version ?? {
+        server_version: '17.0+e',
+        server_version_info: [17, 0, 0, 'final', 0, 'e'],
+        server_serie: '17.0',
+        protocol_version: 1,
+      });
+}
+
+function searchReadResult(
+  model: string,
+  [field, , value]: [string, string, unknown],
+  fields: string[],
+  options: HarnessOptions,
+): Row[] {
+  const result =
+    model === MODULE
+      ? (options.modules ?? []).filter((row) => row[field] === value)
+      : (options.edges ?? []).filter((row) => (value as unknown[]).includes(row.id));
+  return result.map((row) =>
+    Object.fromEntries(
+      Object.entries(row).filter(([field]) => field === 'id' || fields.includes(field)),
+    ),
+  );
+}
+
+function harness(options: HarnessOptions = {}) {
   const requests: { service: string; method: string; args: unknown[] }[] = [];
   const fetchMock = vi.fn(async (_url: unknown, init?: RequestInit) => {
     const { params, id } = JSON.parse(String(init?.body));
@@ -46,17 +74,7 @@ function harness(
       Response.json({ jsonrpc: '2.0', id, ...body });
     requests.push(params);
     if (params.service === 'common')
-      return respond({
-        result:
-          params.method === 'login'
-            ? 7
-            : (options.version ?? {
-                server_version: '17.0+e',
-                server_version_info: [17, 0, 0, 'final', 0, 'e'],
-                server_serie: '17.0',
-                protocol_version: 1,
-              }),
-      });
+      return respond({ result: commonResult(params.method, options) });
     const [, , , model, method, args, kwargs] = params.args;
     const error = options.error?.(model, method, kwargs);
     if (error) return respond({ error: { code: 200, message: 'Odoo Server Error', data: error } });
@@ -65,18 +83,7 @@ function harness(
         result: options.schemas?.[model] ?? (model === MODULE ? moduleSchema : dependencySchema),
       });
     if (method !== 'search_read') throw new Error(`Unexpected mutating/action method: ${method}`);
-    const [field, , value] = args[0][0];
-    const result =
-      model === MODULE
-        ? (options.modules ?? []).filter((row) => row[field] === value)
-        : (options.edges ?? []).filter((row) => value.includes(row.id));
-    return respond({
-      result: result.map((row) =>
-        Object.fromEntries(
-          Object.entries(row).filter(([field]) => field === 'id' || kwargs.fields.includes(field)),
-        ),
-      ),
-    });
+    return respond({ result: searchReadResult(model, args[0][0], kwargs.fields, options) });
   });
   vi.stubGlobal('fetch', fetchMock);
   const confirm = vi.fn(async () => false);

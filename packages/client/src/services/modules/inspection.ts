@@ -79,34 +79,392 @@ function statusFor(state: unknown): ModuleInspectionStatus {
   return 'unknown';
 }
 
-function cycleEdges(modules: ModulePrerequisite[]): { from: string; to: string }[] {
+type Edge = { from: string; to: string };
+
+/** Walk one DFS tree from `root`, recording back edges into `result`. */
+function walkCycles(
+  root: string,
+  byName: Map<string, ModulePrerequisite>,
+  visited: Set<string>,
+  result: Edge[],
+): void {
+  const active = new Set<string>([root]);
+  const stack = [{ name: root, index: 0 }];
+  visited.add(root);
+  while (stack.length) {
+    const frame = stack[stack.length - 1];
+    if (!frame) break;
+    const next = byName.get(frame.name)?.dependencies?.[frame.index++];
+    if (next === undefined) {
+      active.delete(frame.name);
+      stack.pop();
+    } else if (active.has(next)) {
+      result.push({ from: frame.name, to: next });
+    } else if (!visited.has(next)) {
+      visited.add(next);
+      active.add(next);
+      stack.push({ name: next, index: 0 });
+    }
+  }
+}
+
+function cycleEdges(modules: ModulePrerequisite[]): Edge[] {
   const byName = new Map(modules.map((module) => [module.name, module]));
   const visited = new Set<string>();
-  const active = new Set<string>();
-  const result: { from: string; to: string }[] = [];
+  const result: Edge[] = [];
   // Iterative DFS also handles deep chains without overflowing the JS call stack.
   for (const root of modules) {
     if (visited.has(root.name)) continue;
-    const stack = [{ name: root.name, index: 0 }];
-    visited.add(root.name);
-    active.add(root.name);
-    while (stack.length) {
-      const frame = stack[stack.length - 1];
-      if (!frame) break;
-      const next = byName.get(frame.name)?.dependencies?.[frame.index++];
-      if (next === undefined) {
-        active.delete(frame.name);
-        stack.pop();
-      } else if (active.has(next)) {
-        result.push({ from: frame.name, to: next });
-      } else if (!visited.has(next)) {
-        visited.add(next);
-        active.add(next);
-        stack.push({ name: next, index: 0 });
-      }
-    }
+    walkCycles(root.name, byName, visited, result);
   }
   return result;
+}
+
+interface Relation {
+  field: string;
+  relatedModel: string;
+}
+
+/** Map an observable metadata restriction to its diagnostic code; undefined means propagate. */
+function metadataDiagnosticCode(
+  cause: unknown,
+  model: string,
+): { code: ModuleInspectionDiagnostic['code']; cause: OdooRpcError } | undefined {
+  if (cause instanceof OdooAccessError) return { code: 'access-denied', cause };
+  if (cause instanceof OdooMissingError) return { code: 'metadata-incomplete', cause };
+  if (
+    cause instanceof OdooRpcError &&
+    cause.data?.name === 'builtins.KeyError' &&
+    Array.isArray(cause.data.arguments) &&
+    cause.data.arguments[0] === model
+  )
+    return { code: 'model-unavailable', cause };
+  return undefined;
+}
+
+function metadataMessage(
+  model: string,
+  module: string | undefined,
+  relation: Relation | undefined,
+  causeMessage: string,
+): string {
+  const relationText = relation ? `.${relation.field} (relation to ${relation.relatedModel})` : '';
+  const moduleText = module ? ` for '${module}'` : '';
+  return `Cannot inspect ${model}${relationText}${moduleText}: ${causeMessage}`;
+}
+
+function isValidModuleRow(row: Row | undefined, name: string): row is Row & { id: number } {
+  return (
+    !!row &&
+    row.name === name &&
+    typeof row.id === 'number' &&
+    Number.isInteger(row.id) &&
+    row.id > 0
+  );
+}
+
+function isValidDependencyIds(ids: unknown): ids is number[] {
+  return (
+    Array.isArray(ids) &&
+    !ids.some((id) => typeof id !== 'number' || !Number.isInteger(id) || id <= 0)
+  );
+}
+
+function isExpectedDependencySchema(dependencySchema: Schema): boolean {
+  return (
+    dependencySchema.name?.type === 'char' &&
+    dependencySchema.module_id?.type === 'many2one' &&
+    dependencySchema.module_id.relation === MODULE
+  );
+}
+
+const STATE_DIAGNOSTICS: Partial<
+  Record<ModuleInspectionStatus, ModuleInspectionDiagnostic['code']>
+> = {
+  unknown: 'unknown-state',
+  transitional: 'transitional-module',
+  uninstallable: 'uninstallable-module',
+};
+
+function newNode(name: string): ModulePrerequisite {
+  return {
+    name,
+    id: null,
+    status: 'unknown',
+    state: null,
+    dependencies: null,
+    sourceAvailability: 'unknown',
+    externalPrerequisites: 'unknown',
+  };
+}
+
+class ModuleInspector {
+  readonly diagnostics: ModuleInspectionDiagnostic[] = [];
+  readonly modules: ModulePrerequisite[] = [];
+  private readonly seen = new Set<string>();
+  private readonly pending: string[];
+  private dependencySchema: Schema | null | undefined;
+  private canReadState = false;
+  private canReadEdges = false;
+
+  constructor(
+    private readonly client: ModuleInspectionClient,
+    private readonly kwargs: { context?: Record<string, unknown> },
+    requested: readonly string[],
+  ) {
+    this.pending = [...requested];
+  }
+
+  private async metadata<T>(
+    model: string,
+    read: () => Promise<T>,
+    module?: string,
+    relation?: Relation,
+  ): Promise<T | null> {
+    try {
+      return await read();
+    } catch (error) {
+      const classified = metadataDiagnosticCode(error, model);
+      if (!classified) throw error;
+      const { code, cause } = classified;
+      this.diagnostics.push({
+        code,
+        model,
+        module,
+        ...relation,
+        cause,
+        message: metadataMessage(model, module, relation, cause.message),
+      });
+      return null;
+    }
+  }
+
+  private async schema(model: string, fields: string[]): Promise<Schema | null> {
+    return this.metadata(model, async () => {
+      const result = await this.client.call<Schema>(model, 'fields_get', [fields], {
+        ...this.kwargs,
+        attributes: ['type', 'relation'],
+      });
+      if (!result || typeof result !== 'object' || Array.isArray(result)) {
+        throw new OdooRpcError(`Invalid fields_get metadata returned for ${model}`);
+      }
+      return result;
+    });
+  }
+
+  private async readRows(
+    model: string,
+    domain: Domain,
+    fields: string[],
+    module: string,
+    relation?: Relation,
+  ): Promise<Row[] | null> {
+    return this.metadata(
+      model,
+      async () => {
+        const result = await this.client.searchRead<Row>(model, domain, {
+          ...this.kwargs,
+          fields,
+          order: 'id',
+        });
+        if (
+          !Array.isArray(result) ||
+          result.some((row) => !row || typeof row !== 'object' || Array.isArray(row))
+        ) {
+          throw new OdooRpcError(
+            `Invalid search_read metadata returned for ${model} while inspecting '${module}'`,
+          );
+        }
+        return result;
+      },
+      module,
+      relation,
+    );
+  }
+
+  async run(): Promise<void> {
+    const moduleSchema = await this.schema(MODULE, ['name', 'state', 'dependencies_id']);
+    this.canReadState =
+      moduleSchema?.name?.type === 'char' && moduleSchema.state?.type === 'selection';
+    this.canReadEdges =
+      moduleSchema?.dependencies_id?.type === 'one2many' &&
+      moduleSchema.dependencies_id.relation === DEPENDENCY;
+    if (moduleSchema && (!this.canReadState || !this.canReadEdges))
+      this.diagnostics.push({
+        code: 'schema-unavailable',
+        model: MODULE,
+        message:
+          'Expected Odoo 17 name/state/dependencies_id schema is unavailable or restricted; no support is inferred from server version.',
+      });
+    while (this.pending.length) {
+      const name = this.pending.shift();
+      if (name === undefined) break;
+      if (this.seen.has(name)) continue;
+      this.seen.add(name);
+      await this.inspectModule(name);
+    }
+  }
+
+  private async inspectModule(name: string): Promise<void> {
+    const node = newNode(name);
+    this.modules.push(node);
+    if (!this.canReadState) {
+      if (this.diagnostics.some((d) => d.model === MODULE && d.code === 'access-denied'))
+        node.status = 'inaccessible';
+      return;
+    }
+    const id = await this.readState(node);
+    if (id === null || !this.canReadEdges) return;
+    const ids = await this.readDependencyIds(node, id);
+    if (ids === null) return;
+    if (!ids.length) {
+      node.dependencies = [];
+      return;
+    }
+    if (!(await this.loadDependencySchema())) return;
+    await this.expandDependencies(node, id, ids);
+  }
+
+  /** Read the addon's registered state; returns its id when dependency expansion may follow. */
+  private async readState(node: ModulePrerequisite): Promise<number | null> {
+    const name = node.name;
+    const diagnosticStart = this.diagnostics.length;
+    const rows = await this.readRows(MODULE, [['name', '=', name]], ['id', 'name', 'state'], name);
+    if (rows === null) {
+      if (this.diagnostics.slice(diagnosticStart).some((d) => d.code === 'access-denied'))
+        node.status = 'inaccessible';
+      return null;
+    }
+    if (!rows.length) {
+      node.status = 'missing';
+      this.diagnostics.push({
+        code: 'missing-module',
+        model: MODULE,
+        module: name,
+        message: `No visible registered addon '${name}'. Catalog freshness, record-rule visibility and server source availability are unknown.`,
+      });
+      return null;
+    }
+    if (rows.length !== 1) {
+      this.diagnostics.push({
+        code: 'duplicate-module',
+        model: MODULE,
+        module: name,
+        message: `Multiple registered addons named '${name}'; refusing to choose one.`,
+      });
+      return null;
+    }
+    const row = rows[0];
+    if (!isValidModuleRow(row, name)) {
+      throw new OdooRpcError(`Invalid addon metadata returned for '${name}'`);
+    }
+    node.id = row.id;
+    node.state = typeof row.state === 'string' ? row.state : null;
+    node.status = statusFor(row.state);
+    const code = STATE_DIAGNOSTICS[node.status];
+    if (code) {
+      this.diagnostics.push({
+        code,
+        model: MODULE,
+        module: name,
+        message: `Addon '${name}' reports state ${JSON.stringify(row.state)}; this does not establish source or external prerequisite availability.`,
+      });
+    }
+    return row.id;
+  }
+
+  private async readDependencyIds(node: ModulePrerequisite, id: number): Promise<number[] | null> {
+    const name = node.name;
+    // Odoo reads a One2many via the comodel's search/ACL checks. Keep that
+    // expansion separate so its denial cannot erase independently readable state.
+    const relation = { field: 'dependencies_id', relatedModel: DEPENDENCY };
+    const dependencyRows = await this.readRows(
+      MODULE,
+      [['id', '=', id]],
+      ['id', 'dependencies_id'],
+      name,
+      relation,
+    );
+    if (dependencyRows === null) return null;
+    const dependencyRow = dependencyRows[0];
+    if (dependencyRows.length !== 1 || dependencyRow?.id !== id) {
+      this.diagnostics.push({
+        code: 'metadata-incomplete',
+        model: MODULE,
+        module: name,
+        ...relation,
+        message: `Addon '${name}' changed or became hidden while reading dependency IDs; its observed state is retained.`,
+      });
+      return null;
+    }
+    const ids = dependencyRow.dependencies_id;
+    if (!isValidDependencyIds(ids)) {
+      this.diagnostics.push({
+        code: 'metadata-incomplete',
+        model: MODULE,
+        module: name,
+        ...relation,
+        message: `Addon '${name}' did not expose valid dependency IDs.`,
+      });
+      return null;
+    }
+    return ids;
+  }
+
+  /** Probe the dependency schema once; null means edges cannot be read. */
+  private async loadDependencySchema(): Promise<Schema | null> {
+    if (this.dependencySchema !== undefined) return this.dependencySchema;
+    const dependencySchema = await this.schema(DEPENDENCY, ['name', 'module_id']);
+    if (dependencySchema && !isExpectedDependencySchema(dependencySchema)) {
+      this.diagnostics.push({
+        code: 'schema-unavailable',
+        model: DEPENDENCY,
+        message: 'Expected Odoo 17 dependency name/module_id schema is unavailable or restricted.',
+      });
+      this.dependencySchema = null;
+      return null;
+    }
+    this.dependencySchema = dependencySchema;
+    return dependencySchema;
+  }
+
+  private async expandDependencies(
+    node: ModulePrerequisite,
+    id: number,
+    ids: number[],
+  ): Promise<void> {
+    const name = node.name;
+    const edges = await this.readRows(
+      DEPENDENCY,
+      [['id', 'in', ids]],
+      ['id', 'name', 'module_id'],
+      name,
+    );
+    if (edges === null) return;
+    const expected = new Set<unknown>(ids);
+    const actual = new Set(edges.map((edge) => edge.id));
+    const isValidEdge = (edge: Row): boolean =>
+      expected.has(edge.id) &&
+      typeof edge.name === 'string' &&
+      edge.name.length > 0 &&
+      Array.isArray(edge.module_id) &&
+      edge.module_id[0] === id;
+    const valid =
+      actual.size === expected.size && edges.length === expected.size && edges.every(isValidEdge);
+    if (!valid) {
+      this.diagnostics.push({
+        code: 'metadata-incomplete',
+        model: DEPENDENCY,
+        module: name,
+        message: `Dependency rows for '${name}' are hidden, changed or malformed; closure is incomplete.`,
+      });
+    }
+    // Continue through visible valid names even when the complete list is unavailable.
+    const names = sortedUnique(edges.filter(isValidEdge).map((edge) => edge.name as string));
+    if (valid) node.dependencies = names;
+    this.pending.push(...names.filter((dependency) => !this.seen.has(dependency)));
+    this.pending.sort();
+  }
 }
 
 /**
@@ -127,284 +485,12 @@ export async function inspectModulePrerequisites(
     throw new TypeError('Module names must be nonempty technical names without surrounding spaces');
   }
   const requested = sortedUnique(moduleNames);
-  const diagnostics: ModuleInspectionDiagnostic[] = [];
-  const modules: ModulePrerequisite[] = [];
-  const kwargs = options.context === undefined ? {} : { context: options.context };
-
-  async function metadata<T>(
-    model: string,
-    read: () => Promise<T>,
-    module?: string,
-    relation?: { field: string; relatedModel: string },
-  ): Promise<T | null> {
-    try {
-      return await read();
-    } catch (cause) {
-      let code: ModuleInspectionDiagnostic['code'];
-      if (cause instanceof OdooAccessError) code = 'access-denied';
-      else if (cause instanceof OdooMissingError) code = 'metadata-incomplete';
-      else if (
-        cause instanceof OdooRpcError &&
-        cause.data?.name === 'builtins.KeyError' &&
-        Array.isArray(cause.data.arguments) &&
-        cause.data.arguments[0] === model
-      )
-        code = 'model-unavailable';
-      else throw cause;
-      diagnostics.push({
-        code,
-        model,
-        module,
-        ...relation,
-        cause,
-        message: `Cannot inspect ${model}${relation ? `.${relation.field} (relation to ${relation.relatedModel})` : ''}${module ? ` for '${module}'` : ''}: ${cause.message}`,
-      });
-      return null;
-    }
-  }
-
-  async function schema(model: string, fields: string[]): Promise<Schema | null> {
-    return metadata(model, async () => {
-      const result = await client.call<Schema>(model, 'fields_get', [fields], {
-        ...kwargs,
-        attributes: ['type', 'relation'],
-      });
-      if (!result || typeof result !== 'object' || Array.isArray(result)) {
-        throw new OdooRpcError(`Invalid fields_get metadata returned for ${model}`);
-      }
-      return result;
-    });
-  }
-
-  async function readRows(
-    model: string,
-    domain: Domain,
-    fields: string[],
-    module: string,
-    relation?: { field: string; relatedModel: string },
-  ): Promise<Row[] | null> {
-    return metadata(
-      model,
-      async () => {
-        const result = await client.searchRead<Row>(model, domain, {
-          ...kwargs,
-          fields,
-          order: 'id',
-        });
-        if (
-          !Array.isArray(result) ||
-          result.some((row) => !row || typeof row !== 'object' || Array.isArray(row))
-        ) {
-          throw new OdooRpcError(
-            `Invalid search_read metadata returned for ${model} while inspecting '${module}'`,
-          );
-        }
-        return result;
-      },
-      module,
-      relation,
-    );
-  }
-
   if (!requested.length)
-    return { requested, modules, diagnostics, closureComplete: true, cycleEdges: [] };
-  const moduleSchema = await schema(MODULE, ['name', 'state', 'dependencies_id']);
-  const canReadState =
-    moduleSchema?.name?.type === 'char' && moduleSchema.state?.type === 'selection';
-  const canReadEdges =
-    moduleSchema?.dependencies_id?.type === 'one2many' &&
-    moduleSchema.dependencies_id.relation === DEPENDENCY;
-  if (moduleSchema && (!canReadState || !canReadEdges))
-    diagnostics.push({
-      code: 'schema-unavailable',
-      model: MODULE,
-      message:
-        'Expected Odoo 17 name/state/dependencies_id schema is unavailable or restricted; no support is inferred from server version.',
-    });
-  let dependencySchema: Schema | null | undefined;
-  const seen = new Set<string>();
-  const pending = [...requested];
-  while (pending.length) {
-    const name = pending.shift();
-    if (name === undefined) break;
-    if (seen.has(name)) continue;
-    seen.add(name);
-    const node: ModulePrerequisite = {
-      name,
-      id: null,
-      status: 'unknown',
-      state: null,
-      dependencies: null,
-      sourceAvailability: 'unknown',
-      externalPrerequisites: 'unknown',
-    };
-    modules.push(node);
-    if (!canReadState) {
-      if (diagnostics.some((d) => d.model === MODULE && d.code === 'access-denied'))
-        node.status = 'inaccessible';
-      continue;
-    }
-    const diagnosticStart = diagnostics.length;
-    const rows = await readRows(MODULE, [['name', '=', name]], ['id', 'name', 'state'], name);
-    if (rows === null) {
-      if (diagnostics.slice(diagnosticStart).some((d) => d.code === 'access-denied'))
-        node.status = 'inaccessible';
-      continue;
-    }
-    if (!rows.length) {
-      node.status = 'missing';
-      diagnostics.push({
-        code: 'missing-module',
-        model: MODULE,
-        module: name,
-        message: `No visible registered addon '${name}'. Catalog freshness, record-rule visibility and server source availability are unknown.`,
-      });
-      continue;
-    }
-    if (rows.length !== 1) {
-      diagnostics.push({
-        code: 'duplicate-module',
-        model: MODULE,
-        module: name,
-        message: `Multiple registered addons named '${name}'; refusing to choose one.`,
-      });
-      continue;
-    }
-    const row = rows[0];
-    if (
-      !row ||
-      row.name !== name ||
-      typeof row.id !== 'number' ||
-      !Number.isInteger(row.id) ||
-      row.id <= 0
-    ) {
-      throw new OdooRpcError(`Invalid addon metadata returned for '${name}'`);
-    }
-    node.id = row.id;
-    node.state = typeof row.state === 'string' ? row.state : null;
-    node.status = statusFor(row.state);
-    if (
-      node.status === 'unknown' ||
-      node.status === 'transitional' ||
-      node.status === 'uninstallable'
-    ) {
-      const code =
-        node.status === 'unknown'
-          ? 'unknown-state'
-          : node.status === 'transitional'
-            ? 'transitional-module'
-            : 'uninstallable-module';
-      diagnostics.push({
-        code,
-        model: MODULE,
-        module: name,
-        message: `Addon '${name}' reports state ${JSON.stringify(row.state)}; this does not establish source or external prerequisite availability.`,
-      });
-    }
-    if (!canReadEdges) continue;
-    // Odoo reads a One2many via the comodel's search/ACL checks. Keep that
-    // expansion separate so its denial cannot erase independently readable state.
-    const relation = { field: 'dependencies_id', relatedModel: DEPENDENCY };
-    const dependencyRows = await readRows(
-      MODULE,
-      [['id', '=', node.id]],
-      ['id', 'dependencies_id'],
-      name,
-      relation,
-    );
-    if (dependencyRows === null) continue;
-    const dependencyRow = dependencyRows[0];
-    if (dependencyRows.length !== 1 || dependencyRow?.id !== node.id) {
-      diagnostics.push({
-        code: 'metadata-incomplete',
-        model: MODULE,
-        module: name,
-        ...relation,
-        message: `Addon '${name}' changed or became hidden while reading dependency IDs; its observed state is retained.`,
-      });
-      continue;
-    }
-    const ids = dependencyRow.dependencies_id;
-    if (
-      !Array.isArray(ids) ||
-      ids.some((id) => typeof id !== 'number' || !Number.isInteger(id) || id <= 0)
-    ) {
-      diagnostics.push({
-        code: 'metadata-incomplete',
-        model: MODULE,
-        module: name,
-        ...relation,
-        message: `Addon '${name}' did not expose valid dependency IDs.`,
-      });
-      continue;
-    }
-    if (!ids.length) {
-      node.dependencies = [];
-      continue;
-    }
-    if (dependencySchema === undefined) {
-      dependencySchema = await schema(DEPENDENCY, ['name', 'module_id']);
-      if (
-        dependencySchema &&
-        (dependencySchema.name?.type !== 'char' ||
-          dependencySchema.module_id?.type !== 'many2one' ||
-          dependencySchema.module_id.relation !== MODULE)
-      ) {
-        diagnostics.push({
-          code: 'schema-unavailable',
-          model: DEPENDENCY,
-          message:
-            'Expected Odoo 17 dependency name/module_id schema is unavailable or restricted.',
-        });
-        dependencySchema = null;
-      }
-    }
-    if (!dependencySchema) continue;
-    const edges = await readRows(
-      DEPENDENCY,
-      [['id', 'in', ids]],
-      ['id', 'name', 'module_id'],
-      name,
-    );
-    if (edges === null) continue;
-    const expected = new Set(ids);
-    const actual = new Set(edges.map((edge) => edge.id));
-    const valid =
-      actual.size === expected.size &&
-      edges.length === expected.size &&
-      edges.every(
-        (edge) =>
-          expected.has(edge.id) &&
-          typeof edge.name === 'string' &&
-          edge.name.length > 0 &&
-          Array.isArray(edge.module_id) &&
-          edge.module_id[0] === node.id,
-      );
-    if (!valid) {
-      diagnostics.push({
-        code: 'metadata-incomplete',
-        model: DEPENDENCY,
-        module: name,
-        message: `Dependency rows for '${name}' are hidden, changed or malformed; closure is incomplete.`,
-      });
-    }
-    // Continue through visible valid names even when the complete list is unavailable.
-    const names = sortedUnique(
-      edges
-        .filter(
-          (edge) =>
-            expected.has(edge.id) &&
-            typeof edge.name === 'string' &&
-            edge.name.length > 0 &&
-            Array.isArray(edge.module_id) &&
-            edge.module_id[0] === node.id,
-        )
-        .map((edge) => edge.name as string),
-    );
-    if (valid) node.dependencies = names;
-    pending.push(...names.filter((dependency) => !seen.has(dependency)));
-    pending.sort();
-  }
+    return { requested, modules: [], diagnostics: [], closureComplete: true, cycleEdges: [] };
+  const kwargs = options.context === undefined ? {} : { context: options.context };
+  const inspector = new ModuleInspector(client, kwargs, requested);
+  await inspector.run();
+  const { modules, diagnostics } = inspector;
   modules.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   return {
     requested,

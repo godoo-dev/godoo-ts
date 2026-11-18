@@ -31,6 +31,33 @@ import {
 } from '../src/services/accounting/functions.js';
 import { cleanupInstalledModules, installModuleForTest } from './helpers/odoo-instance.js';
 
+/** Register a payment through the wizard; tolerated to fail in minimal setups. */
+async function registerPayment(client: OdooClient, invoiceMoveId: number): Promise<void> {
+  try {
+    // Use the register payment wizard
+    const paymentAction = await client.call<{
+      res_model: string;
+      context?: Record<string, unknown>;
+    }>('account.move', 'action_register_payment', [[invoiceMoveId]]);
+
+    if (paymentAction && paymentAction.res_model === 'account.payment.register') {
+      const wizardContext = paymentAction.context || {};
+      const wizardId = await client.create(
+        'account.payment.register',
+        { payment_date: new Date().toISOString().slice(0, 10) },
+        wizardContext,
+      );
+
+      await client.call('account.payment.register', 'action_create_payments', [[wizardId]], {
+        context: wizardContext,
+      });
+    }
+  } catch (e) {
+    // Payment registration may fail in minimal setups — that's OK
+    console.warn('Payment registration failed (expected in minimal setup):', (e as Error).message);
+  }
+}
+
 describe('Accounting service integration', () => {
   const odooUrl = process.env.ODOO_URL || 'http://localhost:8069';
   const odooDb = process.env.ODOO_DB_NAME || 'odoo';
@@ -213,32 +240,7 @@ describe('Accounting service integration', () => {
       await client.call('account.move', 'action_post', [[invoiceMoveId]]);
 
       // 6. Register a payment
-      try {
-        // Use the register payment wizard
-        const paymentAction = await client.call<{
-          res_model: string;
-          context?: Record<string, unknown>;
-        }>('account.move', 'action_register_payment', [[invoiceMoveId]]);
-
-        if (paymentAction && paymentAction.res_model === 'account.payment.register') {
-          const wizardContext = paymentAction.context || {};
-          const wizardId = await client.create(
-            'account.payment.register',
-            { payment_date: new Date().toISOString().slice(0, 10) },
-            wizardContext,
-          );
-
-          await client.call('account.payment.register', 'action_create_payments', [[wizardId]], {
-            context: wizardContext,
-          });
-        }
-      } catch (e) {
-        // Payment registration may fail in minimal setups — that's OK
-        console.warn(
-          'Payment registration failed (expected in minimal setup):',
-          (e as Error).message,
-        );
-      }
+      await registerPayment(client, invoiceMoveId);
 
       // 7. Check for reconciliation
       const invoiceLines = await client.searchRead<{

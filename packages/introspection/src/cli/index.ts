@@ -43,6 +43,52 @@ interface CliArgs {
   help?: boolean;
 }
 
+/** Options that consume the following argument, even when it is absent. */
+const VALUE_OPTIONS = new Map<string, (result: Partial<CliArgs>, value: string) => void>([
+  [
+    '--url',
+    (result, value) => {
+      result.url = value;
+    },
+  ],
+  [
+    '--db',
+    (result, value) => {
+      result.db = value;
+    },
+  ],
+  [
+    '--user',
+    (result, value) => {
+      result.user = value;
+    },
+  ],
+  [
+    '--password',
+    (result, value) => {
+      result.password = value;
+    },
+  ],
+  [
+    '--output',
+    (result, value) => {
+      result.output = value;
+    },
+  ],
+  [
+    '--modules',
+    (result, value) => {
+      result.modules = value.split(',').map((m) => m.trim());
+    },
+  ],
+]);
+
+const FLAG_OPTIONS = new Map<string, 'includeTransient' | 'bypassCache' | 'help'>([
+  ['--include-transient', 'includeTransient'],
+  ['--bypass-cache', 'bypassCache'],
+  ['--help', 'help'],
+]);
+
 /**
  * Parse command line arguments.
  *
@@ -55,46 +101,17 @@ function parseArgs(args: string[]): CliArgs {
   };
 
   for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
+    const arg = args[i] ?? '';
     const value = args[i + 1];
 
-    switch (arg) {
-      case '--url':
-        if (value !== undefined) result.url = value;
-        i++;
-        break;
-      case '--db':
-        if (value !== undefined) result.db = value;
-        i++;
-        break;
-      case '--user':
-        if (value !== undefined) result.user = value;
-        i++;
-        break;
-      case '--password':
-        if (value !== undefined) result.password = value;
-        i++;
-        break;
-      case '--output':
-        if (value !== undefined) result.output = value;
-        i++;
-        break;
-      case '--include-transient':
-        result.includeTransient = true;
-        break;
-      case '--modules':
-        if (value !== undefined) {
-          result.modules = value.split(',').map((m) => m.trim());
-        }
-        i++;
-        break;
-      case '--bypass-cache':
-        result.bypassCache = true;
-        break;
-      case '--help':
-        result.help = true;
-        break;
+    const setValue = VALUE_OPTIONS.get(arg);
+    if (setValue) {
+      if (value !== undefined) setValue(result, value);
+      i++;
+      continue;
     }
+    const flag = FLAG_OPTIONS.get(arg);
+    if (flag) result[flag] = true;
   }
 
   // Load from environment if not provided

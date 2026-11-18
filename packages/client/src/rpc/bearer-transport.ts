@@ -179,13 +179,7 @@ export class BearerJsonRpcTransport {
    * Internal: a single fetch attempt. Returns a tagged result so the caller
    * can decide whether to retry on 401.
    */
-  private async singleRequest<T>(
-    envelope: JsonRpcRequest,
-  ): Promise<
-    | { kind: 'ok'; value: T }
-    | { kind: 'unauthorized'; message: string }
-    | { kind: 'fail'; error: Error }
-  > {
+  private async singleRequest<T>(envelope: JsonRpcRequest): Promise<SingleRequestResult<T>> {
     // Defensive: the user's getAccessToken could throw, return non-strings,
     // or return empty strings. Validate before constructing the header. The
     // token VALUE is never embedded in any thrown message (T-07-02-01).
@@ -195,9 +189,7 @@ export class BearerJsonRpcTransport {
     } catch (err) {
       return {
         kind: 'fail',
-        error: new OdooAuthError(
-          `getAccessToken threw: ${err instanceof Error ? err.message : String(err)}`,
-        ),
+        error: new OdooAuthError(`getAccessToken threw: ${describeError(err)}`),
       };
     }
     if (typeof token !== 'string' || token.length === 0) {
@@ -220,86 +212,102 @@ export class BearerJsonRpcTransport {
     } catch (err) {
       return {
         kind: 'fail',
-        error: new OdooNetworkError(
-          `RPC fetch failed: ${err instanceof Error ? err.message : String(err)}`,
-          err instanceof Error ? err : new Error(String(err)),
-        ),
+        error: new OdooNetworkError(`RPC fetch failed: ${describeError(err)}`, toError(err)),
       };
     }
 
-    // 401 → caller decides whether to retry.
-    if (response.status === 401) {
-      let message = 'Unauthorized';
-      try {
-        const body = (await response.json()) as JsonRpcResponse;
-        message = body.error?.message || message;
-      } catch {
-        /* swallow JSON parse errors on 401 — message stays default */
-      }
-      return { kind: 'unauthorized', message };
-    }
-
-    // 429 → rate-limited; map to OdooRpcError with code='rate_limited'.
-    if (response.status === 429) {
-      let message = 'Rate limited';
-      try {
-        const body = (await response.json()) as JsonRpcResponse;
-        message = body.error?.message || message;
-      } catch {
-        /* keep default message */
-      }
-      const data: Record<string, unknown> = {};
-      const retryAfterRaw = response.headers.get('Retry-After');
-      if (retryAfterRaw !== null) {
-        // RFC 7231 §7.1.3 — only the integer-seconds form. HTTP-date form
-        // (e.g. "Wed, 21 Oct 2026 07:28:00 GMT") is intentionally ignored.
-        const trimmed = retryAfterRaw.trim();
-        if (/^\d+$/.test(trimmed)) {
-          data.retryAfterSeconds = parseInt(trimmed, 10);
-        }
-      }
-      return {
-        kind: 'fail',
-        error: new OdooRpcError(message, { code: 'rate_limited', data }),
-      };
-    }
-
-    // Other non-2xx → network-class error.
-    if (!response.ok) {
-      return {
-        kind: 'fail',
-        error: new OdooNetworkError(
-          `HTTP ${response.status}: ${response.statusText}`,
-          new Error(`HTTP Error ${response.status}`),
-        ),
-      };
-    }
-
-    // 2xx → parse body; surface JSON-RPC `error` shape via categorizeError.
-    let data: JsonRpcResponse<T>;
-    try {
-      const raw: unknown = await response.json();
-      validateRpcResponse<T>(raw, envelope.id);
-      data = raw;
-    } catch (err) {
-      return {
-        kind: 'fail',
-        error:
-          err instanceof OdooProtocolError
-            ? err
-            : new OdooNetworkError(
-                `RPC response parse failed: ${err instanceof Error ? err.message : String(err)}`,
-                err instanceof Error ? err : new Error(String(err)),
-              ),
-      };
-    }
-
-    if (data.error) {
-      return { kind: 'fail', error: categorizeError(data.error) };
-    }
-
-    return { kind: 'ok', value: data.result as T };
+    return interpretResponse<T>(response, envelope.id);
   }
+}
+
+type SingleRequestResult<T> =
+  | { kind: 'ok'; value: T }
+  | { kind: 'unauthorized'; message: string }
+  | { kind: 'fail'; error: Error };
+
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function toError(err: unknown): Error {
+  return err instanceof Error ? err : new Error(String(err));
+}
+
+/** Read `error.message` from a JSON-RPC body, keeping `fallback` on parse failure. */
+async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = (await response.json()) as JsonRpcResponse;
+    return body.error?.message || fallback;
+  } catch {
+    /* swallow JSON parse errors — message stays default */
+    return fallback;
+  }
+}
+
+function rateLimitData(response: Response): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
+  const retryAfterRaw = response.headers.get('Retry-After');
+  if (retryAfterRaw !== null) {
+    // RFC 7231 §7.1.3 — only the integer-seconds form. HTTP-date form
+    // (e.g. "Wed, 21 Oct 2026 07:28:00 GMT") is intentionally ignored.
+    const trimmed = retryAfterRaw.trim();
+    if (/^\d+$/.test(trimmed)) {
+      data.retryAfterSeconds = parseInt(trimmed, 10);
+    }
+  }
+  return data;
+}
+
+async function interpretResponse<T>(
+  response: Response,
+  id: JsonRpcRequest['id'],
+): Promise<SingleRequestResult<T>> {
+  // 401 → caller decides whether to retry.
+  if (response.status === 401) {
+    return { kind: 'unauthorized', message: await readErrorMessage(response, 'Unauthorized') };
+  }
+
+  // 429 → rate-limited; map to OdooRpcError with code='rate_limited'.
+  if (response.status === 429) {
+    const message = await readErrorMessage(response, 'Rate limited');
+    return {
+      kind: 'fail',
+      error: new OdooRpcError(message, { code: 'rate_limited', data: rateLimitData(response) }),
+    };
+  }
+
+  // Other non-2xx → network-class error.
+  if (!response.ok) {
+    return {
+      kind: 'fail',
+      error: new OdooNetworkError(
+        `HTTP ${response.status}: ${response.statusText}`,
+        new Error(`HTTP Error ${response.status}`),
+      ),
+    };
+  }
+
+  // 2xx → parse body; surface JSON-RPC `error` shape via categorizeError.
+  let data: JsonRpcResponse<T>;
+  try {
+    const raw: unknown = await response.json();
+    validateRpcResponse<T>(raw, id);
+    data = raw;
+  } catch (err) {
+    return {
+      kind: 'fail',
+      error:
+        err instanceof OdooProtocolError
+          ? err
+          : new OdooNetworkError(`RPC response parse failed: ${describeError(err)}`, toError(err)),
+    };
+  }
+
+  if (data.error) {
+    return { kind: 'fail', error: categorizeError(data.error) };
+  }
+
+  return { kind: 'ok', value: data.result as T };
 }
 
 /**

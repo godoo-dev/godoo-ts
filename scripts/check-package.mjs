@@ -58,6 +58,10 @@ try {
     cpSync(join(consumer, 'pnpm-lock.yaml'), lock);
   }
   run('pnpm', ['install', '--frozen-lockfile', '--ignore-scripts'], { cwd: consumer });
+  assert(
+    existsSync(join(consumer, 'node_modules/@godoo-dev/testcontainers/postgres.Dockerfile')),
+    'testcontainers tarball must ship postgres.Dockerfile',
+  );
   cpSync(join(root, 'scripts/consumer'), consumer, { recursive: true });
   const env = { ...process.env, ODOO_VERSION: `${major ?? 18}.0` };
   run(process.execPath, ['public-api.mjs'], { cwd: consumer, env });

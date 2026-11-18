@@ -69,6 +69,42 @@ export interface Definition {
   options: Array<{ id: string; label: string }>;
   raw: Record<string, unknown>;
 }
+function isWellFormedOption(
+  option: unknown,
+  tags: boolean,
+): option is [string, string, ...unknown[]] {
+  return (
+    Array.isArray(option) &&
+    option.length === (tags ? 3 : 2) &&
+    nonempty(option[0]) &&
+    typeof option[1] === 'string' &&
+    (!tags || (typeof option[2] === 'number' && Number.isInteger(option[2])))
+  );
+}
+function definitionOptions(raw: Record<string, unknown>, name: string): Definition['options'] {
+  const options: Definition['options'] = [];
+  if (raw.type !== 'selection' && raw.type !== 'tags') return options;
+  const list = raw[raw.type] ?? [];
+  if (!Array.isArray(list)) fail('invalid-definitions', `Malformed options for ${name}`);
+  const tags = raw.type === 'tags';
+  const optionIds = new Set<string>();
+  for (const option of list) {
+    if (!isWellFormedOption(option, tags)) {
+      fail('invalid-definitions', `Malformed option for ${name}`, {
+        propertyId: name,
+        raw: option,
+      });
+    }
+    if (optionIds.has(option[0]))
+      fail('invalid-definitions', `Duplicate option ID ${option[0]}`, {
+        propertyId: name,
+        optionId: option[0],
+      });
+    optionIds.add(option[0]);
+    options.push({ id: option[0], label: option[1] });
+  }
+  return options;
+}
 export function definitions(value: unknown): Definition[] {
   if (!Array.isArray(value)) fail('invalid-definitions', 'Definitions must be an array');
   const seen = new Set<string>();
@@ -84,33 +120,7 @@ export function definitions(value: unknown): Definition[] {
     if (seen.has(raw.name))
       fail('invalid-definitions', `Duplicate property ID ${raw.name}`, { propertyId: raw.name });
     seen.add(raw.name);
-    const options: Definition['options'] = [];
-    if (raw.type === 'selection' || raw.type === 'tags') {
-      const list = raw[raw.type] ?? [];
-      if (!Array.isArray(list)) fail('invalid-definitions', `Malformed options for ${raw.name}`);
-      const optionIds = new Set<string>();
-      for (const option of list) {
-        if (
-          !Array.isArray(option) ||
-          option.length !== (raw.type === 'tags' ? 3 : 2) ||
-          !nonempty(option[0]) ||
-          typeof option[1] !== 'string' ||
-          (raw.type === 'tags' && (typeof option[2] !== 'number' || !Number.isInteger(option[2])))
-        ) {
-          fail('invalid-definitions', `Malformed option for ${raw.name}`, {
-            propertyId: raw.name,
-            raw: option,
-          });
-        }
-        if (optionIds.has(option[0]))
-          fail('invalid-definitions', `Duplicate option ID ${option[0]}`, {
-            propertyId: raw.name,
-            optionId: option[0],
-          });
-        optionIds.add(option[0]);
-        options.push({ id: option[0], label: option[1] });
-      }
-    }
+    const options = definitionOptions(raw, raw.name);
     return {
       id: raw.name,
       label: raw.string,
@@ -121,7 +131,6 @@ export function definitions(value: unknown): Definition[] {
     };
   });
 }
-
 export function validateSelector(
   value: unknown,
   additional: string[] = [],

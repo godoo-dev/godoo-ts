@@ -136,9 +136,109 @@ function isCompletionResponse(response: unknown): boolean {
   );
 }
 
+type LifecycleClient = Pick<OdooCrudClient, 'call' | 'searchRead'>;
+
+interface LifecycleTarget {
+  client: LifecycleClient;
+  kwargs: { context?: Record<string, unknown> };
+  name: string;
+  id: number;
+  state: string | null;
+}
+
+async function readTarget(
+  target: LifecycleTarget,
+  inspection: ModulePrerequisiteInspection,
+  phase: ModuleLifecycleError['phase'],
+  invalidated: boolean,
+): Promise<ModuleInfo> {
+  const { name } = target;
+  const rows = await target.client.searchRead<Record<string, unknown>>(
+    'ir.module.module',
+    [['name', '=', name]],
+    {
+      ...target.kwargs,
+      fields: ['id', 'name', 'state', 'shortdesc', 'summary', 'installed_version', 'application'],
+      order: 'id',
+    },
+  );
+  const row = Array.isArray(rows) ? rows[0] : undefined;
+  const expected = inspection.modules.find((module) => module.name === name);
+  if (
+    !Array.isArray(rows) ||
+    rows.length !== 1 ||
+    !row ||
+    row.id !== target.id ||
+    row.name !== name ||
+    row.state !== expected?.state
+  ) {
+    throw new ModuleLifecycleError(
+      `Module '${name}' changed or became hidden while verifying its state`,
+      phase,
+      inspection,
+      invalidated,
+    );
+  }
+  return row as unknown as ModuleInfo;
+}
+
+/** Re-inspect before a retry and refuse to repeat an operation whose target state moved. */
+async function inspectBeforeRetry(
+  target: LifecycleTarget,
+  before: ModulePrerequisiteInspection,
+  names: string[],
+  options: ModuleOperationOptions,
+): Promise<ModulePrerequisiteInspection> {
+  const current = await inspectModulePrerequisites(target.client, names, options);
+  requireClosure(current, false, 'stale', true);
+  requireIdentities(before, current, 'stale', true);
+  // Another actor may have completed an install, but never repeat it blindly.
+  if (current.modules.find((module) => module.name === target.name)?.state !== target.state)
+    throw new ModuleLifecycleError(
+      `Module '${target.name}' changed state before retry; inspect and replan`,
+      'stale',
+      current,
+      true,
+    );
+  return current;
+}
+
+async function dispatchWithRetry(
+  target: LifecycleTarget,
+  operation: ModuleOperationResult['operation'],
+  before: ModulePrerequisiteInspection,
+  names: string[],
+  options: ModuleOperationOptions,
+  limits: { maxAttempts: number; retryDelayMs: number },
+  onDispatch: () => void,
+): Promise<{ attempts: number; response: unknown }> {
+  let attempts = 0;
+  let response: unknown;
+  let current = before;
+  while (attempts < limits.maxAttempts) {
+    if (attempts > 0) current = await inspectBeforeRetry(target, before, names, options);
+    await readTarget(target, current, 'stale', attempts > 0);
+    attempts++;
+    onDispatch();
+    try {
+      response = await target.client.call(
+        'ir.module.module',
+        `button_immediate_${operation}`,
+        [[target.id]],
+        target.kwargs,
+      );
+      break;
+    } catch (error) {
+      if (!isCronLock(error) || attempts === limits.maxAttempts) throw error;
+      await new Promise((resolve) => setTimeout(resolve, limits.retryDelayMs));
+    }
+  }
+  return { attempts, response };
+}
+
 /** Internal shared implementation; ModuleManager retains the guarded client call. */
 export async function performModuleOperation(
-  client: Pick<OdooCrudClient, 'call' | 'searchRead'>,
+  client: LifecycleClient,
   operation: ModuleOperationResult['operation'],
   name: string,
   options: ModuleOperationOptions,
@@ -149,55 +249,22 @@ export async function performModuleOperation(
   const kwargs = options.context === undefined ? {} : { context: options.context };
   const before = await inspectModulePrerequisites(client, [name], options);
   requireClosure(before, false, 'prerequisite', false);
-  const target = before.modules.find((module) => module.name === name);
-  if (!target || target.id === null)
+  const found = before.modules.find((module) => module.name === name);
+  if (!found || found.id === null)
     throw new ModuleLifecycleError(`No visible module '${name}'`, 'prerequisite', before, false);
-  if (operation === 'upgrade' && target.state !== 'installed')
+  if (operation === 'upgrade' && found.state !== 'installed')
     throw new ModuleLifecycleError(
       `Module '${name}' must be installed to upgrade`,
       'prerequisite',
       before,
       false,
     );
+  const target: LifecycleTarget = { client, kwargs, name, id: found.id, state: found.state };
 
-  async function readTarget(
-    inspection: ModulePrerequisiteInspection,
-    phase: ModuleLifecycleError['phase'],
-    invalidated: boolean,
-  ): Promise<ModuleInfo> {
-    const rows = await client.searchRead<Record<string, unknown>>(
-      'ir.module.module',
-      [['name', '=', name]],
-      {
-        ...kwargs,
-        fields: ['id', 'name', 'state', 'shortdesc', 'summary', 'installed_version', 'application'],
-        order: 'id',
-      },
-    );
-    const row = Array.isArray(rows) ? rows[0] : undefined;
-    const expected = inspection.modules.find((module) => module.name === name);
-    if (
-      !Array.isArray(rows) ||
-      rows.length !== 1 ||
-      !row ||
-      row.id !== target?.id ||
-      row.name !== name ||
-      row.state !== expected?.state
-    ) {
-      throw new ModuleLifecycleError(
-        `Module '${name}' changed or became hidden while verifying its state`,
-        phase,
-        inspection,
-        invalidated,
-      );
-    }
-    return row as unknown as ModuleInfo;
-  }
-
-  if (operation === 'install' && target.state === 'installed') {
+  if (operation === 'install' && found.state === 'installed') {
     requireClosure(before, true, 'prerequisite', false);
     return {
-      ...(await readTarget(before, 'stale', false)),
+      ...(await readTarget(target, before, 'stale', false)),
       operation,
       changed: false,
       schemaInvalidated: false,
@@ -207,39 +274,15 @@ export async function performModuleOperation(
   }
 
   const names = before.modules.map((module) => module.name);
-  let attempts = 0;
-  let response: unknown;
-  let current = before;
-  while (attempts < maxAttempts) {
-    if (attempts > 0) {
-      current = await inspectModulePrerequisites(client, names, options);
-      requireClosure(current, false, 'stale', true);
-      requireIdentities(before, current, 'stale', true);
-      // Another actor may have completed an install, but never repeat it blindly.
-      if (current.modules.find((module) => module.name === name)?.state !== target.state)
-        throw new ModuleLifecycleError(
-          `Module '${name}' changed state before retry; inspect and replan`,
-          'stale',
-          current,
-          true,
-        );
-    }
-    await readTarget(current, 'stale', attempts > 0);
-    attempts++;
-    onDispatch();
-    try {
-      response = await client.call(
-        'ir.module.module',
-        `button_immediate_${operation}`,
-        [[target.id]],
-        kwargs,
-      );
-      break;
-    } catch (error) {
-      if (!isCronLock(error) || attempts === maxAttempts) throw error;
-      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
-    }
-  }
+  const { attempts, response } = await dispatchWithRetry(
+    target,
+    operation,
+    before,
+    names,
+    options,
+    { maxAttempts, retryDelayMs },
+    onDispatch,
+  );
 
   // Include prior closure members as well as any dependencies newly discovered
   // after Odoo's registry/catalog update. Do not hide a disappeared old edge.
@@ -254,7 +297,7 @@ export async function performModuleOperation(
       true,
     );
   return {
-    ...(await readTarget(after, 'postcondition', true)),
+    ...(await readTarget(target, after, 'postcondition', true)),
     operation,
     changed: true,
     schemaInvalidated: true,

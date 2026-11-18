@@ -19,13 +19,12 @@ import {
 
 const allSuccess = {
   offline: { result: 'success' },
-  package: { result: 'success' },
   odoo18: { result: 'success' },
   odoo19: { result: 'skipped' },
 };
 test('required caller admits all success and rejects failed/skipped/cancelled/missing jobs', () => {
   requireResults(allSuccess);
-  for (const name of ['offline', 'package', 'odoo18']) {
+  for (const name of ['offline', 'odoo18']) {
     for (const result of ['failure', 'skipped', 'cancelled', undefined]) {
       const jobs = structuredClone(allSuccess);
       if (result) jobs[name].result = result;

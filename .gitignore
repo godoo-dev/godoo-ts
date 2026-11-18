@@ -6,3 +6,5 @@ coverage/
 pnpm-debug.log*
 
 .odoo-testcontainers/
+.scratch/
+.mafe-si.toml

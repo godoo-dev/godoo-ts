@@ -16,6 +16,7 @@ pnpm check:odoo18
 using bundler resolution to match tsdown, then builds declarations and runs units
 and gate regressions. `tsconfig.check.json` includes production, tests and configs;
 package configs own declaration builds. No baseline diagnostics are accepted.
+Biome rejects functions above its default cognitive-complexity limit (15).
 The source packages have a development-only client/testcontainers cycle; the
 all-source check does not depend on cyclic project-reference builds.
 
@@ -49,7 +50,28 @@ logs exact image/container/module identity and cleans only its own resources.
 Tests use disposable databases and temporary addon directories; evidence survives
 teardown outside the checkout. Do not log credentials or load private connections.
 See the [verification skill](../.agents/skills/godoo-ts-verification/SKILL.md) for
-failure trials and cleanup checks.
+cleanup checks.
+
+## Working in this repository
+
+Work, open decisions and remaining acceptance live in
+[GitHub issues](https://github.com/godoo-dev/godoo-ts/issues). Project skills in
+`.agents/skills` hold the maintainer procedures: `godoo-ts-capture` for issues and
+knowledge routing, `godoo-ts-docs` for this documentation, and
+`godoo-ts-verification` for checks. There is no `AGENTS.md` or `CLAUDE.md`.
+
+Temporary working files go in `.scratch/` at the checkout root; it is git-ignored,
+and Biome reads the ignore file. Claude Code enables the official
+`typescript-lsp` plugin through `.claude/settings.json`. Install it once with
+`claude plugin install typescript-lsp@claude-plugins-official --scope project`.
+The plugin runs `typescript-language-server` from `PATH`; `pnpm install` provides
+it in `node_modules/.bin`, so start Claude Code with that directory on `PATH`,
+for example `PATH="$PWD/node_modules/.bin:$PATH" claude`.
+This repository has no Dependabot configuration; dependency updates for Godoo
+components are managed centrally. The testcontainers Postgres image is pinned in
+`packages/testcontainers/postgres.Dockerfile`, where Dockerfile-aware update
+tools can find it. The Odoo image follows the requested `ODOO_VERSION` and is
+not pinned.
 
 ## Package structure and constraints
 
@@ -126,10 +148,18 @@ removing existing test setup capabilities.
 Main is the sole long-lived integration and release branch. Use temporary feature
 branches and target pull requests at `main`.
 
-CI runs on changes targeting/pushed to `main` and manual validation.
-Its stable `required` job accepts only explicit success from offline (Node22/24),
-package and Odoo18 jobs, rejecting skipped, cancelled, failed and missing results.
-Manual requested19 depends on successful package/Odoo18 proof for the same candidate;
+CI runs on changes targeting/pushed to `main` and manual validation. A newer
+push to a pull request cancels that pull request's earlier run; runs on `main`,
+manual runs and release validation are never cancelled by another run.
+The packages are built once per run: after `pnpm check`, the Node 24 `offline`
+job packs the candidate from that build, runs `check:package` and uploads the
+candidate and `packages/*/dist`. `odoo18` and `odoo19` download them instead of
+building again. The Node 22 job keeps its own build to cover that toolchain.
+Its stable `required` job accepts only explicit success from offline (Node22/24,
+including the package proof) and Odoo18 jobs, rejecting skipped, cancelled,
+failed and missing results.
+Manual requested19 depends on successful offline (including the package proof) and Odoo18
+results for the same candidate;
 `required` also waits for19 and requires success when requested, allowing its
 explicit skipped result only when unrequested.
 Prepared YAML and local predicate trials do not prove hosted execution or applied

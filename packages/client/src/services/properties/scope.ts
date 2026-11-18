@@ -25,6 +25,7 @@ import type {
   PropertiesScope,
   PropertiesScopeOptions,
   PropertiesWriteReceipt,
+  PropertyDeclaration,
   ResolvedProperty,
 } from './binding-types';
 import {
@@ -86,57 +87,14 @@ export async function createPropertiesScope(
   if (!object(metadata) || !object(metadata[field]) || metadata[field].type !== 'properties') {
     fail('invalid-metadata', `${model}.${field} must be a properties field`, { metadata });
   }
-  const fieldMetadata = metadata[field];
-  let parent: PropertiesParent;
-  if (settings.parent !== undefined) {
-    if (
-      !object(settings.parent) ||
-      !['model', 'field', 'relation'].every((key) =>
-        nonempty(settings.parent?.[key as keyof PropertiesParent]),
-      )
-    ) {
-      fail('invalid-input', 'parent requires nonempty model, field and relation');
-    }
-    parent = copy(settings.parent);
-  } else {
-    if (
-      !nonempty(fieldMetadata.definition_record) ||
-      !nonempty(fieldMetadata.definition_record_field)
-    ) {
-      fail(
-        'invalid-metadata',
-        'Properties metadata is missing definition_record or definition_record_field',
-        { metadata },
-      );
-    }
-    parent = {
-      model: '',
-      relation: fieldMetadata.definition_record,
-      field: fieldMetadata.definition_record_field,
-    };
-  }
+  const parent = resolveParent(settings.parent, metadata[field], metadata);
   const relationMetadata = copy(
     await client.call<unknown>(model, 'fields_get', [[parent.relation]], {
       attributes: ['type', 'relation'],
       context: copy(context),
     }),
   );
-  if (!object(relationMetadata) || !object(relationMetadata[parent.relation])) {
-    fail('invalid-metadata', 'Missing parent relation metadata', { relationMetadata });
-  }
-  const relation = relationMetadata[parent.relation];
-  if (
-    !object(relation) ||
-    relation.type !== 'many2one' ||
-    !nonempty(relation.relation) ||
-    (parent.model && parent.model !== relation.relation)
-  ) {
-    fail('invalid-metadata', 'Parent relation must be a many2one to the parent model', {
-      relationMetadata,
-      parent,
-    });
-  }
-  parent.model = relation.relation;
+  parent.model = parentModel(relationMetadata, parent);
   const base = {
     model,
     field,
@@ -145,6 +103,7 @@ export async function createPropertiesScope(
     context,
     metadata: { properties: copy(metadata), relation: copy(relationMetadata) },
   };
+  const scope: RecordScope = { client, model, field, parentId: settings.parentId, parent, context };
 
   async function load(): Promise<Snapshot> {
     const rows = await client.read(
@@ -191,52 +150,7 @@ export async function createPropertiesScope(
           await client.read(model, ids, [field, parent.relation], copy(context)),
           ids,
         );
-        return rows.map((row) => {
-          const recordId = row.id as number;
-          if (relationId(row[parent.relation]) !== settings.parentId) {
-            fail(
-              'wrong-parent',
-              `Record ${recordId} does not belong to parent ${settings.parentId}`,
-              { recordId, parentId: settings.parentId, raw: row[parent.relation] },
-            );
-          }
-          const raw = copy(row[field]);
-          const embedded = definitions(raw);
-          for (const definition of embedded) {
-            const expected = current.definitions.find((def) => def.id === definition.id);
-            // A read can observe unrelated additions since the last explicit refresh.
-            // Mutations require the raw payload to agree with their fresh parent read.
-            if (!mutation && !expected && !mappings.some((mapped) => mapped.id === definition.id))
-              continue;
-            if (
-              !expected ||
-              expected.type !== definition.type ||
-              expected.comodel !== definition.comodel
-            ) {
-              fail(
-                'stale-binding',
-                `Record ${recordId} has incompatible embedded definition ${definition.id}`,
-                { recordId, propertyId: definition.id },
-              );
-            }
-          }
-          for (const mapped of mappings)
-            compatible(
-              mapped,
-              embedded.find((def) => def.id === mapped.id),
-              { recordId },
-            );
-          let normalized: PropertiesWriteFormat;
-          try {
-            normalized = propertiesToWriteFormat(raw as PropertiesReadFormat);
-          } catch (cause) {
-            fail('malformed-value', `Record ${recordId} has malformed properties`, {
-              recordId,
-              cause,
-            });
-          }
-          return { id: recordId, raw: raw as PropertiesReadFormat, normalized };
-        });
+        return rows.map((row) => parseRecord(row, scope, current, mappings, mutation));
       }
       function validatePatch(changes: unknown): PropertiesWriteFormat {
         if (!object(changes)) fail('invalid-input', 'Patch must be an object');
@@ -270,30 +184,7 @@ export async function createPropertiesScope(
           id: record.id,
           payload: copy({ [field]: { ...record.normalized, ...inputs[index]?.encoded } }),
         }));
-        const receipts: PropertiesWriteReceipt[] = new Array(payloads.length);
-        let next = 0;
-        async function worker(): Promise<void> {
-          while (next < payloads.length) {
-            const index = next++;
-            const item = payloads[index];
-            if (!item) return;
-            try {
-              const result = await client.write(model, item.id, item.payload, copy(context));
-              receipts[index] =
-                result === true
-                  ? { id: item.id, status: 'acknowledged' }
-                  : { id: item.id, status: 'unknown', error: result };
-            } catch (error) {
-              // Network subclasses RPC; classify uncertainty first. Preserve the thrown value.
-              const failed =
-                !(error instanceof OdooNetworkError || error instanceof OdooProtocolError) &&
-                (error instanceof OdooRpcError || error instanceof OdooSafetyError);
-              receipts[index] = { id: item.id, status: failed ? 'failed' : 'unknown', error };
-            }
-          }
-        }
-        await Promise.all(Array.from({ length: Math.min(concurrency, payloads.length) }, worker));
-        return receipts;
+        return writePayloads(scope, payloads, concurrency);
       }
       return {
         mapping: () => copy(mapping),
@@ -363,6 +254,175 @@ export async function createPropertiesScope(
   };
 }
 
+interface RecordScope {
+  client: PropertiesClient;
+  model: string;
+  field: string;
+  parentId: number;
+  parent: PropertiesParent;
+  context: Record<string, unknown>;
+}
+
+interface ParsedRecord {
+  id: number;
+  raw: PropertiesReadFormat;
+  normalized: PropertiesWriteFormat;
+}
+
+function resolveParent(
+  override: PropertiesParent | undefined,
+  fieldMetadata: Record<string, unknown>,
+  metadata: Record<string, unknown>,
+): PropertiesParent {
+  if (override !== undefined) {
+    if (
+      !object(override) ||
+      !['model', 'field', 'relation'].every((key) =>
+        nonempty(override?.[key as keyof PropertiesParent]),
+      )
+    ) {
+      fail('invalid-input', 'parent requires nonempty model, field and relation');
+    }
+    return copy(override);
+  }
+  if (
+    !nonempty(fieldMetadata.definition_record) ||
+    !nonempty(fieldMetadata.definition_record_field)
+  ) {
+    fail(
+      'invalid-metadata',
+      'Properties metadata is missing definition_record or definition_record_field',
+      { metadata },
+    );
+  }
+  return {
+    model: '',
+    relation: fieldMetadata.definition_record,
+    field: fieldMetadata.definition_record_field,
+  };
+}
+
+/** Validate the child-to-parent many2one and return the parent model it targets. */
+function parentModel(relationMetadata: unknown, parent: PropertiesParent): string {
+  if (!object(relationMetadata) || !object(relationMetadata[parent.relation])) {
+    fail('invalid-metadata', 'Missing parent relation metadata', { relationMetadata });
+  }
+  const relation = relationMetadata[parent.relation];
+  if (
+    !object(relation) ||
+    relation.type !== 'many2one' ||
+    !nonempty(relation.relation) ||
+    (parent.model && parent.model !== relation.relation)
+  ) {
+    fail('invalid-metadata', 'Parent relation must be a many2one to the parent model', {
+      relationMetadata,
+      parent,
+    });
+  }
+  return relation.relation;
+}
+
+function checkEmbeddedDefinitions(
+  recordId: number,
+  embedded: Definition[],
+  current: Snapshot,
+  mappings: ResolvedProperty[],
+  mutation: boolean,
+): void {
+  for (const definition of embedded) {
+    const expected = current.definitions.find((def) => def.id === definition.id);
+    // A read can observe unrelated additions since the last explicit refresh.
+    // Mutations require the raw payload to agree with their fresh parent read.
+    if (!mutation && !expected && !mappings.some((mapped) => mapped.id === definition.id)) continue;
+    if (!expected || expected.type !== definition.type || expected.comodel !== definition.comodel) {
+      fail(
+        'stale-binding',
+        `Record ${recordId} has incompatible embedded definition ${definition.id}`,
+        { recordId, propertyId: definition.id },
+      );
+    }
+  }
+}
+
+function parseRecord(
+  row: Record<string, unknown>,
+  scope: RecordScope,
+  current: Snapshot,
+  mappings: ResolvedProperty[],
+  mutation: boolean,
+): ParsedRecord {
+  const { parent, parentId, field } = scope;
+  const recordId = row.id as number;
+  if (relationId(row[parent.relation]) !== parentId) {
+    fail('wrong-parent', `Record ${recordId} does not belong to parent ${parentId}`, {
+      recordId,
+      parentId,
+      raw: row[parent.relation],
+    });
+  }
+  const raw = copy(row[field]);
+  const embedded = definitions(raw);
+  checkEmbeddedDefinitions(recordId, embedded, current, mappings, mutation);
+  for (const mapped of mappings)
+    compatible(
+      mapped,
+      embedded.find((def) => def.id === mapped.id),
+      { recordId },
+    );
+  let normalized: PropertiesWriteFormat;
+  try {
+    normalized = propertiesToWriteFormat(raw as PropertiesReadFormat);
+  } catch (cause) {
+    fail('malformed-value', `Record ${recordId} has malformed properties`, {
+      recordId,
+      cause,
+    });
+  }
+  return { id: recordId, raw: raw as PropertiesReadFormat, normalized };
+}
+
+async function writeOne(
+  scope: RecordScope,
+  item: { id: number; payload: Record<string, unknown> },
+): Promise<PropertiesWriteReceipt> {
+  try {
+    const result = await scope.client.write(
+      scope.model,
+      item.id,
+      item.payload,
+      copy(scope.context),
+    );
+    return result === true
+      ? { id: item.id, status: 'acknowledged' }
+      : { id: item.id, status: 'unknown', error: result };
+  } catch (error) {
+    // Network subclasses RPC; classify uncertainty first. Preserve the thrown value.
+    const failed =
+      !(error instanceof OdooNetworkError || error instanceof OdooProtocolError) &&
+      (error instanceof OdooRpcError || error instanceof OdooSafetyError);
+    return { id: item.id, status: failed ? 'failed' : 'unknown', error };
+  }
+}
+
+async function writePayloads(
+  scope: RecordScope,
+  payloads: Array<{ id: number; payload: Record<string, unknown> }>,
+  concurrency: number,
+): Promise<PropertiesWriteReceipt[]> {
+  const receipts: PropertiesWriteReceipt[] = new Array(payloads.length);
+  let next = 0;
+  async function worker(): Promise<void> {
+    while (next < payloads.length) {
+      const index = next++;
+      const item = payloads[index];
+      if (!item) return;
+      receipts[index] = await writeOne(scope, item);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, payloads.length) }, worker));
+  return receipts;
+}
+
 function orderedRows(value: unknown, ids: number[]): Record<string, unknown>[] {
   if (!Array.isArray(value)) fail('records', 'Read response must be an array');
   const rows = new Map<number, Record<string, unknown>>();
@@ -396,109 +456,122 @@ function bindDeclarations<D extends PropertiesDeclarations>(
 ): PropertiesMapping<D> {
   if (!object(input)) fail('invalid-input', 'Declarations must be an object');
   const seen = new Set<string>();
-  const entries = Object.entries(input).map(([alias, declaration]) => {
-    if (!object(declaration) || !kinds.includes(declaration.type))
-      fail('invalid-input', `Invalid declaration for ${alias}`);
-    const relational = declaration.type === 'many2one' || declaration.type === 'many2many';
-    const choices = declaration.type === 'selection' || declaration.type === 'tags';
-    validateSelector(declaration, [
-      'type',
-      ...(relational ? ['comodel'] : []),
-      ...(choices ? ['options'] : []),
-    ]);
-    if (relational && Object.hasOwn(declaration, 'comodel') && !nonempty(declaration.comodel))
-      fail('invalid-input', `Invalid comodel for ${alias}`);
-    const resolved = resolve(declaration, available, `Property ${alias}`);
-    if (
-      resolved.type !== declaration.type ||
-      (relational &&
-        (!resolved.comodel ||
-          ('comodel' in declaration && declaration.comodel !== resolved.comodel)))
-    ) {
-      fail('invalid-input', `Property ${resolved.id} has incompatible type or comodel`, {
-        alias,
-        propertyId: resolved.id,
-        definition: resolved.raw,
-      });
-    }
-    if (seen.has(resolved.id))
-      fail('invalid-input', `Competing aliases for property ${resolved.id}`, {
-        propertyId: resolved.id,
-      });
-    seen.add(resolved.id);
-    const mapping: ResolvedProperty = {
-      id: resolved.id,
-      type: resolved.type as BoundPropertyKind,
-      ...(resolved.comodel ? { comodel: resolved.comodel } : {}),
-    };
-    if (choices) {
-      if (!('options' in declaration) || !object(declaration.options))
-        fail('invalid-input', `Option aliases required for ${alias}`);
-      const seenOptions = new Set<string>();
-      mapping.options = Object.fromEntries(
-        Object.entries(declaration.options).map(([optionAlias, selector]) => {
-          validateSelector(selector);
-          const option = resolve(
-            selector,
-            resolved.options,
-            `Property ${resolved.id}, option ${optionAlias}`,
-          );
-          if (seenOptions.has(option.id))
-            fail('invalid-input', `Competing aliases for option ${option.id}`, {
-              propertyId: resolved.id,
-              optionId: option.id,
-            });
-          seenOptions.add(option.id);
-          return [optionAlias, option.id];
-        }),
-      );
-    }
-    return [alias, mapping];
-  });
+  const entries = Object.entries(input).map(([alias, declaration]) => [
+    alias,
+    bindDeclaration(alias, declaration, available, seen),
+  ]);
   return Object.fromEntries(entries) as PropertiesMapping<D>;
 }
+function bindDeclaration(
+  alias: string,
+  declaration: PropertyDeclaration,
+  available: Definition[],
+  seen: Set<string>,
+): ResolvedProperty {
+  if (!object(declaration) || !kinds.includes(declaration.type))
+    fail('invalid-input', `Invalid declaration for ${alias}`);
+  const relational = declaration.type === 'many2one' || declaration.type === 'many2many';
+  const choices = declaration.type === 'selection' || declaration.type === 'tags';
+  validateSelector(declaration, [
+    'type',
+    ...(relational ? ['comodel'] : []),
+    ...(choices ? ['options'] : []),
+  ]);
+  if (relational && Object.hasOwn(declaration, 'comodel') && !nonempty(declaration.comodel))
+    fail('invalid-input', `Invalid comodel for ${alias}`);
+  const resolved = resolve(declaration, available, `Property ${alias}`);
+  if (!compatibleResolution(declaration, resolved, relational)) {
+    fail('invalid-input', `Property ${resolved.id} has incompatible type or comodel`, {
+      alias,
+      propertyId: resolved.id,
+      definition: resolved.raw,
+    });
+  }
+  if (seen.has(resolved.id))
+    fail('invalid-input', `Competing aliases for property ${resolved.id}`, {
+      propertyId: resolved.id,
+    });
+  seen.add(resolved.id);
+  const mapping: ResolvedProperty = {
+    id: resolved.id,
+    type: resolved.type as BoundPropertyKind,
+    ...(resolved.comodel ? { comodel: resolved.comodel } : {}),
+  };
+  if (choices) mapping.options = bindOptions(alias, declaration, resolved);
+  return mapping;
+}
+function compatibleResolution(
+  declaration: PropertyDeclaration,
+  resolved: Definition,
+  relational: boolean,
+): boolean {
+  if (resolved.type !== declaration.type) return false;
+  if (!relational) return true;
+  return (
+    !!resolved.comodel && !('comodel' in declaration && declaration.comodel !== resolved.comodel)
+  );
+}
+function bindOptions(
+  alias: string,
+  declaration: PropertyDeclaration,
+  resolved: Definition,
+): Record<string, string> {
+  if (!('options' in declaration) || !object(declaration.options))
+    fail('invalid-input', `Option aliases required for ${alias}`);
+  const seenOptions = new Set<string>();
+  return Object.fromEntries(
+    Object.entries(declaration.options).map(([optionAlias, selector]) => {
+      validateSelector(selector);
+      const option = resolve(
+        selector,
+        resolved.options,
+        `Property ${resolved.id}, option ${optionAlias}`,
+      );
+      if (seenOptions.has(option.id))
+        fail('invalid-input', `Competing aliases for option ${option.id}`, {
+          propertyId: resolved.id,
+          optionId: option.id,
+        });
+      seenOptions.add(option.id);
+      return [optionAlias, option.id];
+    }),
+  );
+}
+type Encoder = (value: unknown, mapping: ResolvedProperty) => PropertyValueType | undefined;
+const encodeString: Encoder = (value) => (typeof value === 'string' ? value : undefined);
+const encodeNumber: Encoder = (value, mapping) =>
+  typeof value === 'number' &&
+  Number.isFinite(value) &&
+  (mapping.type === 'float' || Number.isInteger(value))
+    ? value
+    : undefined;
+function hasOption(mapping: ResolvedProperty, value: unknown): value is string {
+  return typeof value === 'string' && Object.hasOwn(mapping.options ?? {}, value);
+}
+const encoders: Record<BoundPropertyKind, Encoder> = {
+  char: encodeString,
+  date: encodeString,
+  datetime: encodeString,
+  integer: encodeNumber,
+  float: encodeNumber,
+  boolean: (value) => (typeof value === 'boolean' ? value : undefined),
+  many2one: (value) => (positiveId(value) ? value : undefined),
+  many2many: (value) =>
+    Array.isArray(value) && Array.from(value).every(positiveId) ? [...value] : undefined,
+  selection: (value, mapping) =>
+    hasOption(mapping, value) ? (mapping.options?.[value] as string) : undefined,
+  tags: (value, mapping) =>
+    Array.isArray(value) && Array.from(value).every((item) => hasOption(mapping, item))
+      ? value.map((item: string) => mapping.options?.[item] as string)
+      : undefined,
+};
 function encode(mapping: ResolvedProperty, value: unknown, alias: string): PropertyValueType {
   const array = mapping.type === 'tags' || mapping.type === 'many2many';
   if (value === null) return array ? [] : false;
-  switch (mapping.type) {
-    case 'char':
-    case 'date':
-    case 'datetime':
-      if (typeof value === 'string') return value;
-      break;
-    case 'integer':
-    case 'float':
-      if (
-        typeof value === 'number' &&
-        Number.isFinite(value) &&
-        (mapping.type === 'float' || Number.isInteger(value))
-      )
-        return value;
-      break;
-    case 'boolean':
-      if (typeof value === 'boolean') return value;
-      break;
-    case 'many2one':
-      if (positiveId(value)) return value;
-      break;
-    case 'many2many':
-      if (Array.isArray(value) && Array.from(value).every(positiveId)) return [...value];
-      break;
-    case 'selection':
-      if (typeof value === 'string' && Object.hasOwn(mapping.options ?? {}, value))
-        return mapping.options?.[value] as string;
-      break;
-    case 'tags':
-      if (
-        Array.isArray(value) &&
-        Array.from(value).every(
-          (item) => typeof item === 'string' && Object.hasOwn(mapping.options ?? {}, item),
-        )
-      ) {
-        return value.map((item: string) => mapping.options?.[item] as string);
-      }
-      break;
-  }
+  const encoded = Object.hasOwn(encoders, mapping.type)
+    ? encoders[mapping.type](value, mapping)
+    : undefined;
+  if (encoded !== undefined) return encoded;
   return fail('invalid-input', `Invalid value for property alias ${alias} (${mapping.type})`, {
     alias,
     propertyId: mapping.id,

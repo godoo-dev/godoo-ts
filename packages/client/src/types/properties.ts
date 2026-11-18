@@ -288,54 +288,79 @@ function isRelationTuple(value: unknown): value is PropertyRelationTuple {
   );
 }
 
+/** Returns undefined for a malformed value of a supported type. */
+type WriteConverter = (
+  value: unknown,
+  type: string,
+  context: string,
+) => PropertyValueType | undefined;
+
+function isUnset(value: unknown): value is null | false {
+  return value === null || value === false;
+}
+
+const textToWrite: WriteConverter = (value) =>
+  isUnset(value) || typeof value === 'string' ? value : undefined;
+
+const numberToWrite: WriteConverter = (value, type) => {
+  if (isUnset(value)) return value;
+  if (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    (type === 'float' || Number.isInteger(value))
+  )
+    return value;
+  return undefined;
+};
+
+const tagsToWrite: WriteConverter = (value) => {
+  if (isUnset(value)) return value;
+  if (Array.isArray(value)) {
+    const tags: unknown[] = Array.from(value);
+    if (tags.every((tag) => typeof tag === 'string')) return tags;
+  }
+  return undefined;
+};
+
+const many2oneToWrite: WriteConverter = (value, _type, context) => {
+  if (isUnset(value) || isRelationId(value)) return value;
+  if (isRelationTuple(value)) return value[0];
+  throw new Error(
+    `${context}: expected a positive integer ID, [ID, string|null] tuple, false or null`,
+  );
+};
+
+const many2manyToWrite: WriteConverter = (value, _type, context) => {
+  if (isUnset(value)) return value;
+  if (Array.isArray(value)) {
+    const relations: unknown[] = Array.from(value);
+    if (relations.every(isRelationId)) return relations;
+    if (relations.every(isRelationTuple)) return relations.map((relation) => relation[0]);
+  }
+  throw new Error(
+    `${context}: expected positive integer IDs or [ID, string|null] tuples, false or null`,
+  );
+};
+
+const WRITE_CONVERTERS: Record<string, WriteConverter> = {
+  char: textToWrite,
+  date: textToWrite,
+  datetime: textToWrite,
+  selection: textToWrite,
+  integer: numberToWrite,
+  float: numberToWrite,
+  boolean: (value) => (value === null || typeof value === 'boolean' ? value : undefined),
+  tags: tagsToWrite,
+  many2one: many2oneToWrite,
+  many2many: many2manyToWrite,
+};
+
 function toWriteValue(type: string, value: unknown, context: string): PropertyValueType {
   // Check the type even for unset values, so unknown types cannot pass silently.
-  switch (type) {
-    case 'char':
-    case 'date':
-    case 'datetime':
-    case 'selection':
-      if (value === null || value === false || typeof value === 'string') return value;
-      break;
-    case 'integer':
-    case 'float':
-      if (value === null || value === false) return value;
-      if (
-        typeof value === 'number' &&
-        Number.isFinite(value) &&
-        (type === 'float' || Number.isInteger(value))
-      )
-        return value;
-      break;
-    case 'boolean':
-      if (value === null || typeof value === 'boolean') return value;
-      break;
-    case 'tags':
-      if (value === null || value === false) return value;
-      if (Array.isArray(value)) {
-        const tags: unknown[] = Array.from(value);
-        if (tags.every((tag) => typeof tag === 'string')) return tags;
-      }
-      break;
-    case 'many2one':
-      if (value === null || value === false || isRelationId(value)) return value;
-      if (isRelationTuple(value)) return value[0];
-      throw new Error(
-        `${context}: expected a positive integer ID, [ID, string|null] tuple, false or null`,
-      );
-    case 'many2many':
-      if (value === null || value === false) return value;
-      if (Array.isArray(value)) {
-        const relations: unknown[] = Array.from(value);
-        if (relations.every(isRelationId)) return relations;
-        if (relations.every(isRelationTuple)) return relations.map((relation) => relation[0]);
-      }
-      throw new Error(
-        `${context}: expected positive integer IDs or [ID, string|null] tuples, false or null`,
-      );
-    default:
-      throw new Error(`${context}: unsupported property type "${type}"`);
-  }
+  const convert = Object.hasOwn(WRITE_CONVERTERS, type) ? WRITE_CONVERTERS[type] : undefined;
+  if (!convert) throw new Error(`${context}: unsupported property type "${type}"`);
+  const converted = convert(value, type, context);
+  if (converted !== undefined) return converted;
   throw new Error(`${context}: malformed ${type} value`);
 }
 

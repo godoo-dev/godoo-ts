@@ -89,13 +89,13 @@ export function verifyCandidate(dir, expectedCommit = output('git', ['rev-parse'
   return manifest;
 }
 export function requireResults(results, requested19 = false) {
-  const expected = ['offline', 'package', 'odoo18', 'odoo19'];
+  const expected = ['offline', 'odoo18', 'odoo19'];
   assert.deepEqual(
     Object.keys(results).sort(),
     [...expected].sort(),
     'Missing/extra required jobs',
   );
-  for (const name of ['offline', 'package', 'odoo18'])
+  for (const name of ['offline', 'odoo18'])
     assert.equal(results[name]?.result, 'success', `${name} must succeed`);
   assert.equal(
     results.odoo19?.result,

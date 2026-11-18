@@ -23,7 +23,7 @@
  * share this one container — running them in parallel would race for the same
  * Postgres database.
  *
- * Per CLAUDE.md secrets-handling rule and the no-credential-logging convention
+ * Per the no-credential-logging convention
  * carried over from `odoo-toolbox`, this file MUST NOT log credential values.
  * The defaults are the test-container `admin/admin` literals — not real
  * secrets — but the pattern matters: a real secret should never end up in a

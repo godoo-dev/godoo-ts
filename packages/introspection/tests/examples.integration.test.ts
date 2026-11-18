@@ -39,7 +39,7 @@ describe('Odoo metadata and generated types', () => {
       execFileSync(
         process.execPath,
         [
-          require.resolve('typescript/bin/tsc'),
+          join(require.resolve('typescript/package.json'), '../bin/tsc'),
           '--strict',
           '--noEmit',
           '--ignoreConfig',

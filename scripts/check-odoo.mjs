@@ -54,7 +54,17 @@ for (const name of selectedPackages) {
   const selected = JSON.parse(
     output(
       'pnpm',
-      ['exec', 'vitest', 'list', '--config', 'vitest.integration.config.ts', '--json'],
+      // Vitest 5 defaults to static parsing, which can mistake helper calls for
+      // tests. Collect by evaluating the files, just as execution does.
+      [
+        'exec',
+        'vitest',
+        'list',
+        '--config',
+        'vitest.integration.config.ts',
+        '--json',
+        '--staticParse=false',
+      ],
       { cwd, env: { ...process.env, GODOO_INTEGRATION_LIST: 'true' } },
     ),
   );
@@ -91,6 +101,19 @@ for (const name of selectedPackages) {
       },
     );
     const result = readJson(report);
+    const executed = result.testResults.flatMap((file) =>
+      file.assertionResults.map((test) => {
+        assert.equal(test.status, 'passed', `${name}: integration test did not pass`);
+        return JSON.stringify([file.name, [...test.ancestorTitles, test.title].join(' > ')]);
+      }),
+    );
+    // Compare multisets, preserving duplicate names and checking identity as well
+    // as totals: a different test must never stand in for an omitted one.
+    assert.deepEqual(
+      executed.sort(),
+      selected.map((test) => JSON.stringify([test.file, test.name])).sort(),
+      `${name}: collection/execution identity mismatch`,
+    );
     assert.equal(result.numTotalTests, selected.length, `${name}: collection/execution mismatch`);
     assert(
       result.numTotalTests > 0 && result.numPassedTests === result.numTotalTests,

@@ -1,4 +1,5 @@
 ---
+
 name: godoo-ts-docs
 description: Retrieve, author, move and assess godoo-ts knowledge (TSDoc, package READMEs, docs/), decide which surface a claim belongs on, and mark Odoo-behaviour dependencies with atlas fact IDs. Work records and routing of knowledge this project does not own use godoo-ts-capture.
 ---
@@ -24,15 +25,15 @@ restating the claim as a second source.
 
 ## Surfaces
 
-| Surface | Holds |
-| --- | --- |
-| Code comment | Why non-obvious code exists, including a workaround for an Odoo behaviour |
-| TSDoc on the export | The caller's contract: arguments, results, errors, version limits |
-| `packages/*/README.md` | Package usage across several APIs, setup and examples |
-| `docs/development.md` | Engineering, checks, CI and release |
-| `docs/libraries.md` | Capability targets and accepted TS/Python differences |
-| `README.md` | Navigation and a first example |
-| `.agents/skills/` | Maintainer procedures only; never published to consumers |
+| Surface                | Holds                                                                     |
+| ---------------------- | ------------------------------------------------------------------------- |
+| Code comment           | Why non-obvious code exists, including a workaround for an Odoo behaviour |
+| TSDoc on the export    | The caller's contract: arguments, results, errors, version limits         |
+| `packages/*/README.md` | Package usage across several APIs, setup and examples                     |
+| `docs/development.md`  | Engineering, checks, CI and release                                       |
+| `docs/libraries.md`    | Capability targets and accepted TS/Python differences                     |
+| `README.md`            | Navigation and a first example                                            |
+| `.agents/skills/`      | Maintainer procedures only; never published to consumers                  |
 
 Pick the narrowest surface whose reader needs the claim. When several readers
 need it, write each reflection for its reader rather than copying text.

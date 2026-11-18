@@ -244,25 +244,25 @@ describe('read-only addon prerequisite inspection', () => {
       'unknown-state',
     ]);
   });
-  it.each([
-    'fields_get',
-    'search_read',
-  ])('retains module AccessError from %s as inaccessible, never missing', async (blockedMethod) => {
-    const { client } = harness({
-      error: (model, method) =>
-        model === MODULE && method === blockedMethod
-          ? { name: 'odoo.exceptions.AccessError', message: 'No module metadata permission' }
-          : undefined,
-    });
-    await client.authenticate();
-    const report = await client.modules.inspectPrerequisites(['sale']);
-    expect(report.modules[0]?.status).toBe('inaccessible');
-    expect(report.closureComplete).toBe(false);
-    expect(report.diagnostics).toContainEqual(
-      expect.objectContaining({ code: 'access-denied', cause: expect.any(OdooAccessError) }),
-    );
-    expect(report.diagnostics.some((d) => d.code === 'missing-module')).toBe(false);
-  });
+  it.each(['fields_get', 'search_read'])(
+    'retains module AccessError from %s as inaccessible, never missing',
+    async (blockedMethod) => {
+      const { client } = harness({
+        error: (model, method) =>
+          model === MODULE && method === blockedMethod
+            ? { name: 'odoo.exceptions.AccessError', message: 'No module metadata permission' }
+            : undefined,
+      });
+      await client.authenticate();
+      const report = await client.modules.inspectPrerequisites(['sale']);
+      expect(report.modules[0]?.status).toBe('inaccessible');
+      expect(report.closureComplete).toBe(false);
+      expect(report.diagnostics).toContainEqual(
+        expect.objectContaining({ code: 'access-denied', cause: expect.any(OdooAccessError) }),
+      );
+      expect(report.diagnostics.some((d) => d.code === 'missing-module')).toBe(false);
+    },
+  );
   it('keeps observed state when dependency access is denied', async () => {
     const { client } = harness({
       modules: [addon(1, 'sale', 'installed', [10])],

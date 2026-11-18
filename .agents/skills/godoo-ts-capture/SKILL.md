@@ -1,4 +1,5 @@
 ---
+
 name: godoo-ts-capture
 description: Capture, triage and retrieve godoo-ts work in its GitHub issues (requests, breakdowns, deferred observations, owner decisions), and route knowledge to its owner, including Odoo-server behaviour to Atlas intake. Writing godoo-ts docs uses godoo-ts-docs.
 ---
@@ -16,16 +17,16 @@ unavailable, report it; do not pick another tracker.
 
 Classify what you have, then send it to its owner:
 
-| Kind | Home |
-| --- | --- |
-| Request, open decision, blocker, remaining work for godoo-ts | An issue here (below) |
-| How godoo-ts code behaves: config, errors, helpers, CLI | This repository through [godoo-ts-docs](../godoo-ts-docs/SKILL.md) |
-| What the Odoo server does, by version, edition or module | Atlas intake (below) |
-| How an agent should use an MCP tool | [godoo-mcp-server](https://github.com/godoo-dev/godoo-mcp-server) |
-| Stateman planning, apply, adoption and target semantics | [godoo-stateman](https://github.com/godoo-dev/godoo-stateman) docs |
-| Python library behaviour | [godoo-py](https://github.com/godoo-dev/godoo-py) |
-| Synthesis or decisions spanning several components | Godoo HQ, as links to the owners |
-| Maintainer procedure for this project | `.agents/skills/` here |
+| Kind                                                         | Home                                                               |
+| ------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Request, open decision, blocker, remaining work for godoo-ts | An issue here (below)                                              |
+| How godoo-ts code behaves: config, errors, helpers, CLI      | This repository through [godoo-ts-docs](../godoo-ts-docs/SKILL.md) |
+| What the Odoo server does, by version, edition or module     | Atlas intake (below)                                               |
+| How an agent should use an MCP tool                          | [godoo-mcp-server](https://github.com/godoo-dev/godoo-mcp-server)  |
+| Stateman planning, apply, adoption and target semantics      | [godoo-stateman](https://github.com/godoo-dev/godoo-stateman) docs |
+| Python library behaviour                                     | [godoo-py](https://github.com/godoo-dev/godoo-py)                  |
+| Synthesis or decisions spanning several components           | Godoo HQ, as links to the owners                                   |
+| Maintainer procedure for this project                        | `.agents/skills/` here                                             |
 
 Atlas holds only claims about Odoo itself. Behaviour of the godoo-ts client,
 retired CLIs or MCP conventions is not an Atlas fact, even when it was learned

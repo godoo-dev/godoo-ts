@@ -58,19 +58,17 @@ describe.each(['direct', 'bearer'] as const)('%s write response provenance', (ki
     );
     await expect(call()).rejects.toBeInstanceOf(OdooValidationError);
   });
-  it.each([
-    true,
-    false,
-    null,
-    { unusual: true },
-  ])('retains result %j for the mutation classifier', async (result) => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(
-        async () =>
-          new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result }), { status: 200 }),
-      ),
-    );
-    await expect(call()).resolves.toEqual(result);
-  });
+  it.each([true, false, null, { unusual: true }])(
+    'retains result %j for the mutation classifier',
+    async (result) => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          async () =>
+            new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result }), { status: 200 }),
+        ),
+      );
+      await expect(call()).resolves.toEqual(result);
+    },
+  );
 });

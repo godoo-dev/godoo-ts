@@ -63,14 +63,14 @@ const introspector = new Introspector(client);
 
 // Get all models
 const models = await introspector.getModels();
-console.log(models.map(m => m.model)); // ['res.partner', 'sale.order', ...]
+console.log(models.map((m) => m.model)); // ['res.partner', 'sale.order', ...]
 
 // Get fields for a model
 const fields = await introspector.getFields('res.partner');
 
 // Get complete metadata
 const metadata = await introspector.getModelMetadata('res.partner');
-console.log(metadata.model.name);    // 'Contact'
+console.log(metadata.model.name); // 'Contact'
 console.log(metadata.fields.length); // 50+
 ```
 
@@ -119,9 +119,9 @@ Retrieve all available models.
 
 ```typescript
 const models = await introspector.getModels({
-  includeTransient: false,  // Include wizard models
-  modules: ['sale'],        // Filter by modules
-  bypassCache: false        // Force fresh query
+  includeTransient: false, // Include wizard models
+  modules: ['sale'], // Filter by modules
+  bypassCache: false, // Force fresh query
 });
 ```
 
@@ -176,7 +176,7 @@ const code = await generator.generate({
   outputDir: './src/models',
   includeTransient: false,
   modules: undefined,
-  bypassCache: false
+  bypassCache: false,
 });
 ```
 
@@ -215,17 +215,17 @@ export interface ResPartner {
 
 Odoo field types are mapped to TypeScript as follows:
 
-| Odoo Type | TypeScript Type |
-|-----------|-----------------|
-| `char`, `text`, `html` | `string` |
-| `integer` | `number` |
-| `float`, `monetary` | `number` |
-| `boolean` | `boolean` |
-| `date`, `datetime` | `string` (ISO 8601) |
-| `many2one` | `number` |
-| `one2many`, `many2many` | `number[]` |
-| `selection` | `string` |
-| `binary` | `string` |
+| Odoo Type               | TypeScript Type     |
+| ----------------------- | ------------------- |
+| `char`, `text`, `html`  | `string`            |
+| `integer`               | `number`            |
+| `float`, `monetary`     | `number`            |
+| `boolean`               | `boolean`           |
+| `date`, `datetime`      | `string` (ISO 8601) |
+| `many2one`              | `number`            |
+| `one2many`, `many2many` | `number[]`          |
+| `selection`             | `string`            |
+| `binary`                | `string`            |
 
 ## Caching
 

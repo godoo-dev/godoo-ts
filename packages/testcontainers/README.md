@@ -5,7 +5,7 @@ A custom Testcontainers module for Odoo development in Node.js.
 ## Features
 
 - 🐳 **Fresh containers** for each test run (no shared state!)
-- 📦 **Module auto-installation** with dependency resolution  
+- 📦 **Module auto-installation** with dependency resolution
 - ⚡ **Local DB snapshots** so repeated `startOdoo()` calls skip Odoo init/module install
 - 🎯 **High-level presets** for common Odoo setups
 - 🔧 **Custom addons support** (mount your own modules)
@@ -85,7 +85,7 @@ const odoo = await startOdoo({
   addonsPath: './my-custom-addons',
 });
 
-// Multiple addon directories  
+// Multiple addon directories
 const odoo = await startOdoo({
   modules: ['base'],
   addonsPath: [
@@ -95,7 +95,7 @@ const odoo = await startOdoo({
       mode: 'ro',
     },
     {
-      source: './custom-addons', 
+      source: './custom-addons',
       target: '/mnt/custom-addons',
       mode: 'ro',
     },
@@ -155,7 +155,7 @@ import { OdooPresets } from '@godoo-dev/testcontainers';
 // HR & Attendance
 const odoo = await OdooPresets.hr();
 
-// Project Management  
+// Project Management
 const odoo = await OdooPresets.project();
 
 // Sales & CRM
@@ -178,18 +178,20 @@ const odoo = await OdooPresets.oca('./oca-server-tools');
 Creates and starts an Odoo testcontainer.
 
 **Options:**
+
 - `modules?: string[]` - Odoo modules to install
 - `addonsPath?: string | AddonsMount[]` - Custom addons to mount
-- `database?: string` - Database name (default: 'test_odoo')  
+- `database?: string` - Database name (default: 'test_odoo')
 - `adminPassword?: string` - Admin password (default: 'admin')
 - `env?: Record<string, string>` - Additional environment variables
 - `startupTimeout?: number` - Startup timeout in ms (default: 180000)
 - `snapshot?: boolean | SnapshotCacheOptions` - Local DB snapshot caching (default: enabled)
 
 **Returns:** `StartedOdooContainer`
+
 - `client: OdooClient` - Authenticated Odoo client
 - `moduleManager: ModuleManager` - Module management operations
-- `url: string` - Odoo URL  
+- `url: string` - Odoo URL
 - `database: string` - Database name
 - `cleanup(): Promise<void>` - Cleanup function
 
@@ -199,8 +201,8 @@ Interface for mounting custom addons:
 
 ```typescript
 interface AddonsMount {
-  source: string;    // Local directory path
-  target?: string;   // Mount point in container
+  source: string; // Local directory path
+  target?: string; // Mount point in container
   mode?: 'ro' | 'rw'; // Mount mode (default: 'ro')
 }
 ```
@@ -243,7 +245,7 @@ describe('OCA Timesheet Extensions', () => {
     });
 
     const stages = await odoo.client.searchRead('project.task.type', [
-      ['project_ids', 'in', [projectId]]
+      ['project_ids', 'in', [projectId]],
     ]);
 
     expect(stages.length).toBeGreaterThan(0);
@@ -255,7 +257,7 @@ describe('OCA Timesheet Extensions', () => {
 
 - **Zero configuration** - just specify modules you need
 - **Perfect isolation** - no test interference between runs
-- **Parallel execution** - each test gets fresh containers  
+- **Parallel execution** - each test gets fresh containers
 - **Module presets** - common setups ready to go
 - **Health checks** - waits for Odoo to be truly ready
 - **Network isolation** - containers can't interfere with each other
@@ -264,16 +266,18 @@ describe('OCA Timesheet Extensions', () => {
 ## Why Use This?
 
 **Current problems with manual Docker:**
+
 - Complex setup and configuration
-- Shared database state causes flaky tests  
+- Shared database state causes flaky tests
 - Hard to test against specific module combinations
 - CI/CD setup is complicated
 - No easy way to mount custom addons
 
 **This solves:**
+
 - ✅ **One-line Odoo setup** with any module combination
 - ✅ **Perfect test isolation** (fresh containers every time)
-- ✅ **Parallel test execution** (no shared state conflicts)  
+- ✅ **Parallel test execution** (no shared state conflicts)
 - ✅ **Reproducible environments** (same containers everywhere)
 - ✅ **Easy custom addon mounting** (OCA modules, your own addons)
 

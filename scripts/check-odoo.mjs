@@ -27,6 +27,19 @@ if (process.env.ODOO_VERSION)
     'ODOO_VERSION conflicts with requested verification major',
   );
 const listOnly = process.argv.includes('--list');
+// HQ may schedule these disjoint Odoo 18 suites in parallel. The default still
+// qualifies the complete candidate, including the installed consumer.
+const suitePackages = {
+  client: 'client',
+  testcontainers: 'testcontainers',
+  'introspection-consumer': 'introspection',
+};
+assert.deepEqual(Object.values(suitePackages).sort(), [...packages].sort(), 'Suite coverage drift');
+const suiteIndex = process.argv.indexOf('--suite');
+const suite = suiteIndex === -1 ? null : process.argv[suiteIndex + 1];
+assert(suite === null || Object.hasOwn(suitePackages, suite), 'Unknown or missing Odoo suite');
+assert(suite === null || major === 18, 'Suite selection is only supported for Odoo 18');
+const selectedPackages = suite === null ? packages : [suitePackages[suite]];
 const dir = process.env.CANDIDATE_DIR ? outside(process.env.CANDIDATE_DIR) : null;
 if (!listOnly) {
   assert(dir, 'CANDIDATE_DIR must identify the packed and package-tested candidate');
@@ -36,7 +49,7 @@ if (!listOnly) {
   run('docker', ['info'], { stdio: 'pipe', timeout: 30_000 });
 }
 const selections = {};
-for (const name of packages) {
+for (const name of selectedPackages) {
   const cwd = resolve(root, 'packages', name);
   const selected = JSON.parse(
     output(
@@ -88,12 +101,14 @@ for (const name of packages) {
   }
 }
 if (listOnly) console.log(JSON.stringify(selections, null, 2));
-else {
+else if (suite === null || suite === 'introspection-consumer') {
   run(process.execPath, ['scripts/check-package.mjs'], {
     env: { ...process.env, GODOO_INSTALLED_ODOO: 'true', ODOO_VERSION: `${major}.0` },
   });
   const runtime = readJson(resolve(dir, `installed-odoo${major}-proof.json`));
   assert.equal(runtime.observedMajor, major);
+  // Partial runs must never satisfy the full-candidate Odoo proof.
+  if (suite !== null) process.exit(0);
   writeJson(resolve(dir, `odoo${major}-proof.json`), {
     passed: true,
     requestedMajor: major,

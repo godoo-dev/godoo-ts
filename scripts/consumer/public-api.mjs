@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { join, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   createPropertiesScope,
@@ -346,7 +346,7 @@ if (process.env.GODOO_INSTALLED_ODOO === 'true') {
   }
 }
 // Resolve compiler from the installed consumer, never the source workspace.
-console.log('GODOO_INSTALLED_COMPILER ' + require.resolve('typescript/bin/tsc'));
+console.log('GODOO_INSTALLED_COMPILER ' + join(dirname(require.resolve('typescript/package.json')), 'bin', 'tsc'));
 assert(
   readFileSync(join(consumer, 'generated.ts'), 'utf8').includes('export interface ResPartner'),
 );

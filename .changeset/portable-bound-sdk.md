@@ -1,5 +1,4 @@
 ---
-
 "@godoo-dev/client": minor
 "@godoo-dev/introspection": minor
 ---

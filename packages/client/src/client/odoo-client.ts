@@ -44,16 +44,12 @@ export class OdooClient extends OdooClientCore {
     return session;
   }
 
-  /**
-   * Check if client is authenticated
-   */
+  /** Whether local authentication state is present; does not contact the server. */
   isAuthenticated(): boolean {
     return this.authenticated;
   }
 
-  /**
-   * Get current session info
-   */
+  /** Return the direct RPC session, or null before authentication and after logout. */
   getSession(): OdooSessionInfo | null {
     return this.transport.getSession();
   }

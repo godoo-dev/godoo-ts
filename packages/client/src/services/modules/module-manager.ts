@@ -67,7 +67,12 @@ export class ModuleManager {
    * Uninstall a module by name
    *
    * Uses button_immediate_uninstall method from ir.module.module model.
-   * This method uninstalls the module immediately.
+   * Dependents may be scheduled for removal by the server.
+   *
+   * An already-uninstalled visible module returns its id, name and state without a call.
+   * Missing modules, other initial states and unreadable post-operation rows throw.
+   * After dispatch, returns id, name, state, shortdesc, summary, installed_version
+   * and application. Unlike install/upgrade, this method has no retry loop.
    *
    * @param moduleName - Technical name of the module
    * @returns Module info after uninstallation
@@ -78,6 +83,7 @@ export class ModuleManager {
    * ```typescript
    * await moduleManager.uninstallModule('project');
    * ```
+   * @see atlas:base/modules-uninstall-lifecycle
    */
   async uninstallModule(moduleName: string): Promise<ModuleInfo> {
     log('Uninstalling module: %s', moduleName);
@@ -134,7 +140,9 @@ export class ModuleManager {
   }
 
   /**
-   * List available modules with optional filtering
+   * List visible modules, filtering by state and application with limit/offset pagination.
+   * Returns identity, state, descriptions, author, website, versions, license,
+   * application and category metadata; description is reserved for getModuleInfo.
    *
    * @param options - Filtering and pagination options
    * @returns Array of module information
@@ -147,6 +155,7 @@ export class ModuleManager {
    * // List all applications
    * const apps = await moduleManager.listModules({ application: true });
    * ```
+   * @see atlas:base/modules-list-installed
    */
   async listModules(options: ModuleListOptions = {}): Promise<ModuleInfo[]> {
     log('Listing modules with options: %o', options);
@@ -201,7 +210,8 @@ export class ModuleManager {
   }
 
   /**
-   * Get detailed information about a specific module
+   * Get the first visible technical-name match, including description and list metadata.
+   * Throws when no visible match exists; this does not prove the addon is absent.
    *
    * @param moduleName - Technical name of the module
    * @returns Detailed module information
@@ -211,6 +221,7 @@ export class ModuleManager {
    * const info = await moduleManager.getModuleInfo('project');
    * console.log(info.description);
    * ```
+   * @see atlas:base/modules-check-installed
    */
   async getModuleInfo(moduleName: string): Promise<ModuleInfo> {
     log('Getting info for module: %s', moduleName);
@@ -247,7 +258,8 @@ export class ModuleManager {
   }
 
   /**
-   * Check if a module is installed
+   * Check for a visible technical-name match in the installed state.
+   * Returns false when no such match is visible.
    *
    * @param moduleName - Technical name of the module
    * @returns True if module is installed
@@ -258,6 +270,7 @@ export class ModuleManager {
    *   console.log('Project module is installed');
    * }
    * ```
+   * @see atlas:base/modules-check-installed
    */
   async isModuleInstalled(moduleName: string): Promise<boolean> {
     log('Checking if module is installed: %s', moduleName);

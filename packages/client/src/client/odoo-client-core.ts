@@ -32,6 +32,9 @@ export abstract class OdooClientCore implements ServiceClient {
     this.safetyContext = safety;
   }
 
+  /** Return the transport's local session snapshot, or null when unavailable.
+   * Snapshot fields depend on the transport; this does not probe server liveness.
+   */
   abstract getSession(): ClientSession | null;
 
   protected abstract executeRpc<T>(

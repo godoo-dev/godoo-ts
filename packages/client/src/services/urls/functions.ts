@@ -1,18 +1,12 @@
 /**
  * URL generation functions for Odoo records.
  *
- * Problem: Odoo's web client URL format has changed across versions:
- * - v14–v17: Hash-based → /web#id=42&model=crm.lead&view_type=form
- * - v18+:    Path-based → /odoo/crm.lead/42
- *
- * Hardcoding URL patterns breaks across versions.
- *
- * Solution: Use Odoo's built-in `/mail/view` redirect controller.
- * It works across ALL versions and correctly routes users based on
- * their access level (internal → backend form, portal → portal page).
+ * Uses the deployed mail controller to resolve record links. Availability and
+ * destinations depend on installed modules, version and access policy.
  *
  * @see https://github.com/odoo/odoo/blob/17.0/addons/mail/controllers/mail.py
  * @see https://github.com/odoo/odoo/blob/17.0/addons/portal/models/portal_mixin.py
+ * @see atlas:base/url-record-basic
  */
 
 import debug from 'debug';
@@ -42,6 +36,7 @@ const baseUrlCache = new WeakMap<ServiceClient, string>();
  * @returns Base URL string (e.g., 'https://mycompany.odoo.com')
  *
  * @see https://github.com/odoo/odoo/blob/17.0/odoo/addons/base/models/ir_config_parameter.py
+ * @see atlas:base/url-base-url
  */
 export async function getBaseUrl(client: ServiceClient, forceRefresh = false): Promise<string> {
   if (!forceRefresh) {
@@ -75,17 +70,8 @@ export async function getBaseUrl(client: ServiceClient, forceRefresh = false): P
 }
 
 /**
- * Get a version-agnostic URL that links to an Odoo record.
- *
- * Uses Odoo's built-in `/mail/view` redirect controller — the same
- * mechanism Odoo uses in email notifications. When accessed:
- *
- * - Internal users → redirected to the backend form view
- * - Portal users  → redirected to the portal page (if model has portal.mixin)
- * - Not logged in → redirected to login, then to the record
- *
- * This works across ALL Odoo versions (14+) regardless of whether
- * the web client uses hash-based (#) or path-based (/odoo/) URLs.
+ * Build a mail redirect URL using encoded model and record-ID query parameters.
+ * Resolution depends on controller availability, model routes and access rights.
  *
  * @param client - Authenticated ServiceClient instance
  * @param model  - Odoo model name (e.g., 'crm.lead', 'sale.order')
@@ -99,6 +85,7 @@ export async function getBaseUrl(client: ServiceClient, forceRefresh = false): P
  * ```
  *
  * @see https://github.com/odoo/odoo/blob/17.0/addons/mail/controllers/mail.py — mail_action_view
+ * @see atlas:base/url-record-basic
  */
 export async function getRecordUrl(
   client: ServiceClient,
@@ -116,7 +103,8 @@ export async function getRecordUrl(
  * Get a portal URL for a record that inherits from `portal.mixin`.
  *
  * Portal URLs are customer-facing links with access tokens that allow
- * external users to view records without logging in. Common portal models:
+ * external users to view records where model access policy permits it.
+ * Common portal models:
  * - sale.order → /my/orders/{id}
  * - account.move → /my/invoices/{id}
  * - project.task → /my/tasks/{id}
@@ -149,6 +137,7 @@ export async function getRecordUrl(
  * ```
  *
  * @see https://github.com/odoo/odoo/blob/17.0/addons/portal/models/portal_mixin.py — get_portal_url
+ * @see atlas:base/url-portal-mixin
  */
 export async function getPortalUrl(
   client: ServiceClient,
@@ -159,7 +148,8 @@ export async function getPortalUrl(
   const baseUrl = await getBaseUrl(client);
 
   // Read access_url and access_token from the record.
-  // access_url is computed; access_token is generated on first read via _portal_ensure_token.
+  // Missing tokens are created explicitly below, after validating access_url.
+  // atlas: base/url-portal-mixin
   const records = await client.read<{
     access_url: string;
     access_token: string | false;
@@ -176,7 +166,7 @@ export async function getPortalUrl(
     throw new Error(
       `Model '${model}' does not provide a portal URL (access_url is '${record.access_url}'). ` +
         'The model likely does not inherit from portal.mixin, or _compute_access_url is not implemented. ' +
-        'Use getRecordUrl() instead for a version-agnostic backend link.',
+        'Use getRecordUrl() instead for a mail-controller redirect link; availability and destination depend on the deployment.',
     );
   }
 

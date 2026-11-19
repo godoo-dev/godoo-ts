@@ -48,6 +48,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - if: inputs.release_candidate == true
+        # Check main here because the candidate is packed later in this job.
+        env:
+          CANDIDATE_DIR: ""
         run: node scripts/release-guard.mjs
       - run: pnpm check
       # The Node 24 leg packs and installs the candidate from the build `pnpm check` tested.

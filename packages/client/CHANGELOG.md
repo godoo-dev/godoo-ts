@@ -1,5 +1,13 @@
 # @godoo-dev/client
 
+## 0.9.0
+
+### Minor Changes
+
+- Allow direct Odoo clients to use a custom fetch implementation for JSON-RPC requests.
+
+- Add a credential-free native bound client, portable introspection and formatter entrypoints, and versioned host-consumable effect declarations and progressive SDK reference exports.
+
 ## 0.8.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @godoo-dev/introspection
 
+## 0.3.0
+
+### Minor Changes
+
+- Add a credential-free native bound client, portable introspection and formatter entrypoints, and versioned host-consumable effect declarations and progressive SDK reference exports.
+
+### Patch Changes
+
+- Updated dependencies:
+  - @godoo-dev/client@0.9.0
+
 ## 0.2.4
 
 ### Patch Changes

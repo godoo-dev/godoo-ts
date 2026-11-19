@@ -35,7 +35,11 @@ export class JsonRpcTransport {
   private sessionInfo: OdooSessionInfo | null = null;
   private password: string = '';
 
-  constructor(baseUrl: string, db: string) {
+  constructor(
+    baseUrl: string,
+    db: string,
+    private readonly fetchImplementation?: typeof fetch,
+  ) {
     // Normalize base URL - remove trailing slash
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.db = db;
@@ -135,7 +139,8 @@ export class JsonRpcTransport {
     };
 
     try {
-      const response = await fetch(this.getRpcUrl(), {
+      const doFetch = this.fetchImplementation ?? globalThis.fetch;
+      const response = await doFetch(this.getRpcUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

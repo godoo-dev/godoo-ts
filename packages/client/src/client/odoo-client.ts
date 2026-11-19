@@ -13,6 +13,12 @@ export interface OdooClientConfig {
   username: string;
   password: string;
   /**
+   * Custom fetch used for JSON-RPC requests made by OdooClient.
+   * Defaults to `globalThis.fetch`, resolved on each request.
+   * OAuthProxyClient and the bearer transport use the global fetch.
+   */
+  fetch?: typeof fetch;
+  /**
    * Opt-in safety context for this client.
    * - undefined: use global default (setDefaultSafetyContext)
    * - null: explicitly disable safety for this client
@@ -30,7 +36,7 @@ export class OdooClient extends OdooClientCore {
   constructor(config: OdooClientConfig) {
     super(config.safety);
     this.config = config;
-    this.transport = new JsonRpcTransport(config.url, config.database);
+    this.transport = new JsonRpcTransport(config.url, config.database, config.fetch);
   }
 
   /**

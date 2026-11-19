@@ -1,7 +1,7 @@
 /**
  * URL service — the typed interface exposed via `client.urls.*`
  *
- * Generates links to Odoo records that work across all Odoo versions.
+ * Builds links whose resolution depends on the deployed controllers and access policy.
  * Delegates to standalone functions in functions.ts.
  */
 
@@ -14,13 +14,13 @@ import {
 import type { PortalUrlOptions, PortalUrlResult } from './types';
 
 /**
- * URL service providing version-agnostic link generation for Odoo records.
+ * URL service building Odoo record links using deployed controllers and access policy.
  *
  * Access via `client.urls` — never instantiate directly.
  *
  * Three methods:
  * - `getBaseUrl()`   → Odoo instance base URL from system parameters
- * - `getRecordUrl()` → version-agnostic redirect link (works on all versions)
+ * - `getRecordUrl()` → mail-controller redirect link
  * - `getPortalUrl()`  → customer-facing portal link with access token
  */
 export class UrlService {
@@ -34,21 +34,16 @@ export class UrlService {
    *
    * @param forceRefresh - Bypass cache and re-read from Odoo
    * @returns Base URL (e.g., 'https://mycompany.odoo.com')
+   * @see atlas:base/url-base-url
    */
   async getBaseUrl(forceRefresh = false): Promise<string> {
     return _getBaseUrl(this.client, forceRefresh);
   }
 
   /**
-   * Get a version-agnostic URL that links to any Odoo record.
-   *
-   * Uses Odoo's `/mail/view` redirect controller — the same mechanism
-   * used in notification emails. Works across ALL Odoo versions (14+).
-   *
-   * Behavior when the URL is accessed:
-   * - Internal users → backend form view
-   * - Portal users → portal page (if model has portal.mixin)
-   * - Not logged in → login page, then redirect to record
+   * Build a `/mail/view` redirect URL with encoded query parameters.
+   * Resolution requires the controller's providing modules and appropriate access;
+   * the destination depends on the deployed version and model's routes.
    *
    * @param model - Odoo model name (e.g., 'crm.lead', 'sale.order')
    * @param resId - Record ID
@@ -59,6 +54,7 @@ export class UrlService {
    * const url = await client.urls.getRecordUrl('crm.lead', 42);
    * // → 'https://mycompany.odoo.com/mail/view?model=crm.lead&res_id=42'
    * ```
+   * @see atlas:base/url-record-basic
    */
   async getRecordUrl(model: string, resId: number): Promise<string> {
     return _getRecordUrl(this.client, model, resId);
@@ -68,7 +64,7 @@ export class UrlService {
    * Get a portal URL for a record that inherits `portal.mixin`.
    *
    * Portal URLs are customer-facing links with access tokens that allow
-   * external users to view records without logging in.
+   * external users to view records where the model access policy permits it.
    *
    * Common portal models: sale.order, account.move, project.task,
    * purchase.order, helpdesk.ticket.
@@ -89,6 +85,7 @@ export class UrlService {
    *   download: true,
    * });
    * ```
+   * @see atlas:base/url-portal-mixin
    */
   async getPortalUrl(
     model: string,

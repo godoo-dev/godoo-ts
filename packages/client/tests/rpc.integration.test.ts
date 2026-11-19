@@ -18,12 +18,18 @@ describe('OdooClient RPC Integration', () => {
         password: odooPassword,
       });
 
-      const session = await client.authenticate();
+      try {
+        const session = await client.authenticate();
 
-      expect(session).toBeDefined();
-      expect(session.uid).toBeGreaterThan(0);
-      expect(session.db).toBe(odooDb);
-      expect(client.isAuthenticated()).toBe(true);
+        expect(session).toBeDefined();
+        expect(session.uid).toBeGreaterThan(0);
+        expect(session.db).toBe(odooDb);
+        expect(client.isAuthenticated()).toBe(true);
+        expect(client.getSession()?.uid).toBe(session.uid);
+        expect(client.getSession()?.db).toBe(odooDb);
+      } finally {
+        client.logout();
+      }
     });
 
     it('should fail with invalid credentials', async () => {
@@ -64,6 +70,24 @@ describe('OdooClient RPC Integration', () => {
 
     afterAll(() => {
       client.logout();
+    });
+
+    it('returns record rows through the generic call API', async () => {
+      const id = await client.create('res.partner', { name: 'Godoo client call partner' });
+      try {
+        const rows = await client.call<Array<{ id: number; display_name: string }>>(
+          'res.partner',
+          'read',
+          [[id], ['display_name']],
+          {},
+        );
+        expect(Array.isArray(rows)).toBe(true);
+        expect(rows).toHaveLength(1);
+        expect(required(rows[0]).id).toBe(id);
+        expect(required(rows[0]).display_name.length).toBeGreaterThan(0);
+      } finally {
+        await client.unlink('res.partner', [id]);
+      }
     });
 
     it('should search for records', async () => {

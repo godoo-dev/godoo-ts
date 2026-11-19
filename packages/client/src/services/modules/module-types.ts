@@ -1,3 +1,6 @@
+/** Selected ir.module.module metadata; optional fields depend on the query.
+ * @see atlas:base/modules-list-installed
+ */
 export interface ModuleInfo {
   id: number;
   name: string;
@@ -14,6 +17,7 @@ export interface ModuleInfo {
   category_id?: [number, string];
 }
 
+/** Equality filters and pagination applied to the visible module catalog. */
 export interface ModuleListOptions {
   /** Filter modules by state */
   state?: ModuleInfo['state'];

@@ -97,6 +97,7 @@ function requireIdentities(
  * Registered todo windows come from action.read() and action_launch adds
  * disable_log. A module-operation wizard is pending work, even if every module
  * already reports installed. Unknown/custom responses fail closed.
+ * @see atlas:base/modules-install-lifecycle
  */
 function isCompletionResponse(response: unknown): boolean {
   if (!response || typeof response !== 'object' || Array.isArray(response)) return false;

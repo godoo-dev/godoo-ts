@@ -9,6 +9,8 @@ import {
   OdooSafetyError,
   OdooValidationError,
 } from '../src';
+import type { ServiceClient } from '../src/client/types';
+import { ModuleManager } from '../src/services/modules/module-manager';
 
 const MODULE = 'ir.module.module';
 const DEPENDENCY = 'ir.module.module.dependency';
@@ -705,5 +707,38 @@ describe('explicit module lifecycle', () => {
     const { client, requests } = fixture();
     await expect(client.modules.installModule(' sale')).rejects.toBeInstanceOf(TypeError);
     expect(requests).toEqual([]);
+  });
+});
+
+describe('uninstall lookup and dispatch failures', () => {
+  it.each(['to install', 'to upgrade', 'to remove', 'uninstallable'])(
+    'refuses %s before dispatch',
+    async (state) => {
+      const call = vi.fn();
+      const searchRead = vi.fn().mockResolvedValue([{ id: 1, name: 'sale', state }]);
+      const manager = new ModuleManager({ call, searchRead } as unknown as ServiceClient);
+      await expect(manager.uninstallModule('sale')).rejects.toThrow('cannot be uninstalled');
+      expect(call).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects an unreadable post-operation row', async () => {
+    const call = vi.fn().mockResolvedValue(false);
+    const searchRead = vi
+      .fn()
+      .mockResolvedValueOnce([{ id: 1, name: 'sale', state: 'installed' }])
+      .mockResolvedValueOnce([]);
+    const manager = new ModuleManager({ call, searchRead } as unknown as ServiceClient);
+    await expect(manager.uninstallModule('sale')).rejects.toThrow('not readable after uninstall');
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+
+  it('propagates a cron failure without retrying', async () => {
+    const failure = new Error(CRON_LOCK);
+    const call = vi.fn().mockRejectedValue(failure);
+    const searchRead = vi.fn().mockResolvedValue([{ id: 1, name: 'sale', state: 'installed' }]);
+    const manager = new ModuleManager({ call, searchRead } as unknown as ServiceClient);
+    await expect(manager.uninstallModule('sale')).rejects.toBe(failure);
+    expect(call).toHaveBeenCalledTimes(1);
   });
 });

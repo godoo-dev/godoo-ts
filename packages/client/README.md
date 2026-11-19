@@ -281,6 +281,8 @@ Other URL paths, query strings and targets remain unsupported. This narrow
 completion contract does not certify other Odoo 18 behavior; prerequisite schema
 design and the original supplier acceptance remain based on Odoo 17.
 
+<!-- atlas: base/modules-install-lifecycle -->
+
 Odoo installs dependencies and may auto-install addons. Upgrade can refresh Odoo's
 catalog and upgrade dependent modules internally; the client does not invoke a
 separate refresh or enumerate calls to install dependencies. Inspection remains
@@ -331,6 +333,9 @@ if (receipt.status !== 'acknowledged') console.log(receipt.status, receipt.error
 
 `createPropertiesScope(client, model, field, options)` is also exported and accepts
 `Pick<OdooCrudClient, 'call' | 'read' | 'write'>`, including `OAuthProxyClient`.
+
+<!-- atlas: base/properties-type-taxonomy -->
+
 Use IDs from records you are authorized to access. Discovery calls `fields_get`
 for the properties field's `type`, `definition_record` and
 `definition_record_field`, then the child relation's `type` and `relation`, and
@@ -433,6 +438,10 @@ network/protocol failure may follow a committed creation, so reconcile the outco
 before retrying. Server defaults and concurrent definition changes can affect
 stored values; use `read` for subsequent readback.
 
+<!-- atlas: base/field-types-many2one-asymmetry -->
+
+<!-- atlas: base/properties-type-taxonomy -->
+
 The source property helpers normalize Odoo's many2one `[id, display_name]` values
 to IDs and many2many display pairs to ID arrays
 before writing. `getPropertyValue()` extracts the raw read value, including display
@@ -451,6 +460,10 @@ const values = await client.properties.getCurrentWriteFormat(
   'task_properties',
 );
 ```
+
+<!-- atlas: base/properties-full-replacement-danger -->
+
+<!-- atlas: base/properties-safe-update-helpers -->
 
 These helpers read current values, merge the patch and replace the field. They
 preserve other supported values returned by Odoo, including relational properties.

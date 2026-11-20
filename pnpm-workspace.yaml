@@ -7,6 +7,5 @@ allowBuilds:
   # integration tests (Phase 02-03+) run on CI with Docker available and may
   # require re-evaluating these (Phase-1 D-09 / RESEARCH §allowBuilds).
   cpu-features: false
-  lefthook: true
   protobufjs: false
   ssh2: false
